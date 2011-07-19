@@ -28,25 +28,30 @@ class SemanticError : MyException {
  *********************/
 
 enum Type {
-    //Root types:
-    Atom        = 1,
+    //Type attributes:
+    Immutable   = 1,
     Reference   = 2,
-    Callable    = 4,
-    Collection  = 8,
+    Pure        = 4,
+    Builtin     = 8,
+    //Root types:
+    Atom        = 16,
+    Callable    = 32,
+    Collection  = 64,
     //Atomic types:
-    Value       = 16,
-    Symbol      = 32,
-    String      = 64,
+    Value       = 128,
+    Symbol      = 256,
+    String      = 512,
     //Callable types:
-    Function    = 128,
-    Pure        = 256,
-    Builtin     = 512,
-    Syntax      = 1024,
-    Scope       = 2048,
+    Function    = 1024,
+    Syntax      = 2048,
+    Scope       = 4096,
+    //Set       = 8192 //???
     //Collection types:
-    List        = 4096,
-    //Scope       = 2048,
-    //String      = 64,
+    Set         = 8192,
+    Tuple       = 16768,
+    List        = 35536,
+    //Scope       = 4096,
+    //String      = 512,
 }
 
 /***********************************************************************************
@@ -87,7 +92,6 @@ abstract class Expression {
     }
 
     uint type();                    ///Returns the type of the S-expression.
-
     override string toString();     ///Returns the string representation of an S-expression.
 }
 
@@ -141,7 +145,7 @@ class Atom(T, uint atomType) : Expression {
         return Type.Atom|atomType;
     }
 
-    override string toString() {    //FIXME: Pretier!
+    override string toString() {
         return format("%s", value);
     }
 }
@@ -150,19 +154,19 @@ class Atom(T, uint atomType) : Expression {
  * Convinience aliases:
  *********************/
 
-alias Atom!(real, Type.Value)                   Value;      ///A number.
-alias Atom!(string, Type.Symbol)                Symbol;     ///Regular symbol.
-alias Atom!(string, Type.Symbol|Type.String)    String;     ///WYSIWYG symbol.
+alias Atom!(real, Type.Value)                                  Value;      ///A number.
+alias Atom!(string, Type.Symbol)                               Symbol;     ///Regular symbol.
+alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WYSIWYG symbol.
 
 /***********************************************************************************
- * List class representing lisp form and list.
+ * Tuple class representing lisp-like forms - tuples.
  *********************/
 
-class List : Expression, Collection {
-    private Expression[] list;
+class Tuple : Expression, Collection {
+    private Expression[] tuple;
 
-    this(Expression[] list) {
-        this.list = list;
+    this(Expression[] tuple) {
+        this.tuple = tuple;
     }
 
     /***********************************************************************************
@@ -170,7 +174,7 @@ class List : Expression, Collection {
      *********************/
 
     Expression[] range() {
-        return list;
+        return tuple;
     }
 
     /***********************************************************************************
@@ -178,29 +182,29 @@ class List : Expression, Collection {
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        //auto operator = list[0].eval(s, depth + 1);
-        //if(operator.type & Type.Callable) return (cast(Callable)operator).call(s, list[1 .. $]);
-        //else throw new SemanticError("The object '"~list[0].toString~"' is not applicable.");
-        foreach(i, el; list) {
-            auto op = el.eval(s, depth + 1);
-            if(op.type & Type.Callable) return (cast(Callable)op).call(s, list[0 .. i]~list[i+1 .. $]);
+        foreach(i, el; tuple) {
+            auto op = el.eval(s, depth + 1); //FIXME TODO No evaluation before the call.
+            if(op.type & Type.Callable) return (cast(Callable)op).call(s, tuple[0 .. i]~tuple[i+1 .. $]);
         }
-        throw new SemanticError("No applicable object in list "~this.toString~".");
+        throw new SemanticError("No applicable object in tuple "~this.toString~".");
     }
 
     override uint type() {
-        return Type.Collection|Type.List;
+        return Type.Immutable|Type.Collection|Type.Tuple;
     }
 
     override string toString() {
-        auto output = ""~SyntaxToken.LParen;
-        foreach(expression; list) {
+        auto output = ""~SyntaxToken.LTuple;
+        foreach(expression; tuple) {
             if(expression !is this) output ~= expression.toString~" ";
             else output ~= Keyword.Self~" ";
         }
-        return output[0 .. $-1]~SyntaxToken.RParen;
+        return output[0 .. $-1]~SyntaxToken.RTuple;
     }
 }
+
+alias Tuple List;
+alias Tuple Set;
 
 /***********************************************************************************
  * Callable object primitive.

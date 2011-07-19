@@ -10,6 +10,8 @@ debug import std.stdio;
 import std.file : readText, FileException;
 import std.utf : UtfException;
 
+import std.random;
+
 import ASM.lexical;
 import ASM.AST;
 import ASM.parser;
@@ -50,13 +52,13 @@ class Interpreter {
             return first;
         }));
 
-        global.defineSyntax(Keyword.Quote, new Syntax(delegate Expression (ref Scope s, Expression[] args) {
+        global.defineSyntax(Keyword.Quasiquote, new Syntax(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length) return FNORD;
 
             Expression tryEval(Expression arg) {
                 if(arg.type & Type.List) {
                     auto l = (cast(List)arg);
-                    if(l.range[0].toString == Keyword.Embeed) {
+                    if(l.range[0].toString == Keyword.Embed) {
                         return l.eval(s);
                     }
                     else {
@@ -72,7 +74,11 @@ class Interpreter {
             return tryEval(args[0]);
         }));
 
-        global.defineSyntax(Keyword.Embeed, new Syntax(delegate Expression (ref Scope s, Expression[] args) {
+        global.defineSyntax(Keyword.Quote, new Syntax(delegate Expression (ref Scope, Expression[] args) {
+            return args.length ? args[0] : FNORD;
+        }));
+
+        global.defineSyntax(Keyword.Embed, new Syntax(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length) return FNORD;
             if(args[0].type & Type.String) {
                 auto str = cast(String) args[0];                //FIXME: $$"string" != (embeed (embeed "string"))
@@ -116,15 +122,29 @@ class Interpreter {
                 argList = args[1];
                 functionBody = args[2];
             }
+
+            Function foo;
             auto tmp = s;   //WUT FIXME
-            auto foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
+            if(argList.type & Type.Symbol) foo = new Function(delegate Expression (ref Scope, Expression[] callArgs) {
+                //FIXME Quickfix
                 auto lambdaScope = new Scope(tmp);
-                foreach(i, argName; (cast(List) argList).range) {
+                if(callArgs.length)
+                    throw new SemanticError(format("Expected &s arguments instead of %s",
+                                                   0, callArgs.length));
+                return functionBody.eval(lambdaScope);
+            });
+            else foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
+                auto argListRange = (cast(List)argList).range;
+                if(callArgs.length != argListRange.length)
+                    throw new SemanticError(format("Expected %s arguments instead of %s.",
+                                                   argListRange.length, callArgs.length));
+
+                auto lambdaScope = new Scope(tmp);
+                foreach(i, argName; argListRange) {
                     lambdaScope.defineSymbol(argName.toString, callArgs[i].eval(callScope));
                 }
                 return functionBody.eval(lambdaScope);
             });
-
             if(args.length == 2) return foo;
             else {
                 s.defineSymbol(args[0].toString, foo);
@@ -141,8 +161,13 @@ class Interpreter {
             Expression macroBody = args[2];
 
             auto foo = new Syntax(delegate Expression (ref Scope callScope, Expression[] callArgs) {
+                auto argListRange = (cast(List)argList).range;
+                if(callArgs.length != argListRange.length)
+                    throw new SemanticError(format("Expected %s arguments instead of %s.",
+                                                   argListRange.length, callArgs.length));
+
                 auto macroScope = new Scope(callScope);
-                foreach(i, argName; (cast(List) argList).range) {
+                foreach(i, argName; argListRange) {
                     macroScope.defineSymbol(argName.toString, callArgs[i]);
                 }
                 return macroBody.eval(macroScope).eval(callScope);
@@ -226,13 +251,62 @@ class Interpreter {
             else throw new SemanticError("The object "~args[0].toString~" is not applicable.");
         }));
 
+        global.definePure("random", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
+            if(!args.length) throw new SemanticError("Function 'random' requires at least one argument.");
+            auto randomGenerator = MinstdRand(unpredictableSeed);
+            Expression randomImpl(Expression arg) {
+                auto range = arg.eval(s);
+                if(range.type & Type.Value) {
+                    auto r = (cast(Value)range).value;
+                    return new Value(uniform(0, r));
+                }
+                else if(range.type & Type.Collection) {
+                    auto r = (cast(Collection)range).range.length;
+                    return (cast(Collection)range).range[randomGenerator.front % r];
+                }
+                else throw new SemanticError("The object "~arg.toString~" is not applicable.");
+            }
+            if(args.length == 1) return randomImpl(args[0]);
+            else {
+                Expression[] list;
+                foreach(arg; args) {
+                    list ~= randomImpl(arg);
+                }
+                return new List(list);
+            }
+        }));
+
+        global.definePure("tuple", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
+            Expression[] tuple;
+            foreach(arg; args) {
+                tuple ~= arg.eval(s);
+            }
+            if(tuple.length) return new Tuple(tuple);
+            return FNORD;
+        }));
+
+        global.definePure("tuple?", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
+            if(args.length != 1) throw new SemanticError("Function 'touple?' requires exactly one argument.");
+            auto arg = args[0].eval(s);
+            if(arg.type & Type.Tuple) return arg;
+            return FNORD;
+        }));
+
         global.defineSyntax(Keyword.Body, new Syntax(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length) return FNORD;
-            Expression Expression;
+            Expression expr;
             foreach(arg; args[0 .. $]) {
-                Expression = arg.eval(s);
+                expr = arg.eval(s);
             }
-            return Expression;
+            return expr;
+        }));
+
+        global.defineSyntax(Keyword.If, new Syntax(delegate Expression (ref Scope s, Expression[] args) {
+            if(args.length != 2 && args.length != 3)
+                throw new SemanticError("Syntax keyword 'if' requires two or three arguments.");
+            if(args[0].eval(s) !is FNORD)
+                return args[1].eval(s);
+            else return args.length == 3 ? args[2].eval(s) : FNORD;
         }));
 
         global.definePure("range", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {

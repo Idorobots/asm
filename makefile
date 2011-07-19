@@ -2,7 +2,7 @@
 
 DC = dmd
 DFLAGS = -wi -I./src -I..
-GDB = -unittest -debug -gc
+GDB = -unittest -debug #-gc
 DLDLIBS =
 
 VPATH = src:src/ASM:utils
