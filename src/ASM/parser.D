@@ -1,5 +1,6 @@
 /***********************************************************************************
- * Code parsing module. //TODO Some more refactorisation. Rewrite perhapse?
+ * Code parsing module.
+ * TODO: Refactorisation, rewrite perhaps?
  *********************/
 
 module ASM.parser;
@@ -9,7 +10,8 @@ import std.array : front, popFront;
 
 debug import std.stdio;
 debug import utils.testing;
-import utils.exception;
+import utils.exception : MyException;
+import utils.ctfe : contains;
 
 import ASM.lexical;
 import ASM.AST;
@@ -45,10 +47,10 @@ abstract class Parser {
 class DefaultParser : Parser {
 
     /***********************************************************************************
-     * Additional syntax tokens.
+     * Extended syntax tokens.
      *********************/
 
-    enum ExtendedSyntax : string {
+    enum ESyntax : string {
         Quote           = "\'",         ///Quoting: '(#whatever)
         Quasiquote      = "`",          ///Quasiquoting.
         Embed           = "$",          ///'(some expression $with_embedded_symbol
@@ -74,13 +76,13 @@ class DefaultParser : Parser {
             string output;
             auto s = (input~"\0").ptr;
             while(*s) {
-                if(*s == SyntaxToken.StringDelim) {
+                if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
                     string str;
                     str ~= *s++;
-                    while(*s && *s != SyntaxToken.StringDelim) str ~= *s++;
+                    while(*s && *s != Syntax.StringDelim) str ~= *s++;
                     str ~= *s++;
-                    output ~= " "~ExtendedSyntax.StringPrefix~to!string(stringBank.length)~" ";
+                    output ~= " "~Syntax.StringDelim~" "~to!string(stringBank.length)~" ";
                     stringBank ~= str;
                 }
                 else output ~= *s++;
@@ -95,22 +97,15 @@ class DefaultParser : Parser {
         pure string syntaxExpand(in string input) {
             string output;
             auto s = (input~"\0").ptr;
-            auto syntax = [SyntaxToken.LTuple, SyntaxToken.RTuple,      //Tuple parentesis
-                           SyntaxToken.LList,  SyntaxToken.RList,       //List parentesis
-                           SyntaxToken.LSet,   SyntaxToken.RSet,        //Set parentesis
-                           ExtendedSyntax.Quote[0],                     //' -> (quote )
-                           ExtendedSyntax.Quasiquote[0],                //` -> (quasiquote )
-                           ExtendedSyntax.Embed[0]];                    //$ -> (embed )
-
-            bool isIn(LetterT, ArrayT)(LetterT letter, ArrayT  array) {
-                foreach(l; array) {
-                    if(letter == l) return true;
-                }
-                return false;
-            }
+            auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
+                           Syntax.LList,  Syntax.RList,       //List parentesis
+                           Syntax.LSet,   Syntax.RSet,        //Set parentesis
+                           ESyntax.Quote[0],                  //' -> (quote )
+                           ESyntax.Quasiquote[0],             //` -> (quasiquote )
+                           ESyntax.Embed[0]];                 //$ -> (embed )
 
             while(*s) {
-                if(isIn(*s, syntax)) output ~= " "~s[0 .. 1]~" ";
+                if(contains(syntax, *s)) output ~= " "~s[0 .. 1]~" ";
                 else output ~= *s;
                 s++;
             }
@@ -125,12 +120,12 @@ class DefaultParser : Parser {
         string getExpression(Char)(ref Char *s) {
             Char[] expression;
             while(*s && *s == ' ') s++;
-            if(*s && *s == SyntaxToken.LTuple) {
+            if(*s && *s == Syntax.LTuple) {
                 uint parenCount = 0;
                 while(*s) {
                     expression ~= *s;
-                    if(*s == SyntaxToken.LTuple) parenCount++;
-                    else if(*s == SyntaxToken.RTuple) parenCount--;
+                    if(*s == Syntax.LTuple) parenCount++;
+                    else if(*s == Syntax.RTuple) parenCount--;
                     if(parenCount == 0) break;
                     s++;
                 }
@@ -148,52 +143,28 @@ class DefaultParser : Parser {
             string output;
             auto s = (input~"\0").ptr;
             while(*s) {
-                if(*s == SyntaxToken.CommentStart) {
+                if(*s == Syntax.CommentStart) {
                     s++;
-                    if(*s && *s == SyntaxToken.CommentStart)
-                    while(*s && *s != SyntaxToken.EndOfLine) s++; //Line comment.
-                    else getExpression(s);  //Sexp comment.
+                    if(*s && *s == Syntax.CommentStart)
+                    while(*s && *s != Syntax.EndOfLine) s++;       //Line comment.
+                    else getExpression(s);                         //Sexp comment.
                 }
                 output ~= *s++;
             }
             return output;
         }
 
-        // /***********************************************************************************
-        //  * Expands SyntaxToken convinience forms such as ' or $.
-        //  * TODO: Move this to stringExpand, or to parse.
-        //  *********************/
-
-        // string syntaxExpand(in string input) {
-        //     string output;
-
-        //     string tupleUp(string keyword, immutable(char)* s) {
-        //         return " "~SyntaxToken.LTuple~" "~keyword~" "~syntaxExpand(getExpression(s))
-        //                ~" "~SyntaxToken.RTuple~" ";
-        //     }
-        //     auto s = (input~"\0").ptr;
-        //     while(*s) {
-        //         //TODO: Pretier.
-        //         if(*s == ExtendedSyntax.Quote) output ~= tupleUp(Keyword.Quote, ++s);
-        //         else if(*s == ExtendedSyntax.Quasiquote) output ~= tupleUp(Keyword.Quasiquote,++s);
-        //         else if(*s == ExtendedSyntax.Embed) output ~= tupleUp(Keyword.Embed, ++s);
-        //         else output ~= *s++;
-        //     }
-        //     return output;
-        // }
-
         string output;
-        //auto s = (syntaxExpand(commentCollapse(parenExpand(stringCollapse(input))))~"\0").ptr;
         auto s = (commentCollapse(syntaxExpand(stringCollapse(input)))~"\0").ptr;
 
-        while(*s && *s < 0x21) s++;     //Spaces, spaces everywhere.
+        while(*s && *s < 0x21) s++;                                     //Spaces, spaces everywhere.
         while(*s) {
             switch(*s) {
-                case ' ':               //Spaces.
+                case ' ':                                               //Spaces.
                     output ~= *s++;
                     while(*s && *s <= ' ') s++;
                     continue;
-                case 0x0: .. case 0x1F: //Whitespaces
+                case 0x0: .. case 0x1F:                                 //Whitespaces
                     s++;
                     continue;
                 default: break;
@@ -216,7 +187,7 @@ class DefaultParser : Parser {
         test("Trailing whitespaces.  \n\t  \r\n", "Trailing whitespaces.");
         test("Lots\t\na white\r\nspaces      \nand shit\t.", "Lotsa whitespaces and shit.");
         test("Lots\t\na white\r\nspaces   \"   \nand a string\".",
-             "Lotsa whitespaces "~ExtendedSyntax.StringPrefix~"0 .");
+             "Lotsa whitespaces "~Syntax.StringDelim~" 0 .");
         test("Some string without comments.", "Some string without comments.");
         test("String (with parenteses (all over)).", "String ( with parenteses ( all over ) ) .");
         test("Some multi\nline str\ning without comments.", "Some multiline string without comments.");
@@ -224,8 +195,8 @@ class DefaultParser : Parser {
         test("Some string #(with Expression) comment.", "Some string comment.");
         test("Some string #(with a (Expression embeded in a) Expression) comment.", "Some string comment.");
         test("Some string \"with an \nembeded \tstring\" in it.",
-             "Some string "~ExtendedSyntax.StringPrefix~"0 in it.");
-        test("String with a \"#(comment in a string), lol.\"", "String with a "~ExtendedSyntax.StringPrefix~"0");
+             "Some string "~Syntax.StringDelim~" 0 in it.");
+        test("String with a \"#(comment in a string), lol.\"", "String with a "~Syntax.StringDelim~" 0");
         test("String with a single #word comment.", "String with a single comment.");
         test("(Statement with a single word #comment.)", "( Statement with a single word )");
         // test("(Quotted '(statement bla bla), yeah.)",
@@ -249,10 +220,10 @@ class DefaultParser : Parser {
         auto s = (input~'\0').ptr;
         while(*s) {
             statement ~= *s;
-            if(*s == SyntaxToken.LTuple) parenCount++;
-            else if(*s == SyntaxToken.RTuple) {
+            if(*s == Syntax.LTuple) parenCount++;
+            else if(*s == Syntax.RTuple) {
                 parenCount--;
-                if(parenCount < 0) throw new SyntacticError("Mismatched \""~SyntaxToken.RTuple~"\"");
+                if(parenCount < 0) throw new SyntacticError("Mismatched \""~Syntax.RTuple~"\"");
                 else if(parenCount == 0) {
                     if(statement.length) {
                         statements ~= statement;
@@ -266,7 +237,7 @@ class DefaultParser : Parser {
             s++;
         }
         if(statement.length) statements ~= statement;
-        if(parenCount > 0) throw new SyntacticError("Mismatched \""~SyntaxToken.LTuple~"\"");
+        if(parenCount > 0) throw new SyntacticError("Mismatched \""~Syntax.LTuple~"\"");
         return statements;
     }
     unittest {
@@ -299,8 +270,8 @@ class DefaultParser : Parser {
             catch(Exception e) { t.assertion!("==")(e.toString, expected, line); }
         }
 
-        test2("( ( ) 9 ) ) ) 99 ( ( 00 ) ) ) )", "Error: Mismatched \""~SyntaxToken.RTuple~"\"");
-        test2("( ( ( ) )", "Error: Mismatched \""~SyntaxToken.LTuple~"\"");
+        test2("( ( ) 9 ) ) ) 99 ( ( 00 ) ) ) )", "Error: Mismatched \""~Syntax.RTuple~"\"");
+        test2("( ( ( ) )", "Error: Mismatched \""~Syntax.LTuple~"\"");
     }
 
     /***********************************************************************************
@@ -311,9 +282,9 @@ class DefaultParser : Parser {
     body {
         string[] tokens;
         string token;
-        auto parens = [1:SyntaxToken.LTuple, 2:SyntaxToken.RTuple,      //Tuple parentesis
-                       3:SyntaxToken.LList,  4:SyntaxToken.RList,       //List parentesis
-                       5:SyntaxToken.LSet,   6:SyntaxToken.RSet];       //Set parentesis
+        auto parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
+                       Syntax.LList,  Syntax.RList,       //List parentesis
+                       Syntax.LSet,   Syntax.RSet];       //Set parentesis
         auto s = (input~'\0').ptr;
         while(*s) {
             if(*s == ' ') {
@@ -322,7 +293,7 @@ class DefaultParser : Parser {
                     token = "";
                 }
             }
-            else if(*s in parens) tokens ~= s[0 .. 1];
+            else if(contains(parens, *s)) tokens ~= s[0 .. 1];
             else token ~= *s;
             s++;
         }
@@ -344,22 +315,6 @@ class DefaultParser : Parser {
             ["(", "Not", "so", "(", "simple", "statement", "(", "at", ")", ")", "all.", ")"]);
     }
 
-    // /***********************************************************************************
-    //  * String expansion. Each __string## gets substituted for its stringBank equivalent.
-    //  *********************/
-
-    // string[] expand(in string[] tokens) {
-    //     string[] expanded;
-    //     auto len = StringPrefix.length;
-    //     foreach(token; tokens) {
-    //         if(token.length > len && token[0 .. len] == StringPrefix) {
-    //             expanded ~= stringBank[to!uint(token[len .. $])];
-    //         }
-    //         else expanded ~= token;
-    //     }
-    //     return expanded;
-    // }
-
     /***********************************************************************************
      * Parses a stream of tokens into a single AST.
      *********************/
@@ -367,14 +322,22 @@ class DefaultParser : Parser {
     Expression parse(ref string[] tokens) {
         auto token = tokens.front;
         tokens.popFront;
-        auto parens = [cast(immutable(char))SyntaxToken.RTuple : cast(immutable(char))SyntaxToken.LTuple,
-                       SyntaxToken.RList : SyntaxToken.LList,
-                       SyntaxToken.RSet : SyntaxToken.LSet];
-        auto extendedSyntax = [cast(string)ExtendedSyntax.Quote : cast(string)Keyword.Quote,
-                               ExtendedSyntax.Quasiquote : Keyword.Quasiquote,
-                               ExtendedSyntax.Embed : Keyword.Embed];
-        if(token in extendedSyntax) {
-            return new Tuple([new Symbol(extendedSyntax[token]), parse(tokens)]);
+        //All kinds of parenthesis.
+        auto parens = [cast(immutable(char))Syntax.LTuple : cast(immutable(char))Syntax.RTuple, //TODO: Pretier!
+                       Syntax.LList : Syntax.RList,
+                       Syntax.LSet : Syntax.RSet];
+        //Extended syntax.
+        auto expandables = [cast(string)ESyntax.Quote : cast(string)Keywords.Quote,
+                               ESyntax.Quasiquote : Keywords.Quasiquote,
+                               ESyntax.Embed : Keywords.Embed];
+
+        if(token == ""~Syntax.StringDelim) {
+            auto index = tokens.front;
+            tokens.popFront;
+            return new String(stringBank[to!uint(index)]);
+        }
+        else if(token in expandables) {
+            return new Tuple([new Symbol(expandables[token]), parse(tokens)]);
         }
         else if(token[0] in parens) {
             auto delimiter = parens[token[0]];
@@ -386,12 +349,12 @@ class DefaultParser : Parser {
             tokens.popFront();
 
             switch(delimiter) {
-                case SyntaxToken.RTuple:
+                case Syntax.RTuple:
                     if(collection.length) return new Tuple(collection);
-                    return new Symbol(Keyword.Fnord);
-                case SyntaxToken.RList:
+                    return new Symbol(Keywords.Fnord);
+                case Syntax.RList:
                     return new List(collection);
-                case SyntaxToken.RSet:
+                case Syntax.RSet:
                     return new Set(collection);
                 default: assert(0);
             }
@@ -403,8 +366,7 @@ class DefaultParser : Parser {
                 return new Value(value);
             }
             catch(Exception e) {
-                if(token[0] == SyntaxToken.StringDelim) return new String(token);
-                else return new Symbol(token);
+                return new Symbol(token);
             }
         }
     }
@@ -419,7 +381,6 @@ class DefaultParser : Parser {
         Expression[] output;
         auto statements = statementize(preprocess(input));
         foreach(statement; statements) {
-            //auto tokens = expand(tokenize(statement));
             auto tokens = tokenize(statement);
             if(tokens.length) output ~= parse(tokens);
         }

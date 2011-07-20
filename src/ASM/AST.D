@@ -8,7 +8,7 @@ module ASM.AST;
 import std.string : format;
 import std.conv : to;
 
-import utils.exception;
+import utils.exception : MyException;
 import utils.ctfe;
 
 import ASM.lexical;
@@ -43,13 +43,13 @@ enum Type {
     String      = 512,
     //Callable types:
     Function    = 1024,
-    Syntax      = 2048,
+    Keyword     = 2048,
     Scope       = 4096,
     //Set       = 8192 //???
     //Collection types:
     Set         = 8192,
-    Tuple       = 16768,
-    List        = 35536,
+    Tuple       = 16384,
+    List        = 32768,
     //Scope       = 4096,
     //String      = 512,
 }
@@ -70,6 +70,7 @@ interface Callable {
 
 /***********************************************************************************
  * An interface for all iterable collection types.
+ * TODO: void opApply()
  *********************/
 
 interface Collection {
@@ -194,12 +195,12 @@ class Tuple : Expression, Collection {
     }
 
     override string toString() {
-        auto output = ""~SyntaxToken.LTuple;
+        auto output = ""~Syntax.LTuple;
         foreach(expression; tuple) {
             if(expression !is this) output ~= expression.toString~" ";
-            else output ~= Keyword.Self~" ";
+            else output ~= Keywords.Self~" ";
         }
-        return output[0 .. $-1]~SyntaxToken.RTuple;
+        return output[0 .. $-1]~Syntax.RTuple;
     }
 }
 
@@ -224,7 +225,7 @@ class Procedure(uint procType) : Expression, Callable {
         if(procType & Type.Builtin)  output ~= "compiled ";
         if(procType & Type.Pure)     output ~= "pure ";
         if(procType & Type.Function) output ~= "function ";
-        if(procType & Type.Syntax)   output ~= "static syntax keyword ";
+        if(procType & Type.Keyword)  output ~= "syntax keyword ";
         return utils.ctfe.capitalize(output);
     }
 
@@ -241,7 +242,7 @@ class Procedure(uint procType) : Expression, Callable {
     }
 
     override string toString() {
-        return format(""~SyntaxToken.StringDelim~stringof~"at 0x%d."~SyntaxToken.StringDelim, cast(void*) this);
+        return format(""~Syntax.StringDelim~stringof~"at 0x%d."~Syntax.StringDelim, cast(void*) this);
     }
 }
 
@@ -253,7 +254,7 @@ alias Procedure!(Type.Function)                          Function;       ///Func
 alias Procedure!(Type.Pure|Type.Function)                Pure;           ///Pure function.
 alias Procedure!(Type.Builtin|Type.Function)             Builtin;        ///Builtin function.
 alias Procedure!(Type.Pure|Type.Builtin|Type.Function)   PureBuiltin;    ///Builtin function.
-alias Procedure!(Type.Syntax)                            Syntax;         ///Syntax keyword.
+alias Procedure!(Type.Keyword)                           Keyword;        ///Syntax keyword.
 
 /***********************************************************************************
  * A variable scope for soring symbols.
@@ -268,7 +269,7 @@ class Scope : Expression, Callable, Collection {
 
     this(Scope outter = null) {
         this.outter = outter;
-        this.defineSyntax(Keyword.Self, this);
+        this.defineSyntax(Keywords.Self, this);
     }
 
     /***********************************************************************************
@@ -303,9 +304,6 @@ class Scope : Expression, Callable, Collection {
      *********************/
 
     ref Expression get(string sym) {
-        //if(sym in syntax) return syntax[sym];
-        //if(sym in pures) return pures[sym];
-        //(sym in symbols) return symbols[sym];
         if(auto s = sym in syntax)   return *s;
         if(auto s = sym in pures)    return *s;
         if(auto s = sym in symbols)  return *s;
@@ -344,7 +342,7 @@ class Scope : Expression, Callable, Collection {
     }
 
     override string toString() {
-        return format(""~SyntaxToken.StringDelim~"Scope at 0x%d."~SyntaxToken.StringDelim, cast(void*) this);
+        return format(""~Syntax.StringDelim~"Scope at 0x%d."~Syntax.StringDelim, cast(void*) this);
     }
 
     override uint type() {

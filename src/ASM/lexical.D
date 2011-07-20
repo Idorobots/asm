@@ -9,19 +9,27 @@ module ASM.lexical;
  *
  *    Expression:
  *                  Atom
- *                  List
+ *                  Collection
  *    Atom:
  *                  NumberLiteral
  *                  Symbol
  *    NumberLiteral:
  *                  [+-]?[0-9]+ //TODO
  *    Symbol:
- *                  [^\] //TODO
+ *                  [^Syntax]+
  *                  StringLiteral
  *    StringLiteral:
- *                  StringDelim .* StringDelim //TODO
+ *                  Syntax.StrDelim .* Syntax.StrDelim
+ *    Collection:
+ *                  Tuple
+ *                  List
+ *                  Set
+ *    Tuple:
+ *                  Syntax.LTuple Expresion+ Syntax.RTuple
  *    List:
- *                  LParen Expression* RParen
+ *                  Syntax.LList Expression* Syntax.RListn
+ *    Set:
+ *                  Syntax.LSet Expression* Syntax.RSet
  *********************/
 
 /***********************************************************************************
@@ -29,19 +37,16 @@ module ASM.lexical;
  * TODO: Namechange? CoreSyntax? BasicSyntax? Plain Syntax nameclashes with ast.Syntax
  *********************/
 
-enum SyntaxToken : char {
+enum Syntax : char {
     EndOfLine       = '\n',         ///Line end.
     EndOfFile       = '\0',         ///EOF
-    CommentStart    = '#',          ///Both for line and sexp comments. Examples:
-                                    ///## This is a line comment.\n
-                                    ///#(This is a sexp comment.)
-                                    ///#so_is_this
+    CommentStart    = '#',          ///Both for line and sexp comments.
     LTuple          = '(',          ///Left tuple paren.
     RTuple          = ')',          ///Right tuple paren.
     LList           = '[',          ///Left list paren.
     RList           = ']',          ///Right list paren.
     LSet            = '{',          ///Left set paren.
-    RSet            = '}',          ///Reft set paren.
+    RSet            = '}',          ///Right set paren.
     StringDelim     = '\"',         ///String delimiters.
 }
 
@@ -49,10 +54,10 @@ enum SyntaxToken : char {
  * Reserved language keywords:
  *********************/
 
-enum Keyword : string { //TODO Sort this sheet. Write proper descriptions.
+enum Keywords : string {
     //Special keywords:
     Fnord       = "fnord",      ///fnord - the only false arround.
-    Self        = "self",       ///self - object self reference
+    Self        = "self",       ///self - object self reference         //TODO: out?
     //Math:
     Mult        = "mult",       ///Multiplication.
     Add         = "add",        ///Addition.
@@ -62,83 +67,24 @@ enum Keyword : string { //TODO Sort this sheet. Write proper descriptions.
     //Comparison:
     LessOrEqual = "leq",        ///Less or equal.
     IsEqual     = "equal?",     ///Equality check.
-    //Boolean operations:
-    Not         = "not",        ///Not.
-    And         = "and",        ///And.
-    Or          = "or",         ///Or.
-    Xor         = "xor",
-    Nand        = "nand",
-    //etc
     //Collection manipulation:
-    Car         = "first",      ///The first element of a collection.
-    Cdr         = "rest",       ///The rest of the collection.
-    Cons        = "cons",       ///Joins two collections into one. //TODO Namechange to join?
+    Car         = "first",      ///Reference/value of the first element in a mutable/immutable collection.
+    Cdr         = "rest",       ///Collection refering the rest of the collection.
+    Cons        = "join",       ///Joins two collections into one (the types must match).
     //Quoting and quasiquoting:
-    Quasiquote  = "quasiquote", ///Quasiquoting.
+    Quasiquote  = "qquote",     ///Quasiquoting.
     Quote       = "quote",      ///Quoting.
     Embed       = "embed",      ///Embeding. //TODO Namechange to eval
     //Declarators:
-    Var         = "var",        ///Variable declaration.
-    Function    = "function",   ///Function declaration.
-    Pure        = "pure",       ///Pure function declaration.
-    Macro       = "macro",      ///Macro declaration.
-    Scope       = "scope",      ///Scope declaration.
+    Var         = "var",        ///Binds a variable to an expression (or fnord).
+    Function    = "function",   ///Creates an anonymous function.
+    Macro       = "macro",      ///Creates a macro.
+    Scope       = "scope",      ///Crates a lexical scope.
     //Setter:
-    Set         = "set",        ///Unified setter.
-    //Flow controll:
-    If          = "if",         ///Basic if branch.
-    Body        = "begin",      ///Block expression. //TODO Namechange to something else.
+    Set         = "set",        ///Sets writeable memory locations.
+    //Flow control:
+    If          = "if",         ///if condition then else
     //Predicates:
     IsFnord     = "fnord?",     ///Returns fnord if arg is not fnord.
-    IsAtom      = "atom?",      ///Returns fnord if arg is not atomic.
-    IsCollection= "collection?",///Returns fnord if arg is not a collection.
-    IsNan       = "nan?",       ///Returns fnord if arg is not nan.
-    IsEmpty     = "empty?",     ///Returns fnord if a collection is not empty.
+    IsType      = "type?",      ///Not a predicate; returns type touple of an object.
 }
-
-// static struct Keyword { //FIXME This is a temp fix.due to a dmd bug.
-//     //Special keywords:
-//     enum Fnord       = "fnord";      ///fnord - the only false arround.
-//     enum Self        = "self";
-//     //Math:
-//     enum Mult        = "mult";       ///Multiplication.
-//     enum Add         = "add";        ///Addition.
-//     enum Sub         = "sub";        ///Substraction.
-//     enum Div         = "div";        ///Division.
-//     enum Mod         = "modulo";     ///Modulus.
-//     //Comparison:
-//     enum LessOrEqual = "leq";        ///Less or equal.
-//     enum IsEqual     = "equal?";     ///Equality check.
-//     //Boolean operations:
-//     enum Not         = "not";        ///Not.
-//     enum And         = "AND";        ///And.
-//     enum Or          = "or";         ///Or.
-//     enum Xor         = "xor";
-//     enum Nand        = "nand";
-//     //etc
-//     //Collection manipulation:
-//     enum Car         = "first";      ///The first element of a collection.
-//     enum Cdr         = "rest";       ///The rest of the collection.
-//     enum Cons        = "cons";       ///Joins two collections into one. //TODO Namechange to join?
-//     //Quoting and quasiquoting:
-//     enum Quasiquote  = "quasiquote"; ///Quasiquoting.
-//     enum Quote       = "quote";      ///Quoting.
-//     enum Embed       = "embed";      ///Embeding. //TODO Namechange to eval
-//     //Declarators:
-//     enum Var         = "var";        ///Variable declaration.
-//     enum Function    = "function";   ///Function declaration.
-//     enum Pure        = "pure";       ///Pure function declaration.
-//     enum Macro       = "macro";      ///Macro declaration.
-//     enum Scope       = "scope";      ///Scope declaration.
-//     //Setter:
-//     enum Set         = "set";        ///Unified setter.
-//     //Flow controll:
-//     enum If          = "if";         ///Basic if branch.
-//     enum Body        = "begin";      ///Block expression. //TODO Namechange to something else.
-//     //Predicates:
-//     enum IsFnord     = "fnord?";     ///Returns fnord if arg is not fnord.
-//     enum IsAtom      = "atom?";      ///Returns fnord if arg is not atomic.
-//     enum IsCollection= "collection?";///Returns fnord if arg is not a collection.
-//     enum IsNan       = "nan?";
-//     enum IsEmpty     = "empty?";
-// }

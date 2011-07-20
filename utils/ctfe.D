@@ -24,3 +24,11 @@ auto toUpper(Char)(in Char c) {
     else return c;
 }
 
+/************************************************************************************
+ * Returns true if character a is found in array array.
+ *********************/
+
+bool contains(T1, T2)(T1[] array, T2 a) {
+    foreach(el; array) if(a == el) return true;
+    return false;
+}

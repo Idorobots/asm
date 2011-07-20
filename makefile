@@ -7,11 +7,13 @@ DLDLIBS =
 
 VPATH = src:src/ASM:utils
 
+TARGET = asm.exe
+
 OBJS = main.obj interpreter.obj parser.obj AST.obj lexical.obj testing.obj exception.obj ctfe.obj
 
-all : asm.exe
+all : $(TARGET)
 
-asm.exe : $(OBJS)
+$(TARGET) : $(OBJS)
 	$(DC) $^ $(DLDLIBS) -of$@
 
 %.obj : %.d
@@ -19,4 +21,5 @@ asm.exe : $(OBJS)
 
 clean:
 	rm -f *.obj
+	rm -f $(TARGET)
 

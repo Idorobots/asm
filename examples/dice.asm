@@ -4,7 +4,7 @@
      `(var $name (function $args $body)))
 
 (defun roll (dice)                              ## Dice rolling function.
-    (if (touple? dice)
+    (if (tuple? dice)
         (random dice)))
 
 (defun rollRandom ()
@@ -24,7 +24,7 @@
 (var dHIT '("head" "upper body" "lower body"
             "left arm" "right arm" "left leg"
             "right leg"))
-(var dRANDOM (touple d4 d6 d8 d10 d% d20 d30))
+(var dRANDOM (tuple d4 d6 d8 d10 d% d20 d30))
 
 ## Roll some dice:
 
