@@ -26,6 +26,16 @@ class SyntacticError : MyException {
     }
 }
 
+
+/***********************************************************************************
+ * Mismatched token exception..
+ *********************/
+
+class Mismatched : SyntacticError {
+    public this(string token) {
+        super("Mismatched '"~token~"'.");
+    }
+}
 /***********************************************************************************
  * An abstract class for an easy substitution. If you need a faster-than-default
  * parser - feel free to make one.
@@ -56,7 +66,6 @@ class DefaultParser : Parser {
         Embed           = "$",          ///'(some expression $with_embedded_symbol
                                         ///    $(* and expression))
                                         ///"A string with an $embedded-variable"
-        StringPrefix    = "__string",   ///Used for convinient string processing.
     }
     string[] stringBank;                ///Stores string literals for convinient parsing later on.
 
@@ -91,6 +100,24 @@ class DefaultParser : Parser {
         }
 
         /***********************************************************************************
+         * Removes comments.
+         *********************/
+
+        string commentCollapse(in string input) {
+            string output;
+            auto s = (input~"\0").ptr;
+            while(*s) {
+                if(*s == Syntax.CommentStart) {
+                    s++;
+                    if(*s && *s == Syntax.CommentStart) while(*s && *s != Syntax.EndOfLine) s++;
+                    else output ~= " "~Syntax.CommentStart~" "; //Sexp comment is thrown away in parse().
+                }
+                output ~= *s++;
+            }
+            return output;
+        }
+
+        /***********************************************************************************
          * Adds spaces and expands scope brackets into regular ones.
          *********************/
 
@@ -100,8 +127,9 @@ class DefaultParser : Parser {
             auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                            Syntax.LList,  Syntax.RList,       //List parentesis
                            Syntax.LSet,   Syntax.RSet,        //Set parentesis
+                           Syntax.CommentStart,               //Sexp comment.
                            ESyntax.Quote[0],                  //' -> (quote )
-                           ESyntax.Quasiquote[0],             //` -> (quasiquote )
+                           ESyntax.Quasiquote[0],             //` -> (qquote )
                            ESyntax.Embed[0]];                 //$ -> (embed )
 
             while(*s) {
@@ -112,50 +140,8 @@ class DefaultParser : Parser {
             return output;
         }
 
-        /***********************************************************************************
-         * Extracts a single S-expression from the string pointed to by s.
-         * FIXME: Paren regression. This needs to be thrown away.
-         *********************/
-
-        string getExpression(Char)(ref Char *s) {
-            Char[] expression;
-            while(*s && *s == ' ') s++;
-            if(*s && *s == Syntax.LTuple) {
-                uint parenCount = 0;
-                while(*s) {
-                    expression ~= *s;
-                    if(*s == Syntax.LTuple) parenCount++;
-                    else if(*s == Syntax.RTuple) parenCount--;
-                    if(parenCount == 0) break;
-                    s++;
-                }
-                s++;
-            }
-            else while(*s && *s != ' ') expression ~= *s++;
-            return expression;
-        }
-
-        /***********************************************************************************
-         * Removes comments.
-         *********************/
-
-        string commentCollapse(in string input) {
-            string output;
-            auto s = (input~"\0").ptr;
-            while(*s) {
-                if(*s == Syntax.CommentStart) {
-                    s++;
-                    if(*s && *s == Syntax.CommentStart)
-                    while(*s && *s != Syntax.EndOfLine) s++;       //Line comment.
-                    else getExpression(s);                         //Sexp comment.
-                }
-                output ~= *s++;
-            }
-            return output;
-        }
-
         string output;
-        auto s = (commentCollapse(syntaxExpand(stringCollapse(input)))~"\0").ptr;
+        auto s = (syntaxExpand(commentCollapse(stringCollapse(input)))~"\0").ptr;
 
         while(*s && *s < 0x21) s++;                                     //Spaces, spaces everywhere.
         while(*s) {
@@ -199,79 +185,6 @@ class DefaultParser : Parser {
         test("String with a \"#(comment in a string), lol.\"", "String with a "~Syntax.StringDelim~" 0");
         test("String with a single #word comment.", "String with a single comment.");
         test("(Statement with a single word #comment.)", "( Statement with a single word )");
-        // test("(Quotted '(statement bla bla), yeah.)",
-        //      "( Quotted ( "~Keyword.Quote~" ( statement bla bla ) ) , yeah. )");
-        // test("(Quotted 'word in a statement)", "( Quotted ( "~Keyword.Quote~" word ) in a statement )");
-        // test("(Quotted '(statement next to a)\"string.\")",
-        //      "( Quotted ( "~Keyword.Quote~" ( statement next to a ) ) "~StringPrefix~"0 )");
-        // test("(Quotted 'word\"next to a string.\")",
-        //      "( Quotted ( "~Keyword.Quote~" word ) "~StringPrefix~"0 )");
-    }
-
-    /***********************************************************************************
-     * Cuts a string into several statements, also counts the brackets.
-     *********************/
-
-    pure string[] statementize(in string input)
-    body {
-        string[] statements;
-        string statement;
-        int parenCount;
-        auto s = (input~'\0').ptr;
-        while(*s) {
-            statement ~= *s;
-            if(*s == Syntax.LTuple) parenCount++;
-            else if(*s == Syntax.RTuple) {
-                parenCount--;
-                if(parenCount < 0) throw new SyntacticError("Mismatched \""~Syntax.RTuple~"\"");
-                else if(parenCount == 0) {
-                    if(statement.length) {
-                        statements ~= statement;
-                        statement = "";
-                    }
-                    s++;
-                    while(*s && *s == ' ') s++;
-                    continue;   //TODO Pretier.
-                }
-            }
-            s++;
-        }
-        if(statement.length) statements ~= statement;
-        if(parenCount > 0) throw new SyntacticError("Mismatched \""~Syntax.LTuple~"\"");
-        return statements;
-    }
-    unittest {
-        auto t = TestCase("DefaultParser.statementize");
-        auto i = new DefaultParser();
-
-        void test(int line = __LINE__)(string input, string[] expected) {
-            auto actual = i.statementize(input);
-            t.assertion!"=="(actual, expected, line);
-        }
-
-        test("Word.", ["Word."]);
-        test("Simple statement.", ["Simple statement."]);
-        test("( A statement ( with en embeded ) statement. )",
-            ["( A statement ( with en embeded ) statement. )"]);
-        test("( Two ) ( statements. )", ["( Two )", "( statements. )"]);
-        test("( Three ) ( statements ( with embeded ) ) ( statements. )",
-            ["( Three )", "( statements ( with embeded ) )", "( statements. )"]);
-
-        void test1(int line = __LINE__)(string str) {
-            try { i.statementize(str); t.success; }
-            catch(Exception e) { t.failure(line); }
-        }
-
-        test1("Some string with no parens.");
-        test1("( ( ( ) ( ( ) ) ( ) ( ( ) ( ( ) ) ) ) )");
-
-        void test2(int line = __LINE__)(string input, string expected) {
-            try { i.statementize(input); t.failure(line); }
-            catch(Exception e) { t.assertion!("==")(e.toString, expected, line); }
-        }
-
-        test2("( ( ) 9 ) ) ) 99 ( ( 00 ) ) ) )", "Error: Mismatched \""~Syntax.RTuple~"\"");
-        test2("( ( ( ) )", "Error: Mismatched \""~Syntax.LTuple~"\"");
     }
 
     /***********************************************************************************
@@ -320,33 +233,45 @@ class DefaultParser : Parser {
      *********************/
 
     Expression parse(ref string[] tokens) {
+        if(!tokens.length) return null;
         auto token = tokens.front;
         tokens.popFront;
+
         //All kinds of parenthesis.
         auto parens = [cast(immutable(char))Syntax.LTuple : cast(immutable(char))Syntax.RTuple, //TODO: Pretier!
                        Syntax.LList : Syntax.RList,
                        Syntax.LSet : Syntax.RSet];
+        auto antyparens = [cast(immutable(char))Syntax.RTuple : cast(immutable(char))Syntax.LTuple,
+                           Syntax.RList : Syntax.LList,
+                           Syntax.RSet : Syntax.LSet];
         //Extended syntax.
         auto expandables = [cast(string)ESyntax.Quote : cast(string)Keywords.Quote,
                                ESyntax.Quasiquote : Keywords.Quasiquote,
                                ESyntax.Embed : Keywords.Embed];
 
         if(token == ""~Syntax.StringDelim) {
-            auto index = tokens.front;
+            auto index = tokens.front; //The next token is _always_ the offset in string bank.
             tokens.popFront;
             return new String(stringBank[to!uint(index)]);
         }
-        else if(token in expandables) {
-            return new Tuple([new Symbol(expandables[token]), parse(tokens)]);
+        if(token == ""~Syntax.CommentStart) { //Deletes the following expression from the token stream.
+            if(tokens.length) parse(tokens);       //It still does the syntactic analyzis,
+            return null;                           //as this is ment solely for debugging.
         }
-        else if(token[0] in parens) {
+        if(token in expandables) {
+            return new Tuple([new Symbol(expandables[token]),
+                              tokens.length ? parse(tokens) : new Symbol(Keywords.Fnord)]);
+        }
+        if(token[0] in parens) {
             auto delimiter = parens[token[0]];
             Expression[] collection;
 
-            while(tokens.front != ""~delimiter) {
-                collection ~= parse(tokens);
-            }
-            tokens.popFront();
+            do {
+                if(!tokens.length) throw new Mismatched(token);
+                if(tokens.front == ""~delimiter) break;
+                if(auto e = parse(tokens)) collection ~= e;
+            } while(true);
+            tokens.popFront;    //Remove the delimiter from the token stream.
 
             switch(delimiter) {
                 case Syntax.RTuple:
@@ -359,16 +284,15 @@ class DefaultParser : Parser {
                 default: assert(0);
             }
         }
-        else {
-            try { //BUG FIXME With a rake or something. Seriously?
-                if(token == "-" || token == "in") throw new Exception("A Phobos bug workarround.");
-                auto value = to!real(token);
-                return new Value(value);
-            }
-            catch(Exception e) {
-                return new Symbol(token);
-            }
+        if(token[0] in antyparens) throw new Mismatched(token);
+
+        //The last possible case - a symbol or a number.
+        try { //BUG FIXME with a rake or something. Seriously?
+            if(token == "-" || token == "in") throw new Exception("A Phobos bug workarround.");
+            auto value = to!real(token);
+            return new Value(value);
         }
+        catch(Exception) return new Symbol(token);
     }
 
     public:
@@ -379,10 +303,9 @@ class DefaultParser : Parser {
 
     override Expression[] parse(in string input) {
         Expression[] output;
-        auto statements = statementize(preprocess(input));
-        foreach(statement; statements) {
-            auto tokens = tokenize(statement);
-            if(tokens.length) output ~= parse(tokens);
+        auto tokens = tokenize(preprocess(input));
+        while(tokens.length) {
+            if(auto e = parse(tokens)) output ~= e;
         }
         return output;
     }

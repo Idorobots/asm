@@ -86,5 +86,5 @@ enum Keywords : string {
     If          = "if",         ///if condition then else
     //Predicates:
     IsFnord     = "fnord?",     ///Returns fnord if arg is not fnord.
-    IsType      = "type?",      ///Not a predicate; returns type touple of an object.
+    IsType      = "type?",      ///NOTE: Not a predicate; returns type touple of an object.
 }
