@@ -83,7 +83,7 @@ class DefaultParser : Parser {
 
         string stringCollapse(in string input) {
             string output;
-            auto s = (input~"\0").ptr;
+            auto s = (input~Syntax.EndOfFile).ptr;
             while(*s) {
                 if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
@@ -91,7 +91,7 @@ class DefaultParser : Parser {
                     str ~= *s++;
                     while(*s && *s != Syntax.StringDelim) str ~= *s++;
                     str ~= *s++;
-                    output ~= " "~Syntax.StringDelim~" "~to!string(stringBank.length)~" ";
+                    output ~= Syntax.StringDelim~to!string(stringBank.length)~Syntax.Space;
                     stringBank ~= str;
                 }
                 else output ~= *s++;
@@ -103,14 +103,15 @@ class DefaultParser : Parser {
          * Removes comments.
          *********************/
 
-        string commentCollapse(in string input) {
+        pure string commentCollapse(in string input) {
             string output;
-            auto s = (input~"\0").ptr;
+            auto s = (input~Syntax.EndOfFile).ptr;
             while(*s) {
                 if(*s == Syntax.CommentStart) {
                     s++;
-                    if(*s && *s == Syntax.CommentStart) while(*s && *s != Syntax.EndOfLine) s++;
-                    else output ~= " "~Syntax.CommentStart~" "; //Sexp comment is thrown away in parse().
+                    if(*s && (*s == Syntax.CommentStart || *s == Syntax.Space))
+                       while(*s && *s != Syntax.EndOfLine) s++;
+                    else output ~= Syntax.CommentStart; //Sexp comment is thrown away in parse().
                 }
                 output ~= *s++;
             }
@@ -123,17 +124,18 @@ class DefaultParser : Parser {
 
         pure string syntaxExpand(in string input) {
             string output;
-            auto s = (input~"\0").ptr;
-            auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
+            auto s = (input~Syntax.EndOfFile).ptr;
+            auto expand = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                            Syntax.LList,  Syntax.RList,       //List parentesis
                            Syntax.LSet,   Syntax.RSet,        //Set parentesis
+                           Syntax.StringDelim,                //String delimiter.
                            Syntax.CommentStart,               //Sexp comment.
                            ESyntax.Quote[0],                  //' -> (quote )
                            ESyntax.Quasiquote[0],             //` -> (qquote )
                            ESyntax.Embed[0]];                 //$ -> (embed )
 
             while(*s) {
-                if(contains(syntax, *s)) output ~= " "~s[0 .. 1]~" ";
+                if(contains(expand, *s)) output ~= ""~Syntax.Space~s[0 .. 1]~Syntax.Space;
                 else output ~= *s;
                 s++;
             }
@@ -141,14 +143,14 @@ class DefaultParser : Parser {
         }
 
         string output;
-        auto s = (syntaxExpand(commentCollapse(stringCollapse(input)))~"\0").ptr;
+        auto s = (syntaxExpand(commentCollapse(stringCollapse(input)))~Syntax.EndOfFile).ptr;
 
         while(*s && *s < 0x21) s++;                                     //Spaces, spaces everywhere.
         while(*s) {
             switch(*s) {
-                case ' ':                                               //Spaces.
+                case Syntax.Space:                                      //Spaces.
                     output ~= *s++;
-                    while(*s && *s <= ' ') s++;
+                    while(*s && *s <= Syntax.Space) s++;
                     continue;
                 case 0x0: .. case 0x1F:                                 //Whitespaces
                     s++;
@@ -157,7 +159,7 @@ class DefaultParser : Parser {
             }
             output ~= *s++;
         }
-        if(output.length && output[$-1] == ' ') return output[0 .. $-1];
+        if(output.length && output[$-1] == Syntax.Space) return output[0 .. $-1];
         return output;
     }
     unittest {
@@ -198,7 +200,7 @@ class DefaultParser : Parser {
         auto parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                        Syntax.LList,  Syntax.RList,       //List parentesis
                        Syntax.LSet,   Syntax.RSet];       //Set parentesis
-        auto s = (input~'\0').ptr;
+        auto s = (input~Syntax.EndOfFile).ptr;
         while(*s) {
             if(*s == ' ') {
                 if(token != "") {

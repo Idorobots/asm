@@ -1,16 +1,16 @@
 ## Dice example:
 
-(macro defun (name args body)                   ## Macro defining functions
+(macro def (name args body)                     # Macro defining functions
      `(var $name (function $args $body)))
 
-(defun roll (dice)                              ## Dice rolling function.
+(def roll (dice)                                # Dice rolling function.
     (if (tuple? dice)
         (random dice)))
 
-(defun rollRandom ()
+(def rollRandom ()
     (roll (roll dRANDOM)))
 
-(defun d (dice)                                 ## An additional dice rolling function.
+(def d (dice)                                   # An additional dice rolling function.
     (roll (range 1 (dice + 1))))
 
 (var d4 (range 1 5))
@@ -18,7 +18,7 @@
 (var d8 (range 1 9))
 (var d10 (range 1 11))
 (var d100 (range 1 101))
-(var d% d100)                                   ## An alias for the d100
+(var d% d100)                                   # An alias for the d100
 (var d20 (range 1 21))
 (var d30 (range 1 31))
 (var dHIT '("head" "upper body" "lower body"
@@ -28,8 +28,8 @@
 
 ## Roll some dice:
 
-(roll 2)                                        ## Fnord!
-(rollRandom)
+(roll 2)                                        # Fnord!
+#(rollRandom)
 (roll d4)
 (* 2 (roll d20))
 (2 * (roll d20))
@@ -37,5 +37,5 @@
 (+ (* 2 (d 4)) 3)
 ((2 * (d 4)) + 3)
 
-(defun hitTheOrc ()                             ## Ouch!
+(def hitTheOrc ()                               # Ouch!
     `(You hit the Orc in the $(roll dHIT) for $((d 8) + 4) damage!))

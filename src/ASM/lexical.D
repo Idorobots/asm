@@ -38,6 +38,7 @@ module ASM.lexical;
  *********************/
 
 enum Syntax : char {
+    Space           = ' ',          ///Space, separates tokens.
     EndOfLine       = '\n',         ///Line end.
     EndOfFile       = '\0',         ///EOF
     CommentStart    = '#',          ///Both for line and sexp comments.

@@ -32,3 +32,24 @@ bool contains(T1, T2)(T1[] array, T2 a) {
     foreach(el; array) if(a == el) return true;
     return false;
 }
+
+
+/************************************************************************************
+ * Translates all characters from 'from' to coresponding ones in 'to' in 'here'..
+ *********************/
+
+string tr(string from, string to)(string here) {
+    static assert(from.length == to.length, "The lengths of 'from' and 'to' must be equal.");
+    string output;
+    foreach(c; here) {
+       foreach(i, f; from) {
+           if(c == f) {
+               output ~= to[i];
+               goto ICantBelieveImUsingAGoto;
+           }
+       }
+       output ~= c;
+       ICantBelieveImUsingAGoto: ;
+    }
+    return output;
+}

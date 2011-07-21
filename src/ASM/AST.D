@@ -23,6 +23,12 @@ class SemanticError : MyException {
     }
 }
 
+class ObjectNotApplicable : SemanticError {
+    public this(string obj) {
+        super("The object '"~obj~"' is not applicable.");
+    }
+}
+
 /***********************************************************************************
  * Types of the AST primitives.
  *********************/
@@ -55,29 +61,6 @@ enum Type {
 }
 
 /***********************************************************************************
- * Procedure type for builtins.
- *********************/
-
-alias Expression delegate(ref Scope s, Expression[] args) proc_t;   //TODO += depth
-
-/***********************************************************************************
- * An interface for all callable objects.
- *********************/
-
-interface Callable {
-    Expression call(ref Scope s, Expression[] args);
-}
-
-/***********************************************************************************
- * An interface for all iterable collection types.
- * TODO: void opApply()
- *********************/
-
-interface Collection {
-    Expression[] range();
-}
-
-/***********************************************************************************
  * An abstract S-Expression primitive, the root of the hierarchy.
  * TODO doc string
  *********************/
@@ -94,6 +77,28 @@ abstract class Expression {
 
     uint type();                    ///Returns the type of the S-expression.
     override string toString();     ///Returns the string representation of an S-expression.
+
+    /***********************************************************************************
+     * Returns the underlying collection. Only for collections.
+     * TODO: opApply().
+     *********************/
+
+    Expression[] range() {
+        throw new ObjectNotApplicable(this.toString);
+    }
+
+    /***********************************************************************************
+     * Returns the evaluated call to a callable object. Only for callables..
+     *********************/
+
+    Expression call(ref Scope s, Expression[] args) {
+        throw new ObjectNotApplicable(this.toString);
+    }
+
+    //TODO: T value(T)();
+    real value() {
+        throw new ObjectNotApplicable(this.toString);
+    }
 }
 
 /***********************************************************************************
@@ -118,6 +123,19 @@ class Reference : Expression {
       override string toString() {
           return referee.toString();
       }
+
+      override Expression[] range() {
+          return referee.range();
+      }
+
+      override Expression call(ref Scope s, Expression[] args) {
+          return referee.call(s, args);
+      }
+
+      //TODO: T value(T)();
+      override real value() {
+          return referee.value;
+      }
 }
 
 /***********************************************************************************
@@ -125,10 +143,10 @@ class Reference : Expression {
  *********************/
 
 class Atom(T, uint atomType) : Expression {
-    T value;
+    private T val;
 
-    this(T value) {
-        this.value = value;
+    this(T val) {
+        this.val = val;
     }
 
     /***********************************************************************************
@@ -136,10 +154,9 @@ class Atom(T, uint atomType) : Expression {
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        static if(atomType & Type.Value) return this;
-        else static if(atomType & Type.String) return this;
-       // else return new Reference(s.getRef(value)); //TODO !!!
-          else return s.get(value);
+         static if(atomType & Type.String) return this;
+         static if(atomType & Type.Symbol) return new Reference(s.getRef(val));
+         else return this;
     }
 
     override uint type() {
@@ -147,13 +164,17 @@ class Atom(T, uint atomType) : Expression {
     }
 
     override string toString() {
-        return format("%s", value);
+        return format("%s", val);
+    }
+
+    //TODO: string value() for symbols too.
+    override real value() {
+        static if(atomType & Type.Value) {
+            return this.val;
+        }
+        else throw new ObjectNotApplicable(val);
     }
 }
-
-/***********************************************************************************
- * Convinience aliases:
- *********************/
 
 alias Atom!(real, Type.Value)                                  Value;      ///A number.
 alias Atom!(string, Type.Symbol)                               Symbol;     ///Regular symbol.
@@ -161,58 +182,88 @@ alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WY
 
 /***********************************************************************************
  * Tuple class representing lisp-like forms - tuples.
+ * TODO: Namechange to Collection, add Set and List.
  *********************/
 
-class Tuple : Expression, Collection {
-    private Expression[] tuple;
+class Collection(uint concreteType, char LParen, char RParen) : Expression {
+    private Expression[] coll;
 
-    this(Expression[] tuple) {
-        this.tuple = tuple;
+    this(Expression[] coll) {
+        this.coll = coll;
     }
 
-    /***********************************************************************************
-     * For iteration.
-     *********************/
-
-    Expression[] range() {
-        return tuple;
+    override Expression[] range() {
+        return coll;
     }
 
+    // TODO:
+    // override Expression call(ref Scope s, Expression[] args) {
+    //     static if(concreteType & Type.Set) {
+    //         if(args.length != 1) throw new SemanticError("Set call requires exactly one argument.");
+    //         Expression[] newSet;
+    //         foreach(el; coll) {
+    //             if(args[0].eval(s, [el]).toString != Keywords.Fnord)
+    //                 newSet ~= el;
+    //         }
+    //         return new Set(newSet);
+    //     }
+    //     assert(0);
+    // }
+
     /***********************************************************************************
-     * Evaluates as a form.
+     * Evaluates as a form for the tuple, one by one for the set, and creates
+     * an anonymous function for the list. (TODO)
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        foreach(i, el; tuple) {
-            auto op = el.eval(s, depth + 1); //FIXME TODO No evaluation before the call.
-            if(op.type & Type.Callable) return (cast(Callable)op).call(s, tuple[0 .. i]~tuple[i+1 .. $]);
-        }
-        throw new SemanticError("No applicable object in tuple "~this.toString~".");
+        static if(concreteType & Type.Tuple) {
+            foreach(i, el; coll) {
+                auto op = el.eval(s, depth + 1); //FIXME TODO No evaluation before the call.
+                if(op.type & Type.Callable) return op.call(s, coll[0 .. i]~coll[i+1 .. $]);
+            }
+            throw new SemanticError("No applicable object in tuple "~this.toString~".");
+       }
+       else static if(concreteType & Type.Set) {
+           Expression output;
+           foreach(el; coll) output = el.eval(s);
+           return output; //FIXME: Return FNORD on an empty set.
+       }
+       else static if(concreteType & Type.List) {
+           //TODO
+           return this;
+       }
     }
 
     override uint type() {
-        return Type.Immutable|Type.Collection|Type.Tuple;
+        return Type.Collection|concreteType;
     }
 
     override string toString() {
-        auto output = ""~Syntax.LTuple;
-        foreach(expression; tuple) {
-            if(expression !is this) output ~= expression.toString~" ";
+        if(!coll.length) return ""~LParen~RParen;
+        auto output = ""~LParen;
+        foreach(el; coll) {
+            if(el !is this) output ~= el.toString~" ";
             else output ~= Keywords.Self~" ";
         }
-        return output[0 .. $-1]~Syntax.RTuple;
+        return output[0 .. $-1]~RParen;
     }
 }
 
-alias Tuple List;
-alias Tuple Set;
+alias Collection!(Type.Tuple|Type.Immutable, Syntax.LTuple, Syntax.RTuple)      Tuple;
+alias Collection!(Type.List, Syntax.LList, Syntax.RList)                        List;
+alias Collection!(Type.Set, Syntax.LSet, Syntax.RSet)                           Set;
+
+/***********************************************************************************
+ * Procedure type for the Callable datatype.
+ *********************/
+
+alias Expression delegate(ref Scope s, Expression[] args) proc_t;   //TODO += depth
 
 /***********************************************************************************
  * Callable object primitive.
- * TODO: Rename to Callable, and Callable to ICallable/Call?
  *********************/
 
-class Procedure(uint procType) : Expression, Callable {
+class Callable(uint procType) : Expression {
     enum string stringof = getName(procType);
     proc_t procedure;
 
@@ -233,7 +284,7 @@ class Procedure(uint procType) : Expression, Callable {
         this.procedure = procedure;
     }
 
-    Expression call(ref Scope s, Expression[] args) {
+    override Expression call(ref Scope s, Expression[] args) {
         return procedure(s, args);
     }
 
@@ -246,21 +297,17 @@ class Procedure(uint procType) : Expression, Callable {
     }
 }
 
-/***********************************************************************************
- * Convinience templates.
- *********************/
-
-alias Procedure!(Type.Function)                          Function;       ///Function.
-alias Procedure!(Type.Pure|Type.Function)                Pure;           ///Pure function.
-alias Procedure!(Type.Builtin|Type.Function)             Builtin;        ///Builtin function.
-alias Procedure!(Type.Pure|Type.Builtin|Type.Function)   PureBuiltin;    ///Builtin function.
-alias Procedure!(Type.Keyword)                           Keyword;        ///Syntax keyword.
+alias Callable!(Type.Function)                          Function;       ///Function.
+alias Callable!(Type.Pure|Type.Function)                Pure;           ///Pure function.
+alias Callable!(Type.Builtin|Type.Function)             Builtin;        ///Builtin function.
+alias Callable!(Type.Pure|Type.Builtin|Type.Function)   PureBuiltin;    ///Builtin function.
+alias Callable!(Type.Keyword)                           Keyword;        ///Syntax keyword.
 
 /***********************************************************************************
  * A variable scope for soring symbols.
  *********************/
 
-class Scope : Expression, Callable, Collection {
+class Scope : Expression {
     Expression[string] syntax;  ///Syntax scope.
     Expression[string] pures;   ///Pure scope.
     Expression[string] symbols; ///Other symbols.
@@ -303,7 +350,7 @@ class Scope : Expression, Callable, Collection {
      * if a symbol isn't found in this or parents scope.
      *********************/
 
-    ref Expression get(string sym) {
+    Expression get(string sym) {
         if(auto s = sym in syntax)   return *s;
         if(auto s = sym in pures)    return *s;
         if(auto s = sym in symbols)  return *s;
@@ -323,7 +370,7 @@ class Scope : Expression, Callable, Collection {
      * "Outside call", returns values from this scope to the outside world.
      *********************/
 
-    Expression call(ref Scope s, Expression[] args) {
+    override Expression call(ref Scope s, Expression[] args) {
         if(args.length != 1) throw new SemanticError("Scope call requires exactly one argument.");
 
         if(args[0].type & Type.Symbol) return get(args[0].toString);
@@ -334,7 +381,7 @@ class Scope : Expression, Callable, Collection {
      * For iteration.
      *********************/
 
-    Expression[] range() {
+    override Expression[] range() {
         auto list = syntax.values;
         list ~= pures.values;
         list ~= symbols.values;
@@ -349,82 +396,3 @@ class Scope : Expression, Callable, Collection {
         return Type.Collection|Type.Scope|Type.Callable;
     }
 }
-
-//FIXME FIXME FIXME FIXME FIXME
-// class Scope : Expression, Callable, Collection {
-//   Expression[] defines;       ///All defined variables.
-//   uint[string] syntax;        ///Syntax scope.
-//   uint[string] pures;         ///Pure scope.
-//   uint[string] symbols;       ///Other symbols.
-
-//   Scope outter;               ///Outter scope.
-
-//   this(Scope outter = null) {
-//     this.outter = outter;
-//     this.defineSyntax(Keyword.Self, this); //TODO
-//   }
-
-//   /***********************************************************************************
-//    * Defines sym in a particular namespace.
-//    * Eg. use: scope.definePure(somePure);
-//    *********************/
-
-//   private void define(string where)(string sym, Expression expression) {
-//     defines ~= expression;
-//     static if(where == "syntax")       syntax[sym]= defines.length;
-//     else static if(where == "symbols") symbols[sym] = defines.length;
-//     else static if(where == "pures")   pures[sym] = defines.length;
-//   }
-
-//   alias define!"syntax"   defineSyntax;
-//   alias define!"symbols"  defineSymbol;
-//   alias define!"pures"    definePure;
-
-//   /***********************************************************************************
-//    * Returns the definition of a symbol or throws "Undefined symbol" exception
-//    * if a symbol isn't found in this or parents scope.
-//    *********************/
-
-//   ref Expression get(string sym) {
-//     if(auto s = sym in syntax)   return defines[*s];
-//     if(auto s = sym in pures)    return defines[*s];
-//     if(auto s = sym in symbols)  return defines[*s];
-//     if(outter)                   return outter.get(sym);
-//     else throw new SemanticError("Undefined symbol '"~sym~"'.");
-//   }
-
-//   Expression* getRef(string sym) {
-//     if(auto s = sym in syntax)  return &defines[*s];
-//     if(auto s = sym in pures)   return &defines[*s];
-//     if(auto s = sym in symbols) return &defines[*s];
-//     if(outter)                  return outter.getRef(sym);
-//     else throw new SemanticError("Undefined symbol '"~sym~"'.");
-//   }
-
-//   /***********************************************************************************
-//    * "Outside call", returns values from this scope to the outside world.
-//    *********************/
-
-//   Expression call(ref Scope s, Expression[] args) {
-//     if(args.length != 1) throw new SemanticError("Scope call requires exactly one argument.");
-
-//     if(args[0].type & Type.Symbol) return get(args[0].toString);
-//     throw new SemanticError("The object '"~args[0].toString~"' is not applicable.");
-//   }
-
-//   /***********************************************************************************
-//    * For iteration.
-//    *********************/
-
-//   Expression[] range() {
-//     return defines;
-//   }
-
-//   override string toString() {
-//     return format(""~SyntaxToken.StringDelim~"Scope at 0x%d."~SyntaxToken.StringDelim, cast(void*) this);
-//   }
-
-//   override uint type() {
-//     return Type.Collection|Type.Scope|Type.Callable;
-//   }
-// }

@@ -9,8 +9,8 @@ debug import std.stdio;
 //import std.parallelism;
 import std.file : readText, FileException;
 import std.utf : UtfException;
-
 import std.random;
+import utils.ctfe : tr;
 
 import ASM.lexical;
 import ASM.AST;
@@ -38,7 +38,8 @@ class Interpreter {
         assert(parser !is null);
         this.parser = parser;
         global = new Scope();
-        FNORD = new Symbol(Keywords.Fnord);
+        FNORD = new Symbol(Keywords.Fnord);     //NOTE: This is only for return values. Never compare against this.
+                                                //NOTE: Well, actually untill I fix this.
 
         global.defineSyntax(Keywords.Fnord, FNORD);
 
@@ -53,20 +54,15 @@ class Interpreter {
         }));
 
         global.defineSyntax(Keywords.Quasiquote, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
+            //if(!args.length || args[0].toString == Keywords.Fnord) return FNORD; //FIXME: Quickfix.
             if(!args.length) return FNORD;
             Expression tryEval(Expression arg) {
                 if(arg.type & Type.Tuple) {
-                    auto l = cast(Tuple)arg;
-                    if(l.range[0].toString == Keywords.Embed) {
-                        return l.eval(s);
-                    }
-                    else {
-                        Expression[] tuple;
-                        foreach(a; l.range) {
-                           tuple ~= tryEval(a);
-                        }
-                        return new Tuple(tuple);
-                    }
+                    foreach(e; arg.range) if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
+                    //Nothing embedded:
+                    Expression[] tuple;
+                    foreach(a; arg.range) tuple ~= tryEval(a);
+                    return new Tuple(tuple);
                 }
                 return arg;
             }
@@ -74,14 +70,15 @@ class Interpreter {
         }));
 
         global.defineSyntax(Keywords.Quote, new Keyword(delegate Expression (ref Scope, Expression[] args) {
+            //if(!args.length || args[0].toString == Keywords.Fnord) return FNORD; //FIXME: Quickfix.
+            //return args[0];
             return args.length ? args[0] : FNORD;
         }));
 
         global.defineSyntax(Keywords.Embed, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length) return FNORD;
-            if(args[0].type & Type.String) {
-                auto str = cast(String) args[0];                //FIXME: $$"string" != (embeed (embeed "string"))
-                return new Reference(s.getRef(str.value));      //FIXME: Same thing with quote
+            if(args[0].type & Type.String) {                           //FIXME: $$"string" != (embed (embed "string"))
+                return new Reference(s.getRef(args[0].toString));      //FIXME: Same thing with quote
             }
             return args[0].eval(s);
         }));
@@ -89,9 +86,9 @@ class Interpreter {
         global.definePure("*", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length)
                 throw new SemanticError("Function '*' requires at least one argument.");
-            auto accumulator = (cast(Value)args[0].eval(s)).value;
+            auto accumulator = args[0].eval(s).value;
             foreach(arg; args[1 .. $]) {
-                accumulator *= (cast(Value)arg.eval(s)).value;
+                accumulator *= arg.eval(s).value;
             }
             return new Value(accumulator);
         }));
@@ -99,9 +96,9 @@ class Interpreter {
         global.definePure("+", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length)
                 throw new SemanticError("Function '+' requires at least one argument.");
-            auto accumulator = (cast(Value)args[0].eval(s)).value;
+            auto accumulator = args[0].eval(s).value;
             foreach(arg; args[1 .. $]) {
-                accumulator += (cast(Value)arg.eval(s)).value;
+                accumulator += arg.eval(s).value;
             }
             return new Value(accumulator);
         }));
@@ -117,9 +114,10 @@ class Interpreter {
                 argTuple = args[0];
                 functionBody = args[1];
             }
-            auto tmp = s;   //WUT FIXME
             Expression foo;
-            if(argTuple.type & Type.Symbol) foo = new Function(delegate Expression (ref Scope, Expression[] callArgs) {
+            auto tmp = s;       //TODO: OUT
+            if(argTuple.toString == Keywords.Fnord)
+                foo = new Function(delegate Expression (ref Scope, Expression[] callArgs) {
                 //FIXME Quickfix
                 auto lambdaScope = new Scope(tmp);
                 if(callArgs.length)
@@ -128,13 +126,12 @@ class Interpreter {
                 return functionBody.eval(lambdaScope);
             });
             else foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-                auto argTupleRange = (cast(Tuple)argTuple).range;
-                if(callArgs.length != argTupleRange.length)
+                if(callArgs.length != argTuple.range.length)
                     throw new SemanticError(format("Expected %s arguments instead of %s.",
-                                                   argTupleRange.length, callArgs.length));
+                                                   argTuple.range.length, callArgs.length));
 
                 auto lambdaScope = new Scope(tmp);
-                foreach(i, argName; argTupleRange) {
+                foreach(i, argName; argTuple.range) {
                     lambdaScope.defineSymbol(argName.toString, callArgs[i].eval(callScope));
                 }
                 return functionBody.eval(lambdaScope);
@@ -151,13 +148,12 @@ class Interpreter {
             Expression macroBody = args[2];
 
             auto foo = new Keyword(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-                auto argTupleRange = (cast(Tuple)argTuple).range;
-                if(callArgs.length != argTupleRange.length)
+                if(callArgs.length != argTuple.range.length)
                     throw new SemanticError(format("Expected %s arguments instead of %s.",
-                                                   argTupleRange.length, callArgs.length));
+                                                   argTuple.range.length, callArgs.length));
 
                 auto macroScope = new Scope(callScope);
-                foreach(i, argName; argTupleRange) {
+                foreach(i, argName; argTuple.range) {
                     macroScope.defineSymbol(argName.toString, callArgs[i]);
                 }
                 return macroBody.eval(macroScope).eval(callScope);
@@ -170,8 +166,9 @@ class Interpreter {
         global.defineSyntax(Keywords.Var, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
             if(!(args[0].type & Type.Symbol))
                 throw new SemanticError("The object "~args[0].toString~" is not applicable.");
-            s.defineSymbol(args[0].toString, args.length == 2 ? args[1].eval(s) : FNORD);
-            return args[0];
+            auto value = args.length == 2 ? args[1].eval(s) : FNORD;
+            s.defineSymbol(args[0].toString, value);
+            return value;
         }));
 
         global.defineSyntax(Keywords.Set, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
@@ -184,11 +181,7 @@ class Interpreter {
         }));
 
         global.defineSymbol(Keywords.Car, new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
-            auto collection = args[0].eval(s);
-            if(collection.type & Type.Collection) {
-                return new Reference(&(cast(Collection)collection).range()[0]);
-            }
-            else throw new SemanticError("The object "~args[0].toString~" is not applicable.");
+            return new Reference(&(args[0].eval(s).range[0]));
         }));
 
         global.defineSymbol("global-scope", new Builtin(delegate Expression (ref Scope s, Expression[] args) {
@@ -201,68 +194,46 @@ class Interpreter {
 
         global.definePure("map", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
             if(args.length != 2) throw new SemanticError("Function 'map' requires exactly two arguments.");
-            Expression[] list;
+            Expression[] tuple;
             auto func = args[0].eval(s);
             auto collection = args[1].eval(s);
-            if(func.type & Type.Callable) {
-//                if((collection.type & Type.Collection) && (func.type & Type.Pure)) {
-//                    auto r = (cast(Collection) collection).range.dup;
-//                    foreach(ref value; taskPool.parallel(r)) {
-//                        value = (cast(Callable) func).call(s, [value]);
-//                    }
-//                    return new List(r);
-//                }
-//                else
-                if(collection.type & Type.Collection) {
-                    foreach(ref value; (cast(Collection) collection).range) {
-                        list ~= (cast(Callable) func).call(s, [value]);
-                    }
-                }
-                else throw new SemanticError("The object "~args[1].toString~" is not applicable.");
+            foreach(ref value; collection.range) {
+                tuple ~= func.call(s, [value]);
             }
-            else throw new SemanticError("The object "~args[0].toString~" is not applicable.");
-            return new List(list);
+            return new Tuple(tuple);
         }));
 
         global.definePure("reduce", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
             if(args.length != 2) throw new SemanticError("Function 'reduce' requires exactly two arguments.");
             auto func = args[0].eval(s);
             auto collection = args[1].eval(s);
-            if(func.type & Type.Callable) {
-                if(collection.type & Type.Collection) {
-                    auto result = (cast(Collection) collection).range[0];
-                    foreach(ref value; (cast(Collection) collection).range[1 .. $]) {
-                        result = (cast(Callable) func).call(s, [result, value]);
-                    }
-                    return result;
-                }
-                else throw new SemanticError("The object "~args[1].toString~" is not applicable.");
+            auto result = collection.range[0];
+            foreach(value; collection.range) {
+                result = func.call(s, [result, value]);
             }
-            else throw new SemanticError("The object "~args[0].toString~" is not applicable.");
+            return result;
         }));
 
         global.definePure("random", new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length) throw new SemanticError("Function 'random' requires at least one argument.");
             auto randomGenerator = MinstdRand(unpredictableSeed);
             Expression randomImpl(Expression arg) {
-                auto range = arg.eval(s);
-                if(range.type & Type.Value) {
-                    auto r = (cast(Value)range).value;
-                    return new Value(uniform(0, r));
+                auto r = arg.eval(s);
+                if(r.type & Type.Value) {
+                    auto v = r.value;
+                    return new Value(uniform(0, v));
                 }
-                else if(range.type & Type.Collection) {
-                    auto r = (cast(Collection)range).range.length;
-                    return (cast(Collection)range).range[randomGenerator.front % r];
-                }
-                else throw new SemanticError("The object "~arg.toString~" is not applicable.");
+                //The other use case has to be a collection.
+                auto len = r.range.length;
+                return r.range[randomGenerator.front % len];
             }
             if(args.length == 1) return randomImpl(args[0]);
             else {
-                Expression[] list;
+                Expression[] tuple;
                 foreach(arg; args) {
-                    list ~= randomImpl(arg);
+                    tuple ~= randomImpl(arg);
                 }
-                return new List(list);
+                return new Tuple(tuple);
             }
         }));
 
@@ -293,7 +264,7 @@ class Interpreter {
         global.defineSyntax(Keywords.If, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
             if(args.length != 2 && args.length != 3)
                 throw new SemanticError("Syntax keyword '"~Keywords.If~"' requires two or three arguments.");
-            if(args[0].eval(s) !is FNORD)
+            if(args[0].eval(s).toString != Keywords.Fnord)
                 return args[1].eval(s);
             else return args.length == 3 ? args[2].eval(s) : FNORD;
         }));
@@ -302,9 +273,9 @@ class Interpreter {
             if(args.length != 2 && args.length != 3)
                 throw new SemanticError("Function 'range' requires two or three arguments.");
             Value[] tuple;
-            auto left = (cast(Value) args[0].eval(s)).value;
-            auto right = (cast(Value) args[1].eval(s)).value;
-            auto increment = (args.length == 3) ? (cast(Value) args[2].eval(s)).value : 1;
+            auto left = args[0].eval(s).value;
+            auto right = args[1].eval(s).value;
+            auto increment = (args.length == 3) ? args[2].eval(s).value : 1;
             for(auto i = left; i < right; i += increment) {
                 tuple ~= new Value(i);
             }
@@ -320,7 +291,7 @@ class Interpreter {
                 return s;
             }
             else if(arg.type & Type.Symbol) {
-                 doFile(arg.toString, s);
+                 doFile(tr!(".", "/")(arg.toString)~".asm", s);
                  return s;
             }
             else if(arg.type & Type.Scope) {
