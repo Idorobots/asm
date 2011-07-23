@@ -1,91 +1,203 @@
-✓ comments:
-    ✓ ##(line comment\n //TODO: Change to # comment\n
-    ✓ #(sexp comment), #sexp_comment
-✓ booleans:
-    ✓ () = fnord = '() = 'fnord => logical false
-macros:
-    ? (var foo (macro (:keywords args) body)) -> (foo args) -> ((function ($args) !body) args)
-    ? additiolan form: (macro name (:keywords args) body)
-functions:
-    ? pure functions:
-        ? can call only other pure functions (pure (params) (body)), receive pure+syntax subset of an Environment
-        ? parallel higher order functions (like map, reduce etc)
-    keywords:
-        (function (:alias :lazy :optional :const :body :etc) (body))
-    ✓ additional form: (function name (:keywords args) body)
-strings:
-    ✓ WYSIWYG symbols (immutable)
-    ? special regex literal: /some regex/
-    escape sequences "\n" etc
-    ? documentation strings
-    expression expansion "$(* 2 2) != $'(1 2 3)" -> "4 != (1 2 3)"
-    variable expansion "$a != $b" -> "3.14 != 2.71"
-quoting & embeeding:
-    ✓ (var a '(1 2 $b c))
-    '"two is not $(+ 1 1)"
-scopes:
-    ✓ first-class-objects (var a (scope (var b 3))) (a b) > 3
-    ✓ define()
-    merge()
-    import()
-pattern matching:
-    ? (matches? ((pattern1 arg) bodyWithBoundVariables1)
-                ((pattern2 arg) bodyWithBoundVariables2)
-                ((anything arg) someBody))
+# ASM & ASM interpreter TODO file. Use Emacs org-mode to browse!
+#
+# ? - think/rethink/reimplement
+# ! - important
+#
+#+SEQ_TODO: THINK TODO DONE
 
-type predicates:
-null?
-boolean?
-symbol?
-integer?
-char?
-string?
-pair?
-procedure?
-
-type conversions:
-char->integer
-integer->char
-number->string
-string->number
-symbol->string
-string->symbol
-
-working with integers:
-+
--
-*
-quotient
-remainder
-=
-<
->
-
-working with pairs and lists:
-cons
-car
-cdr
-set-car!
-set-cdr!
-list
-
-polymorphic equality testing:
-eq?
-
-input:
-load
-read
-read-char
-peek-char
-input-port?
-open-input-file
-close-input-file
-eof-object?
-
-output:
-write
-write-char
-output-port?
-open-output-file
-close-output-file
-error
+* TODO THINGS CONCERNING THIS FILE [SIC]:
+! Restructure "THINNGS TO IMPLEMENT IN THE LANGUAGE" to map neatly to
+the modules needed in the language.
+* TODO THINGS TO IMPLEMENT IN THE LANGUAGE:
+** DONE Lexical:
+*** DONE Comments:
+- [X] Line comments starting with "##" or "# ". E.g. # line comment\n
+- [X] Expression comments - analyzed syntacticly, used for debugging and
+      documenting purposes. E.g. #(sexp comment), #sexp_comment
+** TODO Language quirks:
+*** DONE Booleans:
+- [X] Only one logical false, anything else is considered true -
+      () = fnord = '() = 'fnord
+*** DONE Quoting & embedding:
+- [X] Quote - returns the argument untouched. Extended syntax - '.
+- [X] Quasiquote - returns the argument with embedded
+      expressions. Extended syntax - `.
+- [X] Embed - embeds an expression in quasiquote and strings,
+      evaluates strings, binds variables in pattern matching.
+      Extended syntax - $.
+*** THINK Pattern matching:
+- [ ] (matches? pattern arg)
+- [ ] Binds embedded/backtracked symbols from pattern to the actual objects,
+      returns a Scope with the symbols defined in it.
+*** THINK Backtracking:
+- [ ] Triggered by backtrack expression. Extended syntax - ?.
+*** THINK Error handling:
+- [ ] ? error/catch functions.
+** TODO Atomic types:
+*** DONE Numbers:
+- [X] Evaluate to themselves.
+*** DONE Symbols:
+- [X] Evaluate to their bound expression.
+*** TODO Strings:                                                     :THINK:
+- [X] Immutable
+- [X] Symbol:
+    + [X] Evaluate to themselves unless forced to eval by embed
+          expression.
+    + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
+- [ ] Collection:
+    + [ ] ? Consist of one letter symbols - characters.
+    + [ ] ? Consist of numerical representations of the characters.
+    + [ ] ? Consist of one letter strings.
+- [ ] ? Special regex literal - /some regex/
+- [ ] ! Recognise escape sequences. E.g. "\n" etc
+- [ ] Used for documentation.
+- [ ] ! Rocagnise expression expansion "$(* 2 2) != 2" -> "4 != 2"
+** TODO Callable types:
+*** TODO Functions:                                                   :THINK:
+- [X] First-class objects.
+- [ ] Pure functions:
+    + [ ] Can call only other pure functions.
+    + [ ] ? Receive pure+syntax subset of a Scope.
+    + [ ] Parallel higher order functions (like map, reduce etc) for
+          pure functions.
+- [X] Anonymous function creation - (function (argslist) body)
+- [X] Closures.
+- [ ] ? Keywords:
+    + [ ] ! .lazy - toggles lazy evaluation.
+    + [ ] ! .optional - makes an argument optional.
+*** TODO Macros:                                                      :THINK:
+- [ ] First class objects.
+- [X] Evaluated before regular evaluation.
+- [X] Create new syntax keywords.
+- [X] Easly defined with a clean form - (macro name (argslist) body)
+- [ ] ? Keywords:
+    + [ ] ! .optional - makes an argument optional.
+*** TODO Scopes:
+- [X] First-class objects.
+- [X] Allow binding symbols to other objects.
+- [ ] Allow merging with other Scopes.
+- [ ] ! Allow to be imported into other scopes. ? E.g. their outter Scope
+      becomes the one they are imported to.
+** TODO Collection types:
+*** DONE Tuples:
+- [X] Immutable
+- [X] Call the first Callable object in them with the rest of the
+      tuple as the call arguments upon their evaluation.
+*** TODO List:                                                        :THINK:
+- [ ] ! Evaluate to an anonymous function built from the list.
+- [ ] ? Callable with a comparator used to sort the list.
+*** TODO Sets:                                                        :THINK:
+- [X] Evaluate all the expressions they contain in the source file
+      order, returning the last one.
+- [ ] ? Callable with a predicate/relation, returns subset satisfying
+      the predicate/relation.
+- [ ] ? Callable with a comparator used to sort the set.
+* TODO THINGS TO IMPLEMENT IN THE LIBRARY:
+** THINK ASMKit
+- [ ] ! Contains a minimal set of builtin, precompiled functions needed
+      to implement the language.
+- [ ] ! Uses parallel evaluation where possible.
+*** THINK Functions:
+# TODO
+** THINK Modules:
+- [ ] ? core - containing builtins and a few usefull functions.
+- [ ] ! io - containing I/O routines.
+- [ ] ! math - containing math routines (probably compilled into the
+      interpreter).
+** THINK Type predicates:
+- [ ] ? Evaluate to fnord on false, to their arg otherwise.
+- [ ] ? Accept a single argument.
+*** THINK Functions & return values:
+- [ ] fnord? - 'yup if an expression is fnord.
+- [ ] symbol? - symbol if an expression is a symbol.
+- [ ] number? - number if an expression is a number.
+- [ ] string? - string if an expression is a string.
+- [ ] scope? - scope if an expression is a scope.
+- [ ] function? - function if an expression is a function.
+- [ ] pure? - pure if an expression is a pure function.
+- [ ] syntax? - syntax if an expression is a syntax keyword.
+- [ ] ? type? - NOT A PREDICATE, returns type tuple of an object.
+** THINK Type conversions:
+- [ ] ! Convert in place if passed a settable reference, or create a copy.
+- [ ] ? Return fnord on error.
+*** THINK Functions & return values:
+- [ ] number->string - string representation of a number.
+- [ ] string->number - numerical value of a string.
+- [ ] ? symbol->string - same thing with Syntax.StringDelim all over.
+- [ ] ? string->symbol - symbol representation of the string
+      (if conversible).
+- [ ] list->tuple - makes an immutable version of a list.
+- [ ] set->tuple - makes an immutable version of a set.
+- [ ] ? tuple->list - makes a mutable _COPY_ of a tuple
+- [ ] ! tupleof - makes an immutable version of a passed arg (should
+      work for atoms aswell).
+- [ ] ! stringof - makes a string representation of a passed arg.
+- ? etc
+** THINK Working with numbers:
+- [ ] ASMKit functions accept two arguments.
+- [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
+      Return (reduce ASMKitFunc args).
+*** THINK ASMKit:
+- [ ] mult - a * b
+- [ ] add - a + b
+- [ ] sub - a - b
+- [ ] div - a / b
+- [ ] mod - a modulo b
+*** THINK Generics:
+- [ ] + - generic add
+- [ ] - - generic sub
+- [ ] * - generic mult
+- [ ] / - generic div
+- [ ] modulo - generic mod
+- [ ] ? etc
+** THINK Equality checks:
+- [ ] ASMKit versions taking only two args.
+- [ ] Generic versions returning first arg on true.
+*** THINK ASMKit:
+- [ ] eq? - polimorfic equality check.
+- [ ] leq? - a <= b
+- ? etc
+*** THINK Generics:
+- [ ] ? equal?/=/== - generic equal?
+- [ ] <= - generic leq?
+- [ ] >= - generic ((a eq? b) or (not (a leq? b)))
+- [ ] < - generic ((not (a eq? b)) and (a leq? b))
+- [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
+** THINK Working with collections:
+- [ ] Working for all the collection types.
+*** THINK Functions:
+**** THINK Collection manipulation:
+- [ ] ? join - joins two collections into one. Also joins a single
+      element and a collection to form a new collection.
+- [ ] ! first - returns a reference to the first element of a mutable
+      collection, or its value if collection is immutable.
+- [ ] ! rest - returns a new collection referencing the rest part of
+      the old one.
+- [ ] ? second, third, fourth etc.
+**** THINK Collection creation:
+- [ ] ? list - returns a list consisting of the call args.
+- [ ] ? tuple - returns a tuple consisting of the call args.
+- [ ] ? set - returns a set consisting of the call args.
+** THINK Input:
+- [ ] Unformatted (string) reads.
+- [ ] Formatted reads (reads into the passed args).
+- [ ] ? Use this for files, sockets, stdin etc.
+*** THINK Functions:
+- [ ] ? load/open - Loads a file for reading (as a Scope with read
+      defined acordingly).
+- [ ] ! read - performing both formatted and unformatted reads
+      (depending on args).
+- [ ] ? read-char - reads a single character.
+- [ ] ? peek-char - peeks a single character.
+- [ ] ? close - closes a file.
+- [ ] eof? - returns 'yup/the object if it has reached EOF.
+- ? etc
+** THINK Output:
+- [ ] ? Functions paired with input ones.
+*** THINK Functions:
+- [ ] write - performs formatted output.
+- [ ] ? error - throws an error caugth by the REPL.
+- [ ] ? warning - adds a warning printed by the REPL.
+- ? etc
+* TODO TODOs IN THE INTERPRETER:
+Get 'em scurvy dogs in 'ere.
