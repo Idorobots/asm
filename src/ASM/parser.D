@@ -28,6 +28,7 @@ import std.array : front, popFront;
 
 debug import std.stdio;
 debug import utils.testing;
+
 import utils.exception : MyException;
 import utils.ctfe : contains;
 
@@ -79,7 +80,7 @@ class DefaultParser : Parser {
      *********************/
 
     enum ESyntax : string {
-        Quote           = "\'",         ///Quoting: '(#whatever)
+        Quote           = "'",          ///Quoting: '(#whatever)
         Quasiquote      = "`",          ///Quasiquoting.
         Embed           = "$",          ///'(some expression $with_embedded_symbol
                                         ///    $(* and expression))

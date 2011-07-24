@@ -53,7 +53,6 @@ module ASM.lexical;
 
 /***********************************************************************************
  * Syntax Tokens:
- * TODO: Namechange? CoreSyntax? BasicSyntax? Plain Syntax nameclashes with ast.Syntax
  *********************/
 
 enum Syntax : char {
@@ -94,7 +93,7 @@ enum Keywords : string {
     //Quoting and quasiquoting:
     Quasiquote  = "qquote",     ///Quasiquoting.
     Quote       = "quote",      ///Quoting.
-    Embed       = "embed",      ///Embeding. //TODO Namechange to eval
+    Embed       = "embed",      ///Embeding. //TODO Namechange to eval?
     //Declarators:
     Var         = "var",        ///Binds a variable to an expression (or fnord).
     Function    = "function",   ///Creates an anonymous function.

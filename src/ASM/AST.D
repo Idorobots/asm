@@ -176,7 +176,7 @@ class Atom(T, uint atomType) : Expression {
 
     override Expression eval(ref Scope s, uint depth = 0) {
          static if(atomType & Type.String) return this;
-         static if(atomType & Type.Symbol) return new Reference(s.getRef(val));
+         else static if(atomType & Type.Symbol) return new Reference(s.getRef(val));
          else return this;
     }
 
@@ -202,8 +202,7 @@ alias Atom!(string, Type.Symbol)                               Symbol;     ///Re
 alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WYSIWYG symbol.
 
 /***********************************************************************************
- * Tuple class representing lisp-like forms - tuples.
- * TODO: Namechange to Collection, add Set and List.
+ * Collection class representing lisp-like and python-like sequences.
  *********************/
 
 class Collection(uint concreteType, char LParen, char RParen) : Expression {
@@ -247,7 +246,7 @@ class Collection(uint concreteType, char LParen, char RParen) : Expression {
        else static if(concreteType & Type.Set) {
            Expression output;
            foreach(el; coll) output = el.eval(s);
-           return output; //FIXME: Return FNORD on an empty set.
+           return output ? output : new Symbol(Keywords.Fnord); //FIXME: Return FNORD on an empty set.
        }
        else static if(concreteType & Type.List) {
            //TODO
@@ -267,8 +266,7 @@ class Collection(uint concreteType, char LParen, char RParen) : Expression {
             else output ~= Keywords.Self~" ";
         }
         return output[0 .. $-1]~RParen;
-    }
-}
+    }}
 
 alias Collection!(Type.Tuple|Type.Immutable, Syntax.LTuple, Syntax.RTuple)      Tuple;
 alias Collection!(Type.List, Syntax.LList, Syntax.RList)                        List;
@@ -329,15 +327,15 @@ alias Callable!(Type.Keyword)                           Keyword;        ///Synta
  *********************/
 
 class Scope : Expression {
-    Expression[string] syntax;  ///Syntax scope.
-    Expression[string] pures;   ///Pure scope.
-    Expression[string] symbols; ///Other symbols.
+    Expression[] defines;       ///Object definitions.
+    uint[string] syntax;        ///Syntax scope.
+    uint[string] symbols;       ///Other symbols.
 
     Scope outter;               ///Outter scope.
 
     this(Scope outter = null) {
         this.outter = outter;
-        this.defineSyntax(Keywords.Self, this);
+        //this.defineSyntax(Keywords.Self, this);
     }
 
     /***********************************************************************************
@@ -346,25 +344,13 @@ class Scope : Expression {
      *********************/
 
     private void define(string where)(string sym, Expression expression) {
-        mixin(where~"[sym] = expression;");
+        mixin(where~"[sym] = defines.length;");
+        defines ~= expression;
     }
 
     alias define!"syntax"   defineSyntax;
     alias define!"symbols"  defineSymbol;
-    alias define!"pures"    definePure;
-
-    /***********************************************************************************
-     * Sets the value of an expression
-     * TODO: OUT
-     *********************/
-
-    private void set(string where)(string sym, Expression expression) {
-        mixin("if(sym in "~where~") "~where~"[sym] = expression;");
-    }
-
-    alias set!"syntax"      setSyntax;
-    alias set!"symbols"     setSymbol;
-    alias set!"pures"       setPure;
+    alias define!"symbols"  definePure;
 
     /***********************************************************************************
      * Returns the definition of a symbol or throws "Undefined symbol" exception
@@ -372,17 +358,15 @@ class Scope : Expression {
      *********************/
 
     Expression get(string sym) {
-        if(auto s = sym in syntax)   return *s;
-        if(auto s = sym in pures)    return *s;
-        if(auto s = sym in symbols)  return *s;
+        if(auto s = sym in syntax)   return defines[*s];
+        if(auto s = sym in symbols)  return defines[*s];
         if(outter)                   return outter.get(sym);
         else throw new SemanticError("Undefined symbol '"~sym~"'.");
     }
 
     Expression* getRef(string sym) {
-        if(auto s = sym in syntax)  return s;
-        if(auto s = sym in pures)   return s;
-        if(auto s = sym in symbols) return s;
+        if(auto s = sym in syntax)  return &defines[*s];
+        if(auto s = sym in symbols) return &defines[*s];
         if(outter)                  return outter.getRef(sym);
         else throw new SemanticError("Undefined symbol '"~sym~"'.");
     }
@@ -394,7 +378,7 @@ class Scope : Expression {
     override Expression call(ref Scope s, Expression[] args) {
         if(args.length != 1) throw new SemanticError("Scope call requires exactly one argument.");
 
-        if(args[0].type & Type.Symbol) return get(args[0].toString);
+        if(args[0].type & Type.Symbol) return new Reference(getRef(args[0].toString));
         throw new SemanticError("The object '"~args[0].toString~"' is not applicable.");
     }
 
@@ -403,10 +387,7 @@ class Scope : Expression {
      *********************/
 
     override Expression[] range() {
-        auto list = syntax.values;
-        list ~= pures.values;
-        list ~= symbols.values;
-        return list;
+        return defines;
     }
 
     override string toString() {

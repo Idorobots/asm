@@ -73,7 +73,6 @@ class Interpreter {
         }));
 
         global.defineSyntax(Keywords.Quasiquote, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
-            //if(!args.length || args[0].toString == Keywords.Fnord) return FNORD; //FIXME: Quickfix.
             if(!args.length) return FNORD;
             Expression tryEval(Expression arg) {
                 if(arg.type & Type.Tuple) {
@@ -89,8 +88,6 @@ class Interpreter {
         }));
 
         global.defineSyntax(Keywords.Quote, new Keyword(delegate Expression (ref Scope, Expression[] args) {
-            //if(!args.length || args[0].toString == Keywords.Fnord) return FNORD; //FIXME: Quickfix.
-            //return args[0];
             return args.length ? args[0] : FNORD;
         }));
 
