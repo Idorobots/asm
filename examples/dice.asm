@@ -1,7 +1,6 @@
 ## Dice example:
 
-(macro def (name args body)                     # Macro defining functions
-     `(var $name (function $args $body)))
+(import 'imports.core)
 
 (def roll (dice)                                # Dice rolling function.
     (if (tuple? dice)

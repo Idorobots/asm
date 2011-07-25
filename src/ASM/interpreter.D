@@ -1,20 +1,23 @@
 /**********************************************************************************
  * Copyright (c) 2011 Kajetan Rzepecki <kajetan.rzepecki@gmail.com>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
- * is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies
- * or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  *********************/
 
 /***********************************************************************************
@@ -25,7 +28,7 @@ module ASM.interpreter;
 
 debug import std.stdio;
 
-//import std.parallelism;
+//import std.parallelism; //TODO: Parallel!
 import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
@@ -123,15 +126,11 @@ class Interpreter {
             if(args.length != 2 && args.length != 3)
                 throw new SemanticError("Syntax keyword '"~Keywords.Function~"' requires exactly two argements.");
 
-            Expression argTuple;
-            Expression functionBody;
-
-            if(args.length == 2) {
-                argTuple = args[0];
-                functionBody = args[1];
-            }
+            Expression argTuple = args[0];
+            Expression functionBody = args[1];
             Expression foo;
             auto tmp = s;       //TODO: OUT
+
             if(argTuple.toString == Keywords.Fnord)
                 foo = new Function(delegate Expression (ref Scope, Expression[] callArgs) {
                 //FIXME Quickfix
@@ -196,8 +195,35 @@ class Interpreter {
             return expr;
         }));
 
+        global.defineSymbol(Keywords.Cons, new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
+            if(args.length != 2)
+                throw new SemanticError("Function '"~Keywords.Cons~"' requires exactly two arguments.");
+            auto arg0 = args[0].eval(s);
+            auto arg1 = args[1].eval(s);
+
+            if(arg1.type & Type.Collection) {
+                if(arg1.type & Type.Tuple) return new Tuple([arg0]~arg1.range); //TODO: Mixins not to repeat so much.
+                if(arg1.type & Type.List) return new List([arg0]~arg1.range);
+                if(arg1.type & Type.Set) return new List([arg0]~arg1.range);
+            }
+            return new List([arg0, arg1]);
+        }));
+
         global.defineSymbol(Keywords.Car, new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
-            return new Reference(&(args[0].eval(s).range[0]));
+            auto collection = args[0].eval(s);
+            if(collection.type & Type.Immutable) return collection.range[0];
+            else return new Reference(&(collection.range[0]));
+        }));
+
+        global.defineSymbol(Keywords.Cdr, new PureBuiltin(delegate Expression (ref Scope s, Expression[] args) {
+            auto collection = args[0].eval(s);
+            if(collection.type & Type.Tuple) //TODO: Mixins!
+                return collection.range.length > 1 ? new Tuple(collection.range[1 .. $]) : FNORD;
+            if(collection.type & Type.List)
+                return collection.range.length > 1 ? new List(collection.range[1 .. $]) : FNORD;
+            if(collection.type & Type.Set)
+                return collection.range.length > 1 ? new Set(collection.range[1 .. $]) : FNORD;
+            return FNORD;
         }));
 
         global.defineSymbol("global-scope", new Builtin(delegate Expression (ref Scope s, Expression[] args) {

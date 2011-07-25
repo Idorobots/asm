@@ -3,7 +3,13 @@
 # ? - think/rethink/reimplement
 # ! - important
 #
-#+SEQ_TODO: THINK TODO TEST DONE FIXME
+#+SEQ_TODO: THINK TODO TEST FIXME DONE
+#
+# THINK - planning and prototyping phase.
+# TODO - proper implementation phase, starting with unittest writing.
+# TEST - testing phase, mainly for hindenbug tracking etc.
+# FIXME - bugfixing.
+# DONE - sweet, sweet nothing.
 
 * TODO THINGS CONCERNING THIS FILE [SIC]:
 - ! Restructure "THINNGS TO IMPLEMENT IN THE LANGUAGE" to map neatly to
@@ -51,8 +57,8 @@
     + [ ] ? Consist of one letter strings.
 - [ ] ? Special regex literal - /some regex/
 - [ ] ! Recognise escape sequences. E.g. "\n" etc
-- [ ] Used for documentation.
-- [ ] ! Rocagnise expression expansion "$(* 2 2) != 2" -> "4 != 2"
+- [ ] ? Used for documentation.
+- [ ] ! String expansion "$(* 2 2) != 2" -> "4 != 2"
 ** TODO Callable types:
 *** TODO Functions:                                                   :THINK:
 - [X] First-class objects.
@@ -63,22 +69,24 @@
           pure functions.
 - [X] Anonymous function creation - (function (argslist) body)
 - [X] Closures.
-- [ ] ? Keywords:
+- [ ] ? Arglist keywords:
     + [ ] ! .lazy - toggles lazy evaluation.
     + [ ] ! .optional - makes an argument optional.
+    + [ ] !? ... - stores any additional call parameters in a
+          collection.
 *** TODO Macros:                                                      :THINK:
 - [ ] First class objects.
 - [X] Evaluated before regular evaluation.
 - [X] Create new syntax keywords.
 - [X] Easly defined with a clean form - (macro name (argslist) body)
-- [ ] ? Keywords:
+- [ ] ? Arglist keywords:
     + [ ] ! .optional - makes an argument optional.
+    + [ ] !? ... - stores any additional call parameters in a
+          collection.
 *** TODO Scopes:
 - [X] First-class objects.
 - [X] Allow binding symbols to other objects.
-- [ ] Allow merging with other Scopes.
-- [ ] ! Allow to be imported into other scopes. ? E.g. their outter Scope
-      becomes the one they are imported to.
+- [ ] ! Allow imorting symbols from their scope to other scopes.
 ** TODO Collection types:
 *** TEST Tuples:
 - [X] Immutable
@@ -86,13 +94,13 @@
       tuple as the call arguments upon their evaluation.
 *** TODO List:                                                        :THINK:
 - [ ] ! Evaluate to an anonymous function built from the list.
-- [ ] ? Callable with a comparator used to sort the list.
-*** TODO Sets:                                                        :THINK:
+- [X] Callable with multiple indeces, return a new list consisting of
+      those, or reference to an element for a single index call.
+*** TEST Sets:                                                        :THINK:
 - [X] Evaluate all the expressions they contain in the source file
       order, returning the last one.
-- [ ] ? Callable with a predicate/relation, returns subset satisfying
-      the predicate/relation.
-- [ ] ? Callable with a comparator used to sort the set.
+- [X] Callable with multiple predicates, returns subset satisfying
+      the predicates.
 * THINK THINGS TO IMPLEMENT IN THE LIBRARY:
 ** THINK ASMKit
 - [ ] ! Contains a minimal set of builtin, precompiled functions needed
@@ -216,7 +224,9 @@ Actually list them here.
 - [ ] ? Self:
     + ? Used only for representation of Collections/Scopes/Functions.
     + ? Used semanticly as a self reference of an object.
-- [ ] Rename Embed to something more appropriate.
+- [ ] Embed:
+    + Rename to something more appropriate.
+    + ? Force double evaluation in a giver scope?
 ** TODO AST:                                                          :THINK:
 - [ ] ? Type primitive used for semantic analyzis.
 *** TODO Type:                                                        :THINK:
@@ -233,19 +243,25 @@ Actually list them here.
 - [ ] Recursion depth checking.
 - [ ] ? Macro expansion.
 *** TODO Expression:                                                  :THINK:
-- [ ] ? Doc string and additional helpful fields.
+- [ ] Additional fields:
+    + [ ] Line number.
+    + [ ] Filename.
+    + [ ] Expression number.
+    + [ ] ? Doc string.
 - [ ] ? opApply instead of call(), for convinience.
 - [ ] T value(T)() instead of real value().
 *** TODO Atom:                                                        :THINK:
-- [ ] Take the string away from there, Make it a proper immutable
+- [ ] Take the string away from there, make it a proper immutable
       collection.
 - [ ] Add more numerical types.
 - [ ] ? Add common atomic operations (like math for numbers, etc).
 *** TODO Collection:
-- [ ] call() for Set and List with no implementation for Tuple.
+- [-] call() for Set and List with no implementation for Tuple:
+    + [X] call() for Set and List.
+    + [ ] No compilled implementation for Tuple.
 - [ ] List evaluating to an anonymous function.
 - [ ] No arg evaluation before the call in Tuple.eval().
-- [ ] Set returning FNORD for an empty set evaluation.
+- [X] Set returning FNORD for an empty set evaluation.
 *** TODO Callable:                                                    :THINK:
 - [ ] Depth parameter for the calls.
 - [ ] ? String representation actually showing the callable.
@@ -254,29 +270,42 @@ Actually list them here.
       keys, perhaps.)
 - [ ] One lexical scope of the variables, instead of symbol and syntax
       distinction.
-- [ ] Fix define().
+- [ ] Fix define():
+    + [ ] Rename to bind()
 - [X] Remove set().
+- [ ] ? Add unbind(string).
 - [ ] ? Add merge(Scope).
 - [ ] ? Add import(Scope).
 - [X] Scope call returning references.
+- [ ] ! Fix storing unwanted objects when rebinding symbols.
 ** TODO Parser:                                                       :THINK:
+- [ ] Make parse() pretier!
 - [ ] Fix number parsing and PhobosBug(TM) workarrounds.
 - [ ] ? NumberParser
-*** TODO StringParser:
+*** THINK StringParser:
+- [ ] ? Plan embedding representation.
 - [ ] Actually parsing strings.
 - [ ] Recognize escape sequences.
 - [ ] Recognize expression embeds.
 *** TODO Unittests:                                         :IMPORTANT:THINK:
-- [ ] More preprocess() unittests.
+- [ ] Make unittests Syntax independant.
+- [X] More preprocess() unittests.
 - [ ] More tokenize() unittests.
 - [ ] ? parse() unittests.
+*** THINK Metadata:
+- [ ] Add file data.
+- [ ] Add line number data.
+- [ ] ? Add expression number data.
 ** TODO Interpreter:                                                  :THINK:
 - [ ] ? Fix FNORD comparisions. (Move it to ASM.lexical?)
 - [ ] Actually write some fooking implementations. (Create a separate
       file for these?)
 - [ ] Fix doString() and doFile().
-- [ ] ? InterpretingError
+- [ ] ? InterpretingError for file interepretation.
 *** TODO Implementations:
 - [ ] Fix Embed, Quote and Quasiquote on strings.
 - [ ] Find solution to/report ref parameter delegate bug in Function.
 - [ ] Keyword dispatch for Callables declarators.
+- [ ] Make import work with default import paths etc.
+*** TODO Unittests:                                               :IMPORTANT:
+- [ ] Actually write those.

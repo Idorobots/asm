@@ -1,3 +1,9 @@
 ASM - Another Syntactic Monstrosity Win32 version.
+
 A sandbox programming language "because I can".
-Visit its homepage at http://idorobots.org/asm
+ASM is my ill attempt to make Lisp even more expressive.
+
+For licensing info see LICENSE file.
+For things needing attention see TODO file.
+
+Visit its homepage at http://idorobots.org/asm/

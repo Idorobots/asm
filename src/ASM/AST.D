@@ -1,20 +1,23 @@
 /**********************************************************************************
  * Copyright (c) 2011 Kajetan Rzepecki <kajetan.rzepecki@gmail.com>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
- * is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies
- * or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  *********************/
 
 /***********************************************************************************
@@ -71,6 +74,7 @@ enum Type {
     Keyword     = 2048,
     Scope       = 4096,
     //Set       = 8192 //???
+    //Listn     = 32768,
     //Collection types:
     Set         = 8192,
     Tuple       = 16384,
@@ -125,36 +129,37 @@ abstract class Expression {
  *********************/
 
 class Reference : Expression {
-      Expression* referee;
+    Expression* referee;
 
-      this(Expression* expr) {
-          referee = expr;
-      }
+    this(Expression* expr) {
+        if(expr.type & Type.Reference) referee = (cast(Reference)*expr).referee;
+        else referee = expr;
+    }
 
-      override Expression eval(ref Scope s, uint depth = 0) {
-          return referee.eval(s, depth + 1);
-      }
+    override Expression eval(ref Scope s, uint depth = 0) {
+        return referee.eval(s, depth + 1);
+    }
 
-      override uint type() {
-          return Type.Reference|referee.type;
-      }
+    override uint type() {
+        return Type.Reference|referee.type;
+    }
 
-      override string toString() {
-          return referee.toString();
-      }
+    override string toString() {
+        return referee.toString();
+    }
 
-      override Expression[] range() {
-          return referee.range();
-      }
+    override Expression[] range() {
+        return referee.range();
+    }
 
-      override Expression call(ref Scope s, Expression[] args) {
-          return referee.call(s, args);
-      }
+    override Expression call(ref Scope s, Expression[] args) {
+        return referee.call(s, args);
+    }
 
-      //TODO: T value(T)();
-      override real value() {
-          return referee.value;
-      }
+    //TODO: T value(T)();
+    override real value() {
+        return referee.value;
+    }
 }
 
 /***********************************************************************************
@@ -205,7 +210,7 @@ alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WY
  * Collection class representing lisp-like and python-like sequences.
  *********************/
 
-class Collection(uint concreteType, char LParen, char RParen) : Expression {
+class Collection(uint collectionType, char LParen, char RParen) : Expression {
     private Expression[] coll;
 
     this(Expression[] coll) {
@@ -216,19 +221,45 @@ class Collection(uint concreteType, char LParen, char RParen) : Expression {
         return coll;
     }
 
-    // TODO:
-    // override Expression call(ref Scope s, Expression[] args) {
-    //     static if(concreteType & Type.Set) {
-    //         if(args.length != 1) throw new SemanticError("Set call requires exactly one argument.");
-    //         Expression[] newSet;
-    //         foreach(el; coll) {
-    //             if(args[0].eval(s, [el]).toString != Keywords.Fnord)
-    //                 newSet ~= el;
-    //         }
-    //         return new Set(newSet);
-    //     }
-    //     assert(0);
-    // }
+    override Expression call(ref Scope s, Expression[] args) {
+        static if(collectionType & Type.Set) {
+            Expression pass(ref Expression el) { //TODO: Move to ASM.utils
+                Expression quote[];
+                return new Tuple([cast(Expression)new Symbol(Keywords.Quote), el]);
+            }
+
+            Expression[] argv;
+            foreach(arg; args) argv ~= arg.eval(s);
+
+            Expression[] newSet;
+
+            foreach(ref el; coll) {
+                bool jollyRogger = true;    //A flag to tell if an element satysfies all the predicates.
+                foreach(arg; argv) {
+                    if(arg.call(s, [pass(el)]).toString == Keywords.Fnord) {
+                        jollyRogger = false;
+                        break;
+                    }
+                }
+                if(jollyRogger) newSet ~= new Reference(&el);
+            }
+            return new Set(newSet);
+        }
+        else static if(collectionType & Type.List) {
+            Expression[] newList;
+
+            foreach(arg; args) {
+                uint index = to!uint(arg.eval(s).value);
+                if(index < coll.length) {
+                    newList ~= new Reference(&coll[index]);
+                }
+                else throw new SemanticError("Index out of bounds: '"~arg.toString~"'.");
+            }
+            if(newList.length == 1) return newList[0];
+            else return new List(newList);
+        }
+        assert(0);
+    }
 
     /***********************************************************************************
      * Evaluates as a form for the tuple, one by one for the set, and creates
@@ -236,26 +267,26 @@ class Collection(uint concreteType, char LParen, char RParen) : Expression {
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        static if(concreteType & Type.Tuple) {
+        static if(collectionType & Type.Tuple) {
             foreach(i, el; coll) {
                 auto op = el.eval(s, depth + 1); //FIXME TODO No evaluation before the call.
                 if(op.type & Type.Callable) return op.call(s, coll[0 .. i]~coll[i+1 .. $]);
             }
             throw new SemanticError("No applicable object in tuple "~this.toString~".");
        }
-       else static if(concreteType & Type.Set) {
+       else static if(collectionType & Type.Set) {
            Expression output;
            foreach(el; coll) output = el.eval(s);
            return output ? output : new Symbol(Keywords.Fnord); //FIXME: Return FNORD on an empty set.
        }
-       else static if(concreteType & Type.List) {
+       else static if(collectionType & Type.List) {
            //TODO
            return this;
        }
     }
 
     override uint type() {
-        return Type.Collection|concreteType;
+        return Type.Collection|collectionType;
     }
 
     override string toString() {
@@ -266,11 +297,12 @@ class Collection(uint concreteType, char LParen, char RParen) : Expression {
             else output ~= Keywords.Self~" ";
         }
         return output[0 .. $-1]~RParen;
-    }}
+    }
+}
 
 alias Collection!(Type.Tuple|Type.Immutable, Syntax.LTuple, Syntax.RTuple)      Tuple;
-alias Collection!(Type.List, Syntax.LList, Syntax.RList)                        List;
-alias Collection!(Type.Set, Syntax.LSet, Syntax.RSet)                           Set;
+alias Collection!(Type.Callable|Type.List, Syntax.LList, Syntax.RList)          List;
+alias Collection!(Type.Callable|Type.Set, Syntax.LSet, Syntax.RSet)             Set;
 
 /***********************************************************************************
  * Procedure type for the Callable datatype.

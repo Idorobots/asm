@@ -1,20 +1,23 @@
 /**********************************************************************************
  * Copyright (c) 2011 Kajetan Rzepecki <kajetan.rzepecki@gmail.com>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
- * and associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software
- * is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to do so,
+ * subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies
- * or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  *********************/
 
 /***********************************************************************************
@@ -50,7 +53,7 @@ class SyntacticError : MyException {
  * Mismatched token exception..
  *********************/
 
-class Mismatched : SyntacticError {
+class MismatchError : SyntacticError {
     public this(string token) {
         super("Mismatched '"~token~"'.");
     }
@@ -127,10 +130,8 @@ class DefaultParser : Parser {
             auto s = (input~Syntax.EndOfFile).ptr;
             while(*s) {
                 if(*s == Syntax.CommentStart) {
-                    s++;
-                    if(*s && (*s == Syntax.CommentStart || *s == Syntax.Space))
-                       while(*s && *s != Syntax.EndOfLine) s++;
-                    else output ~= Syntax.CommentStart; //Sexp comment is thrown away in parse().
+                    if(s[1] && contains([Syntax.CommentStart, Syntax.Space], s[1]))
+                        while(*s && *s != Syntax.EndOfLine) s++;
                 }
                 output ~= *s++;
             }
@@ -190,22 +191,42 @@ class DefaultParser : Parser {
             t.assertion!"=="(actual, expected, line);
         }
 
-        test("   \n\r   Whitespaces.", "Whitespaces.");
+        void test1(int line = __LINE__)(string input, string expected) {
+            i.preprocess(input);
+            t.assertion!"=="(i.stringBank[0], expected);
+        }
+
+        //TODO: FIXME: Unittests should be Syntax-independant.
+        ///Whitespaces:
+        test("   \n\r  Leading whitespaces.", "Leading whitespaces.");
         test("Trailing whitespaces.  \n\t  \r\n", "Trailing whitespaces.");
         test("Lots\t\na white\r\nspaces      \nand shit\t.", "Lotsa whitespaces and shit.");
-        test("Lots\t\na white\r\nspaces   \"   \nand a string\".",
-             "Lotsa whitespaces "~Syntax.StringDelim~" 0 .");
-        test("Some string without comments.", "Some string without comments.");
-        test("String (with parenteses (all over)).", "String ( with parenteses ( all over ) ) .");
+        test("Lots\t\na white\r\nspaces   \"   \nand a string\".", "Lotsa whitespaces \" 0 .");
         test("Some multi\nline str\ning without comments.", "Some multiline string without comments.");
-        test("Some string ##with line\n comment.", "Some string comment.");
-        test("Some string #(with Expression) comment.", "Some string comment.");
-        test("Some string #(with a (Expression embeded in a) Expression) comment.", "Some string comment.");
-        test("Some string \"with an \nembeded \tstring\" in it.",
-             "Some string "~Syntax.StringDelim~" 0 in it.");
-        test("String with a \"#(comment in a string), lol.\"", "String with a "~Syntax.StringDelim~" 0");
-        test("String with a single #word comment.", "String with a single comment.");
-        test("(Statement with a single word #comment.)", "( Statement with a single word )");
+        ///Parenteses:
+        test("String (with parenteses (all over)).", "String ( with parenteses ( all over ) ) .");
+        test("String (with [different] {parens (all)} over).",
+             "String ( with [ different ] { parens ( all ) } over ) .");
+        ///Comments:
+        test("Some string with a # line comment\n.", "Some string with a .");
+        test("Some string ##with a line\n comment.", "Some string comment.");
+        test("Some string #(with Expression) comment.", "Some string # ( with Expression ) comment.");
+        test("Some string #{with Set} comment.", "Some string # { with Set } comment.");
+        test("Some string #(with an (Expression embedded in a) Expression) comment.",
+             "Some string # ( with an ( Expression embedded in a ) Expression ) comment.");
+        test("String with a single #word comment.", "String with a single # word comment.");
+        test("(Statement with a single word #comment.)", "( Statement with a single word # comment. )");
+        ///Strings and comments:
+        test("String with a \"#(comment in a string), lol.\"", "String with a \" 0");
+        test("A #\"string commented out\".", "A # \" 0 .");
+        test("Some string \"with an \nembeded \tstring\" in it.", "Some string \" 0 in it.");
+        ///Expression embedding and escape sequences:
+        test1("\"\\tString with\\nescape sequences.\\r\\n\"", "\"String with\nescape sequences.\r\n\"");
+        test1("\"$Strings with simple $embeds in it\"", "\"$0 with simple $1 in it\"");
+        test1("\"$String-with? more $(complex 3.14 2.71) embeds.\"", "\"$0 more $1 embeds.\"");
+        test1("\"$(Really {complex} embed (with multiple (parens) [and whatnot]))\"", "\"$0\"");
+        test1("\"${Same deal (but {with another [set of]} parens.)}\"","\"$0\"");
+        test1("\"$[Same () thing for [ a {list}]]\"","\"$0\"");
     }
 
     /***********************************************************************************
@@ -247,6 +268,8 @@ class DefaultParser : Parser {
         test("( A simple statement. )", ["(", "A", "simple", "statement.", ")"]);
         test("( Not so ( simple statement ( at ) ) all. )",
             ["(", "Not", "so", "(", "simple", "statement", "(", "at", ")", ")", "all.", ")"]);
+        test("( Many [ different { parens } and ] other ) things.",
+            ["(", "Many", "[", "different", "{", "parens", "}", "and", "]", "other" ")" "things." ]);
     }
 
     /***********************************************************************************
@@ -259,36 +282,36 @@ class DefaultParser : Parser {
         tokens.popFront;
 
         //All kinds of parenthesis.
-        auto parens = [cast(immutable(char))Syntax.LTuple : cast(immutable(char))Syntax.RTuple, //TODO: Pretier!
-                       Syntax.LList : Syntax.RList,
-                       Syntax.LSet : Syntax.RSet];
+        auto parens = [cast(immutable(char))Syntax.LTuple : cast(immutable(char))Syntax.RTuple, //FIXME: Pretier!
+                       Syntax.LList :  Syntax.RList,
+                       Syntax.LSet :   Syntax.RSet];
         auto antyparens = [cast(immutable(char))Syntax.RTuple : cast(immutable(char))Syntax.LTuple,
-                           Syntax.RList : Syntax.LList,
-                           Syntax.RSet : Syntax.LSet];
+                           Syntax.RList :  Syntax.LList,
+                           Syntax.RSet :   Syntax.LSet];
         //Extended syntax.
         auto expandables = [cast(string)ESyntax.Quote : cast(string)Keywords.Quote,
-                               ESyntax.Quasiquote : Keywords.Quasiquote,
-                               ESyntax.Embed : Keywords.Embed];
+                            ESyntax.Quasiquote : Keywords.Quasiquote,
+                            ESyntax.Embed :      Keywords.Embed];
 
         if(token == ""~Syntax.StringDelim) {
-            auto index = tokens.front; //The next token is _always_ the offset in string bank.
+            auto index = tokens.front;             //The next token is _always_ the offset in string bank.
             tokens.popFront;
             return new String(stringBank[to!uint(index)]);
         }
-        if(token == ""~Syntax.CommentStart) { //Deletes the following expression from the token stream.
+        if(token == ""~Syntax.CommentStart) {      //Deletes the following expression from the token stream.
             if(tokens.length) parse(tokens);       //It still does the syntactic analyzis,
             return null;                           //as this is ment solely for debugging.
         }
-        if(token in expandables) {
-            return new Tuple([new Symbol(expandables[token]),
+        if(contains(expandables.keys, token)) {
+            return new Tuple([new Symbol(expandables[token]),   //FIXME: Pretier!
                               tokens.length ? parse(tokens) : new Symbol(Keywords.Fnord)]);
         }
-        if(token[0] in parens) {
+        if(contains(parens.keys, token[0])) {
             auto delimiter = parens[token[0]];
             Expression[] collection;
 
             do {
-                if(!tokens.length) throw new Mismatched(token);
+                if(!tokens.length) throw new MismatchError(token);
                 if(tokens.front == ""~delimiter) break;
                 if(auto e = parse(tokens)) collection ~= e;
             } while(true);
@@ -305,11 +328,12 @@ class DefaultParser : Parser {
                 default: assert(0);
             }
         }
-        if(token[0] in antyparens) throw new Mismatched(token);
+        if(contains(antyparens.keys, token[0])) throw new MismatchError(token);
 
         //The last possible case - a symbol or a number.
         try { //BUG FIXME with a rake or something. Seriously?
-            if(token == "-" || token == "in") throw new Exception("A Phobos bug workarround.");
+            if(token == "-" || token == "in" || token == "I" || token == "i")
+                throw new Exception("A Phobos bug workarround.");
             auto value = to!real(token);
             return new Value(value);
         }
