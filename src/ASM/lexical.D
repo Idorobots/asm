@@ -88,12 +88,13 @@ enum Keywords : string {
     //Special keywords:
     Fnord       = "fnord",      ///fnord - the only false arround.
     Self        = "self",       ///self - object self reference         //TODO: out?
+    Import      = "import",     ///Imports modules.
     //Math:
-    Mult        = "mult",       ///Multiplication.
-    Add         = "add",        ///Addition.
-    Sub         = "sub",        ///Substraction.
-    Div         = "div",        ///Division.
-    Mod         = "modulo",     ///Modulus.
+    Mult        = "*",          ///Multiplication.
+    Add         = "+",          ///Addition.
+    Sub         = "-",          ///Substraction.
+    Div         = "/",          ///Division.
+    Mod         = "mod",        ///Modulus.
     //Comparison:
     LessOrEqual = "leq",        ///Less or equal.
     IsEqual     = "equal?",     ///Equality check.
@@ -101,12 +102,13 @@ enum Keywords : string {
     Car         = "first",      ///Reference/value of the first element in a mutable/immutable collection.
     Cdr         = "rest",       ///Collection refering the rest of the collection.
     Cons        = "join",       ///Joins two objects to form a collection.
+    Map         = "map",        ///Maps a function to a collection. //TODO: Out?
+    Reduce      = "reduce",     ///Reduces a collection with a function.
     //Quoting and quasiquoting:
     Quasiquote  = "qquote",     ///Quasiquoting.
     Quote       = "quote",      ///Quoting.
     Embed       = "embed",      ///Embeding. //TODO Namechange to eval?
     //Declarators:
-    Bind        = "__bind",     ///Binds an expression to a symbol.
     Var         = "var",        ///Binds a variable to an expression (or fnord).
     Function    = "function",   ///Creates an anonymous function.
     Macro       = "macro",      ///Creates a macro.

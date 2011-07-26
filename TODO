@@ -102,21 +102,23 @@
 - [X] Callable with multiple predicates, returns subset satisfying
       the predicates.
 * THINK THINGS TO IMPLEMENT IN THE LIBRARY:
-** THINK ASMKit
+** TODO ASMKit
 - [ ] ! Contains a minimal set of builtin, precompiled functions needed
       to implement the language.
 - [ ] ! Uses parallel evaluation where possible.
-*** THINK Functions:
+*** TODO Functions:
 Actually list them here.
 ** THINK Modules:
-- [ ] ? core - containing builtins and a few usefull functions.
+- [ ] ! core - containing builtins and a few usefull functions.
 - [ ] ! io - containing I/O routines.
 - [ ] ! math - containing math routines (probably compilled into the
       interpreter).
-** THINK Type predicates:
-- [ ] ? Evaluate to fnord on false, to their arg otherwise.
-- [ ] ? Accept a single argument.
-*** THINK Functions & return values:
+** TODO Type predicates:
+- [ ] Accept multiple args.
+- [ ] Evaluate to fnord on false, to their one of their args otherwise.
+*** TODO Functions:
+- [ ] ! type? - NOT A PREDICATE, returns type tuple of a _single_
+      object.
 - [ ] fnord? - 'yup if an expression is fnord.
 - [ ] symbol? - symbol if an expression is a symbol.
 - [ ] number? - number if an expression is a number.
@@ -125,40 +127,45 @@ Actually list them here.
 - [ ] function? - function if an expression is a function.
 - [ ] pure? - pure if an expression is a pure function.
 - [ ] syntax? - syntax if an expression is a syntax keyword.
-- [ ] ? type? - NOT A PREDICATE, returns type tuple of an object.
-** THINK Type conversions:
+- [ ] scope? - scope if an expression is repetition, sigh.
+- [ ] builtin? - builtin if an expression is a builtin.
+- [ ] immutable? - immutable if an expression is immutable.
+- [ ] mutable? - mutable if an expression is not immutable.
+** TODO Type conversions:
 - [ ] ! Convert in place if passed a settable reference, or create a copy.
 - [ ] ? Return fnord on error.
-*** THINK Functions & return values:
+*** TODO Functions & return values:
 - [ ] number->string - string representation of a number.
 - [ ] string->number - numerical value of a string.
 - [ ] ? symbol->string - same thing with Syntax.StringDelim all over.
-- [ ] ? string->symbol - symbol representation of the string
-      (if conversible).
-- [ ] list->tuple - makes an immutable version of a list.
-- [ ] set->tuple - makes an immutable version of a set.
-- [ ] ? tuple->list - makes a mutable _COPY_ of a tuple
-- [ ] ! tupleof - makes an immutable version of a passed arg (should
-      work for atoms aswell).
-- [ ] ! stringof - makes a string representation of a passed arg.
+- [-] tupleof:
+        + [X] Makes an immutable version of a passed arg.
+        + [ ] ? Should work for atoms aswell.
+- [-] listof:
+        + [X] Makes a list representation of an arg.
+        + [ ] ? Should work for atoms too.
+- [-] setof:
+        + [X] Makes a set representation of an arg.
+        + [ ] ? Should work for atoms too.
+- [ ] ! stringof - Makes a string representation of a passed arg.
 - ? etc
 ** THINK Working with numbers:
 - [ ] ASMKit functions accept two arguments.
 - [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
       Return (reduce ASMKitFunc args).
-*** THINK ASMKit:
-- [ ] mult - a * b
-- [ ] add - a + b
-- [ ] sub - a - b
-- [ ] div - a / b
+*** TODO ASMKit:
+- [ ] * - a * b
+- [ ] + - a + b
+- [ ] - - a - b
+- [ ] / - a / b
 - [ ] mod - a modulo b
-*** THINK Generics:
-- [ ] + - generic add
-- [ ] - - generic sub
-- [ ] * - generic mult
-- [ ] / - generic div
+*** TODO Generics:
+- [ ] sum - generic +
+- [ ] mult - generic *
+- [ ] sub - generic -
+- [ ] div - generic /
 - [ ] modulo - generic mod
-- [ ] ? etc
+- ? etc
 ** THINK Equality checks:
 - [ ] ASMKit versions taking only two args.
 - [ ] Generic versions returning first arg on true.
@@ -172,27 +179,30 @@ Actually list them here.
 - [ ] >= - generic ((a eq? b) or (not (a leq? b)))
 - [ ] < - generic ((not (a eq? b)) and (a leq? b))
 - [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
-** THINK Working with collections:
+** TODO Working with collections:
 - [ ] Working for all the collection types.
-*** THINK Functions:
-**** THINK Collection manipulation:
-- [ ] ? join - joins two collections into one. Also joins a single
+*** TODO Functions:
+**** TEST Collection manipulation:
+- [X] join - joins two collections into one. Also joins a single
       element and a collection to form a new collection.
-- [ ] ! first - returns a reference to the first element of a mutable
+- [X] first - returns a reference to the first element of a mutable
       collection, or its value if collection is immutable.
-- [ ] ! rest - returns a new collection referencing the rest part of
+- [X] rest - returns a new collection referencing the rest part of
       the old one.
-- [ ] ? second, third, fourth etc.
-**** THINK Collection creation:
+- [X] second, third, fourth etc.
+- [X] map - maps an operation to a collection collecting results.
+- [X] reduce - maps an operation to a collection reducing it to a
+      single value.
+**** TODO Collection creation:
 - [ ] ? list - returns a list consisting of the call args.
-- [ ] ? tuple - returns a tuple consisting of the call args.
+- [X] tuple - returns a tuple consisting of the call args.
 - [ ] ? set - returns a set consisting of the call args.
 ** THINK Input:
 - [ ] Unformatted (string) reads.
 - [ ] Formatted reads (reads into the passed args).
 - [ ] ? Use this for files, sockets, stdin etc.
 *** THINK Functions:
-- [ ] ? load/open - Loads a file for reading (as a Scope with read
+- [ ] ? load/open - Loads a file for reading (as a Scope/Stream with read
       defined acordingly).
 - [ ] ! read - performing both formatted and unformatted reads
       (depending on args).
@@ -265,6 +275,7 @@ Actually list them here.
 *** TODO Callable:                                                    :THINK:
 - [ ] Depth parameter for the calls.
 - [ ] ? String representation actually showing the callable.
+- [ ] ! Fix closures after the move.
 *** TODO Scope:                                                       :THINK:
 - [ ] ? String representation actually being usefull. (A tuple of
       keys, perhaps.)
@@ -278,7 +289,22 @@ Actually list them here.
 - [ ] ? Add import(Scope).
 - [X] Scope call returning references.
 - [ ] ! Fix storing unwanted objects when rebinding symbols.
+** TODO Kit:                                                          :THINK:
+- [ ] ? Move pass() to a separate module. (ASM.utils ?)
+- [ ] Actually write some fooking implementations. (Create a separate
+      file for these?)
+- [ ] ? Change delegate(...) to function(...).
+- [ ] Move already implemented functions there.
+- [ ] Move Scope, Set and List calls there.
+- [ ] Fix FNORD comparisions.
+*** TODO Implementations:
+- [ ] Fix EMBED, QUOTE and QQOTE on strings.
+- [ ] Find solution to/report ref parameter delegate bug in FUNCTION.
+- [ ] Keyword dispatch for Callables declarators.
+- [ ] Make IMPORT work with default import paths etc.
+- [ ] Fix setof, tupleof, listof.
 ** TODO Parser:                                                       :THINK:
+- [ ] Stop ESyntax expansion in symbols. E.g. some$ymbol.
 - [ ] Make parse() pretier!
 - [ ] Fix number parsing and PhobosBug(TM) workarrounds.
 - [ ] ? NumberParser
@@ -297,15 +323,8 @@ Actually list them here.
 - [ ] Add line number data.
 - [ ] ? Add expression number data.
 ** TODO Interpreter:                                                  :THINK:
-- [ ] ? Fix FNORD comparisions. (Move it to ASM.lexical?)
-- [ ] Actually write some fooking implementations. (Create a separate
-      file for these?)
 - [ ] Fix doString() and doFile().
 - [ ] ? InterpretingError for file interepretation.
-*** TODO Implementations:
-- [ ] Fix Embed, Quote and Quasiquote on strings.
-- [ ] Find solution to/report ref parameter delegate bug in Function.
-- [ ] Keyword dispatch for Callables declarators.
-- [ ] Make import work with default import paths etc.
 *** TODO Unittests:                                               :IMPORTANT:
-- [ ] Actually write those.
+- [X] Actually write those.
+- [ ] Write more of these.

@@ -34,6 +34,7 @@ import utils.exception : MyException;
 import utils.ctfe;
 
 import ASM.lexical;
+import ASM.kit;
 
 /***********************************************************************************
  * Exception thrown on a semantic error.
@@ -223,11 +224,6 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
 
     override Expression call(ref Scope s, Expression[] args) {
         static if(collectionType & Type.Set) {
-            Expression pass(ref Expression el) { //TODO: Move to ASM.utils
-                Expression quote[];
-                return new Tuple([cast(Expression)new Symbol(Keywords.Quote), el]);
-            }
-
             Expression[] argv;
             foreach(arg; args) argv ~= arg.eval(s);
 
@@ -276,7 +272,7 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
        }
        else static if(collectionType & Type.Set) {
            Expression output;
-           foreach(el; coll) output = el.eval(s);
+           foreach(el; coll) output = el.eval(s, depth + 1);
            return output ? output : new Symbol(Keywords.Fnord); //FIXME: Return FNORD on an empty set.
        }
        else static if(collectionType & Type.List) {
@@ -353,6 +349,7 @@ alias Callable!(Type.Pure|Type.Function)                Pure;           ///Pure 
 alias Callable!(Type.Builtin|Type.Function)             Builtin;        ///Builtin function.
 alias Callable!(Type.Pure|Type.Builtin|Type.Function)   PureBuiltin;    ///Builtin function.
 alias Callable!(Type.Keyword)                           Keyword;        ///Syntax keyword.
+alias Callable!(Type.Builtin|Type.Keyword)              BuiltinKeyword; ///Syntax keyword.
 
 /***********************************************************************************
  * A variable scope for soring symbols.
@@ -367,7 +364,6 @@ class Scope : Expression {
 
     this(Scope outter = null) {
         this.outter = outter;
-        //this.defineSyntax(Keywords.Self, this);
     }
 
     /***********************************************************************************
@@ -382,7 +378,6 @@ class Scope : Expression {
 
     alias define!"syntax"   defineSyntax;
     alias define!"symbols"  defineSymbol;
-    alias define!"symbols"  definePure;
 
     /***********************************************************************************
      * Returns the definition of a symbol or throws "Undefined symbol" exception

@@ -27,26 +27,18 @@
 module ASM.kit;
 
 import ASM.lexical;
-import ASM.AST;         //FIXME: Cyclic imports.
+import ASM.AST;
 
 /***********************************************************************************
- * GLOBALS:
+ * UTILITIES:
  *********************/
-
-Expression FNORD;
-
-static this() {
-    FNORD = new Symbol(Keywords.Fnord);
-}
 
 /***********************************************************************************
- * DEFINITIONS:
+ * Quickfix for too many evaluations in several places:
+ * FIXME: Check why it's needed.
  *********************/
 
-Expression GET(ref Scope s, Expression[] args) {
-    //if(args.length != 1)
-        //throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.");
-    if(args[0].type & Type.Symbol) return s.get(args[0].toString);
-    //else throw new SemanticError("Undefined symbol '"~args[0].toString~"'.");
-    assert(0);
+Expression pass(ref Expression el) {
+    Expression quote[];
+    return new Tuple([cast(Expression)new Symbol(Keywords.Quote), el]);
 }
