@@ -269,7 +269,7 @@ class DefaultParser : Parser {
         test("( Not so ( simple statement ( at ) ) all. )",
             ["(", "Not", "so", "(", "simple", "statement", "(", "at", ")", ")", "all.", ")"]);
         test("( Many [ different { parens } and ] other ) things.",
-            ["(", "Many", "[", "different", "{", "parens", "}", "and", "]", "other" ")" "things." ]);
+            ["(", "Many", "[", "different", "{", "parens", "}", "and", "]", "other", ")", "things." ]);
     }
 
     /***********************************************************************************

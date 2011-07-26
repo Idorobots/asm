@@ -9,7 +9,7 @@ VPATH = src:src/ASM:utils
 
 TARGET = asm.exe
 
-OBJS = main.obj interpreter.obj parser.obj AST.obj lexical.obj testing.obj exception.obj ctfe.obj
+OBJS = main.obj interpreter.obj kit.obj parser.obj AST.obj lexical.obj testing.obj exception.obj ctfe.obj
 
 all : $(TARGET)
 

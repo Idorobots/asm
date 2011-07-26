@@ -32,10 +32,13 @@ debug import std.stdio;
 import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
+
 import utils.ctfe : tr;
+debug import utils.testing;
 
 import ASM.lexical;
 import ASM.AST;
+import ASM.kit;
 import ASM.parser;
 
 /***********************************************************************************
@@ -50,7 +53,7 @@ class Interpreter {
      * Special fnord keyword - the ony "false" value arround.
      *********************/
 
-    static Expression FNORD;
+//    static Expression FNORD;
 
     this() {
         this(new DefaultParser());
@@ -60,10 +63,18 @@ class Interpreter {
         assert(parser !is null);
         this.parser = parser;
         global = new Scope();
-        FNORD = new Symbol(Keywords.Fnord);     //NOTE: This is only for return values. Never compare against this.
+//        FNORD = new Symbol(Keywords.Fnord);     //NOTE: This is only for return values. Never compare against this.
                                                 //NOTE: Well, actually untill I fix this.
 
         global.defineSyntax(Keywords.Fnord, FNORD);
+
+        //global.defineSyntax(Keywords.Get, new Keyword(&GET));
+        // global.defineSyntax(Keywords.Get, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
+        //     if(args.length != 1)
+        //         throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.");
+        //     if(args[0].type & Type.Symbol) return s.get(args[0].toString);
+        //     else throw new SemanticError("Undefined symbol '"~args[0].toString~"'.");
+        // }));
 
         global.defineSyntax(Keywords.IsEqual, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
             if(args.length < 2)
@@ -78,12 +89,17 @@ class Interpreter {
         global.defineSyntax(Keywords.Quasiquote, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
             if(!args.length) return FNORD;
             Expression tryEval(Expression arg) {
-                if(arg.type & Type.Tuple) {
-                    foreach(e; arg.range) if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
-                    //Nothing embedded:
-                    Expression[] tuple;
-                    foreach(a; arg.range) tuple ~= tryEval(a);
-                    return new Tuple(tuple);
+                if(arg.type & Type.Collection) {
+                    if(arg.type & Type.Tuple)
+                        foreach(e; arg.range)
+                            if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
+
+                    //Not embedding:
+                    Expression[] collection;
+                    foreach(a; arg.range) collection ~= tryEval(a);
+                    if(arg.type & Type.Tuple) return new Tuple(collection);      //TODO: Pretier.
+                    if(arg.type & Type.List)  return new List(collection);
+                    if(arg.type & Type.Set)   return new Set(collection);
                 }
                 return arg;
             }
@@ -295,14 +311,18 @@ class Interpreter {
             return FNORD;
         }));
 
-        global.defineSyntax("doWhatSetDoes", new Keyword(delegate Expression (ref Scope s, Expression[] args) {
-            if(!args.length) return FNORD;
-            Expression expr;
-            foreach(arg; args[0 .. $]) {
-                expr = arg.eval(s);
-            }
-            return expr;
+        global.defineSyntax("setof", new Keyword(delegate Expression (ref Scope s, Expression[] args) {
+            return new Set(args[0].eval(s).range.dup);
         }));
+
+        global.defineSyntax("listof", new Keyword(delegate Expression (ref Scope s, Expression[] args) {
+            return new List(args[0].eval(s).range.dup);
+        }));
+
+        global.defineSyntax("tupleof", new Keyword(delegate Expression (ref Scope s, Expression[] args) {
+            return new Tuple(args[0].eval(s).range);
+        }));
+
         global.defineSyntax(Keywords.If, new Keyword(delegate Expression (ref Scope s, Expression[] args) {
             if(args.length != 2 && args.length != 3)
                 throw new SemanticError("Syntax keyword '"~Keywords.If~"' requires two or three arguments.");
@@ -351,6 +371,28 @@ class Interpreter {
             return ns;
         }));
     }
+    unittest {
+        auto t = TestCase("Interpreter.implementations");
+        auto i = new Interpreter();
+
+        void test(int line = __LINE__)(string input, string expected) {
+            string actual;
+            try actual = i.doString(input);
+            catch(Exception e) actual = e.toString;
+            t.assertion!"=="(actual, expected, line);
+        }
+
+        //FIXME: Make these Syntax-independant.
+        //Quote, Quasiquote and embed:
+        test("'(foo bar)","(foo bar)");
+        test("''foo", "(quote foo)");
+        test("'`foo","(qquote foo)");
+        test("'$wat","(embed wat)");
+        test("`($(* 2 2))", "(4)");
+        test("`{$(* 2 2)}", "{4}");
+        test("`[$(* 2 2)]", "[4]");
+    }
+
 
     /***********************************************************************************
      * Reads and evaluates a string.

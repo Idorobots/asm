@@ -1,21 +1,46 @@
-## ASM core module.
+################################################################################
+# ASM core module.
+####################
 
-# Declarator macros:
-(macro def (name args body)
+## Convinience macros:
+
+# Function declarator.
+(macro defun (name args body)
     `(var $name (function $args $body)))
 
-(macro des (name body)
-    `(var $name (scope $body)))
+# Function template declarator.
+(macro template (name targs args body)
+    `(macro $name $targs
+        (function $args $body)))
 
-# Some convinience macros:
-(def second (c)
+# Class declarator.
+# TODO: (static name val) and one block.
+(macro class (name static local)
+    `(var $name (scope
+        $static                 # Static part of the class.
+        (defun new ()
+            (scope $local)))))  # Local part of the class.
+
+# Lispy macros:
+
+(macro let* (vars body)
+    `((function () {
+        $(setof (mymap (function (pair)
+                         (join 'var pair))
+                      vars))
+        $body
+    })))
+
+## Convinience functions:
+
+(defun second (c)
     (first (rest c)))
 
-(def third (c)
+(defun third (c)
     (first (rest (rest c))))
 
-(def fourth (c)
+(defun fourth (c)
     (first (rest (rest (rest c)))))
 
-(def fifth (c)
+(defun fifth (c)
     (first (rest (rest (rest (rest c))))))

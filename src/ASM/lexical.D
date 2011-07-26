@@ -100,21 +100,22 @@ enum Keywords : string {
     //Collection manipulation:
     Car         = "first",      ///Reference/value of the first element in a mutable/immutable collection.
     Cdr         = "rest",       ///Collection refering the rest of the collection.
-    Cons        = "join",       ///Joins two collections into one (the types must match).
+    Cons        = "join",       ///Joins two objects to form a collection.
     //Quoting and quasiquoting:
     Quasiquote  = "qquote",     ///Quasiquoting.
     Quote       = "quote",      ///Quoting.
     Embed       = "embed",      ///Embeding. //TODO Namechange to eval?
     //Declarators:
+    Bind        = "__bind",     ///Binds an expression to a symbol.
     Var         = "var",        ///Binds a variable to an expression (or fnord).
     Function    = "function",   ///Creates an anonymous function.
     Macro       = "macro",      ///Creates a macro.
     Scope       = "scope",      ///Crates a lexical scope.
-    //Setter:
+    //Generic setter and getter:
     Set         = "set",        ///Sets writeable memory locations.
+    Get         = "get",        ///Gets an object bound to a symbol.
     //Flow control:
     If          = "if",         ///if condition then else
-    //Predicates:
-    IsFnord     = "fnord?",     ///Returns fnord if arg is not fnord.
-    IsType      = "type?",      ///NOTE: Not a predicate; returns type touple of an object.
+    //Not quite predicates:
+    IsType      = "type?",      ///Not a predicate; returns type touple of an object.
 }
