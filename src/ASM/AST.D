@@ -59,7 +59,7 @@ class ObjectNotApplicable : SemanticError {
 enum Type {
     //Type attributes:
     Immutable   = 1,
-    Reference   = 2,
+    Settable    = 2,
     Pure        = 4,
     Builtin     = 8,
     //Root types:
@@ -67,7 +67,7 @@ enum Type {
     Callable    = 32,
     Collection  = 64,
     //Atomic types:
-    Value       = 128,
+    Number      = 128,
     Symbol      = 256,
     String      = 512,
     //Callable types:
@@ -90,6 +90,13 @@ enum Type {
  *********************/
 
 abstract class Expression {
+    /***********************************************************************************
+     * Meta- and semantic data:
+     *********************/
+
+    //string filename;
+    //uint line;
+    private string[] keys;
 
     /***********************************************************************************
      * Returns the evaluated S-expression. Defaults to self.
@@ -123,6 +130,26 @@ abstract class Expression {
     real value() {
         throw new ObjectNotApplicable(this.toString);
     }
+
+    /***********************************************************************************
+     * Returns an expression of the same type as this.
+     *********************/
+
+     Expression factory(Expression[] vals) {
+        throw new ObjectNotApplicable(this.toString);
+     }
+
+    /***********************************************************************************
+     * Returns keywords of this expression.
+     *********************/
+
+     @property string[] keywords() {
+         return keys;
+     }
+
+     @property void keywords(string key) {
+         keys ~= key;
+     }
 }
 
 /***********************************************************************************
@@ -133,7 +160,7 @@ class Reference : Expression {
     Expression* referee;
 
     this(Expression* expr) {
-        if(expr.type & Type.Reference) referee = (cast(Reference)*expr).referee;
+        if(expr.type & Type.Settable) referee = (cast(Reference)*expr).referee;
         else referee = expr;
     }
 
@@ -142,7 +169,7 @@ class Reference : Expression {
     }
 
     override uint type() {
-        return Type.Reference|referee.type;
+        return Type.Settable|referee.type;
     }
 
     override string toString() {
@@ -161,6 +188,18 @@ class Reference : Expression {
     override real value() {
         return referee.value;
     }
+
+     override Expression factory(Expression[] vals) {
+        return referee.factory(vals);
+     }
+
+     override string[] keywords() {
+         return referee.keywords;
+     }
+
+     override void keywords(string key) {
+         referee.keywords(key);
+     }
 }
 
 /***********************************************************************************
@@ -196,14 +235,14 @@ class Atom(T, uint atomType) : Expression {
 
     //TODO: string value() for symbols too.
     override real value() {
-        static if(atomType & Type.Value) {
+        static if(atomType & Type.Number) {
             return this.val;
         }
         else throw new ObjectNotApplicable(val);
     }
 }
 
-alias Atom!(real, Type.Value)                                  Value;      ///A number.
+alias Atom!(real, Type.Number)                                 Number;     ///A number.
 alias Atom!(string, Type.Symbol)                               Symbol;     ///Regular symbol.
 alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WYSIWYG symbol.
 
@@ -269,17 +308,21 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
                 if(op.type & Type.Callable) return op.call(s, coll[0 .. i]~coll[i+1 .. $]);
             }
             throw new SemanticError("No applicable object in tuple "~this.toString~".");
-       }
-       else static if(collectionType & Type.Set) {
-           Expression output;
-           foreach(el; coll) output = el.eval(s, depth + 1);
-           return output ? output : new Symbol(Keywords.Fnord); //FIXME: Return FNORD on an empty set.
-       }
-       else static if(collectionType & Type.List) {
-           //TODO
-           return this;
-       }
+        }
+        else static if(collectionType & Type.Set) {
+            Expression output;
+            foreach(el; coll) output = el.eval(s, depth + 1);
+            return output ? output : new Symbol(Keywords.Fnord); //FIXME: Return FNORD on an empty set.
+        }
+        else static if(collectionType & Type.List) {
+            //TODO
+            return this;
+        }
     }
+
+     override Expression factory(Expression[] vals) {
+         return new typeof(this)(vals);
+     }
 
     override uint type() {
         return Type.Collection|collectionType;

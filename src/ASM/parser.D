@@ -33,7 +33,7 @@ debug import std.stdio;
 debug import utils.testing;
 
 import utils.exception : MyException;
-import utils.ctfe : contains;
+import utils.ctfe : contains, ETuple;
 
 import ASM.lexical;
 import ASM.AST;
@@ -83,6 +83,7 @@ class DefaultParser : Parser {
      *********************/
 
     enum ESyntax : string {
+        Keyword         = ".",          ///Sticks a keyword to an expression.
         Quote           = "'",          ///Quoting: '(#whatever)
         Quasiquote      = "`",          ///Quasiquoting.
         Embed           = "$",          ///'(some expression $with_embedded_symbol
@@ -143,20 +144,37 @@ class DefaultParser : Parser {
          *********************/
 
         pure string syntaxExpand(in string input) {
-            string output;
+            string expanded;
             auto s = (input~Syntax.EndOfFile).ptr;
-            auto expand = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
+            auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                            Syntax.LList,  Syntax.RList,       //List parentesis
                            Syntax.LSet,   Syntax.RSet,        //Set parentesis
-                           Syntax.StringDelim,                //String delimiter.
-                           Syntax.CommentStart,               //Sexp comment.
+                           Syntax.StringDelim];               //String delimiter.
+            while(*s) {
+                if(contains(syntax, *s)) expanded ~= ""~Syntax.Space~s[0 .. 1]~Syntax.Space;
+                else expanded ~= s[0 .. 1];
+                s++;
+            }
+
+            string output;
+            s = (expanded~Syntax.EndOfFile).ptr;
+            auto prefix = [Syntax.CommentStart,               //Sexp comment.
+                           ESyntax.Keyword[0],                //. -> nothing. //TODO
                            ESyntax.Quote[0],                  //' -> (quote )
                            ESyntax.Quasiquote[0],             //` -> (qquote )
                            ESyntax.Embed[0]];                 //$ -> (embed )
-
+            bool jollyRogger = true;
             while(*s) {
-                if(contains(expand, *s)) output ~= ""~Syntax.Space~s[0 .. 1]~Syntax.Space;
-                else output ~= *s;
+                if(*s <= Syntax.Space) {
+                    output ~= s[0 .. 1];
+                    jollyRogger = true;
+                }
+                else if(jollyRogger && contains(prefix, *s))
+                    output ~= ""~Syntax.Space~s[0 .. 1]~Syntax.Space;
+                else {
+                    output ~= s[0 .. 1];
+                    jollyRogger = false;
+                }
                 s++;
             }
             return output;
@@ -200,7 +218,7 @@ class DefaultParser : Parser {
         ///Whitespaces:
         test("   \n\r  Leading whitespaces.", "Leading whitespaces.");
         test("Trailing whitespaces.  \n\t  \r\n", "Trailing whitespaces.");
-        test("Lots\t\na white\r\nspaces      \nand shit\t.", "Lotsa whitespaces and shit.");
+        test("Lots\t\na white\r\nspaces      \nand\t shit.", "Lotsa whitespaces and shit.");
         test("Lots\t\na white\r\nspaces   \"   \nand a string\".", "Lotsa whitespaces \" 0 .");
         test("Some multi\nline str\ning without comments.", "Some multiline string without comments.");
         ///Parenteses:
@@ -215,11 +233,15 @@ class DefaultParser : Parser {
         test("Some string #(with an (Expression embedded in a) Expression) comment.",
              "Some string # ( with an ( Expression embedded in a ) Expression ) comment.");
         test("String with a single #word comment.", "String with a single # word comment.");
-        test("(Statement with a single word #comment.)", "( Statement with a single word # comment. )");
+        test("[Expression with a single word #comment.]", "[ Expression with a single word # comment. ]");
+        test("{Expression with (a)#comment rigth #next} to a paren.",
+             "{ Expression with ( a ) # comment rigth # next } to a paren.");
         ///Strings and comments:
         test("String with a \"#(comment in a string), lol.\"", "String with a \" 0");
         test("A #\"string commented out\".", "A # \" 0 .");
         test("Some string \"with an \nembeded \tstring\" in it.", "Some string \" 0 in it.");
+        test("\"Comment rigth next to a string.\"#comment", "\" 0 # comment");
+        test("#Comment_rigth\"next to a string.\"", "# Comment_rigth \" 0");
         ///Expression embedding and escape sequences:
         test1("\"\\tString with\\nescape sequences.\\r\\n\"", "\"String with\nescape sequences.\r\n\"");
         test1("\"$Strings with simple $embeds in it\"", "\"$0 with simple $1 in it\"");
@@ -227,6 +249,17 @@ class DefaultParser : Parser {
         test1("\"$(Really {complex} embed (with multiple (parens) [and whatnot]))\"", "\"$0\"");
         test1("\"${Same deal (but {with another [set of]} parens.)}\"","\"$0\"");
         test1("\"$[Same () thing for [ a {list}]]\"","\"$0\"");
+        ///Keywords dispatch:
+        test("String with .keywords in it.", "String with . keywords in it.");
+        test("(Expression with .keywords (and .other expressions).in it.)",
+             "( Expression with . keywords ( and . other expressions ) . in it. )");
+        test("(.keyword rigth next to).a paren.", "( . keyword rigth next to ) . a paren.");
+        ///General fun:
+        test("not.a.keyword.", "not.a.keyword.");
+        test("not#a#comment#", "not#a#comment#");
+        test("not$an$embed$", "not$an$embed$");
+        test("not`a`qquote`", "not`a`qquote`");
+        test("not'a'quote'", "not'a'quote'");
     }
 
     /***********************************************************************************
@@ -298,6 +331,19 @@ class DefaultParser : Parser {
             tokens.popFront;
             return new String(stringBank[to!uint(index)]);
         }
+        if(token == ESyntax.Keyword) {
+            if(tokens.length) {
+                auto keyword = parse(tokens);
+                if((keyword.type & Type.Symbol) && !(keyword.type & Type.String)) {
+                    if(tokens.length) {
+                        auto expr = parse(tokens);
+                        expr.keywords(keyword.toString);
+                        return expr;
+                    }
+                }
+                else throw new SyntacticError("Invalid keyword '"~keyword.toString~"'.");
+            }
+        }
         if(token == ""~Syntax.CommentStart) {      //Deletes the following expression from the token stream.
             if(tokens.length) parse(tokens);       //It still does the syntactic analyzis,
             return null;                           //as this is ment solely for debugging.
@@ -335,7 +381,7 @@ class DefaultParser : Parser {
             if(token == "-" || token == "in" || token == "I" || token == "i")
                 throw new Exception("A Phobos bug workarround.");
             auto value = to!real(token);
-            return new Value(value);
+            return new Number(value);
         }
         catch(Exception) return new Symbol(token);
     }

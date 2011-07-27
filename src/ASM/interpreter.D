@@ -35,7 +35,7 @@ import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
 
-import utils.ctfe : tr;
+import utils.ctfe : tr, ETuple;
 
 import ASM.lexical;
 import ASM.AST;
@@ -60,6 +60,7 @@ class Interpreter {
         this.parser = parser;
         global = new Scope();
 
+        FNORD = new Symbol(Keywords.Fnord);
         global.defineSyntax(Keywords.Fnord, FNORD);
         global.defineSyntax(Keywords.Import, new BuiltinKeyword(&IMPORT));
         global.defineSyntax(Keywords.If, new BuiltinKeyword(&IF));
@@ -80,8 +81,9 @@ class Interpreter {
         global.defineSyntax(Keywords.Cdr, new BuiltinKeyword(&CDR));
         global.defineSymbol(Keywords.Map, new PureBuiltin(&MAP));
         global.defineSymbol(Keywords.Reduce, new PureBuiltin(&REDUCE));
-        global.defineSymbol("tuple", new PureBuiltin(&TUPLE));
-        global.defineSymbol("tuple?", new PureBuiltin(&ISTUPLE));
+        global.defineSyntax(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
+        global.defineSyntax(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
+        global.defineSymbol("tuple<-", new PureBuiltin(&TUPLE));
         global.defineSymbol("tupleof", new PureBuiltin(&TUPLEOF));
         global.defineSymbol("setof", new PureBuiltin(&SETOF));
         global.defineSymbol("listof", new PureBuiltin(&LISTOF));
@@ -180,7 +182,7 @@ class Interpreter {
 
     Expression SET(ref Scope s, Expression[] args) {
         auto expr = args[0].eval(s);
-        if(expr.type & Type.Reference) *((cast(Reference)expr).referee) = args[1].eval(s);
+        if(expr.type & Type.Settable) *((cast(Reference)expr).referee) = args[1].eval(s);
         else throw new SemanticError("The object "~args[0].toString~" is not applicable.");
         return expr;
     }
@@ -219,9 +221,7 @@ class Interpreter {
                 //Not embedding:
                 Expression[] collection;
                 foreach(a; arg.range) collection ~= tryEval(a);
-                if(arg.type & Type.Tuple) return new Tuple(collection);      //TODO: Pretier.
-                if(arg.type & Type.List)  return new List(collection);
-                if(arg.type & Type.Set)   return new Set(collection);
+                return arg.factory(collection);
             }
             return arg;
         }
@@ -263,7 +263,7 @@ class Interpreter {
         if(!args.length) throw new SemanticError("Function '"~Keywords.Mult~"' requires at least one argument.");
         auto accumulator = args[0].eval(s).value;
         foreach(arg; args[1 .. $]) accumulator *= arg.eval(s).value;
-        return new Value(accumulator);
+        return new Number(accumulator);
     }
 
     /***********************************************************************************
@@ -275,7 +275,7 @@ class Interpreter {
         if(!args.length) throw new SemanticError("Function '"~Keywords.Add~"' requires at least one argument.");
         auto accumulator = args[0].eval(s).value;
         foreach(arg; args[1 .. $]) accumulator += arg.eval(s).value;
-        return new Value(accumulator);
+        return new Number(accumulator);
     }
 
     /***********************************************************************************
@@ -283,6 +283,8 @@ class Interpreter {
      *********************/
 
     Expression VAR(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires exactly two arguments.");
         if(!(args[0].type & Type.Symbol))
             throw new SemanticError("The object "~args[0].toString~" is not applicable.");
         auto value = args.length == 2 ? args[1].eval(s) : FNORD;
@@ -291,19 +293,18 @@ class Interpreter {
     }
 
     /***********************************************************************************
-     * Returns an anonymous closure (TODO).
-     * FIXME: Not a closure anymore!
+     * Returns an anonymous closure
      *********************/
 
     Expression FUNCTION(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Function~"' requires exactly two argements.");
+            throw new SemanticError("Syntax keyword '"~Keywords.Function~"' requires exactly two arguments.");
 
         Expression argTuple = args[0];
         Expression functionBody = args[1];
         Expression foo;
 
-        auto tmp = s;
+        auto tmp = s; //FIXME: OUT
         if(argTuple.toString == Keywords.Fnord) //FIXME: FNORD
             foo = new Function(delegate Expression (ref Scope, Expression[] callArgs) {
                 auto lambdaScope = new Scope(tmp);
@@ -317,7 +318,7 @@ class Interpreter {
                 throw new SemanticError(format("Expected %s arguments instead of %s.",
                                                argTuple.range.length, callArgs.length));
 
-            auto lambdaScope = new Scope(tmp); //FIXME: Not a closure!
+            auto lambdaScope = new Scope(tmp);
             foreach(i, argName; argTuple.range) {
                 lambdaScope.defineSymbol(argName.toString, callArgs[i].eval(callScope));
             }
@@ -339,13 +340,17 @@ class Interpreter {
         Expression macroBody = args[2];
 
         auto foo = new Keyword(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            if(callArgs.length != argTuple.range.length)
-                throw new SemanticError(format("Expected %s arguments instead of %s.",
-                                               argTuple.range.length, callArgs.length));
+            // if(callArgs.length != argTuple.range.length)
+            //     throw new SemanticError(format("Expected %s arguments instead of %s.",
+            //                                    argTuple.range.length, callArgs.length));
 
             auto macroScope = new Scope(callScope);
             foreach(i, argName; argTuple.range) {
-                macroScope.defineSymbol(argName.toString, callArgs[i]);
+                if(argName.toString == "@tuple") {
+                    macroScope.defineSymbol("@tuple", new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
+                    break;
+                }
+                else macroScope.defineSymbol(argName.toString, callArgs[i]);
             }
             return macroBody.eval(macroScope).eval(callScope);
         });
@@ -378,11 +383,7 @@ class Interpreter {
         auto arg0 = args[0].eval(s);
         auto arg1 = args[1].eval(s);
 
-        if(arg1.type & Type.Collection) {
-            if(arg1.type & Type.Tuple) return new Tuple([arg0]~arg1.range); //TODO: Mixins not to repeat so much.
-            if(arg1.type & Type.List) return new List([arg0]~arg1.range);
-            if(arg1.type & Type.Set) return new List([arg0]~arg1.range);
-        }
+        if(arg1.type & Type.Collection) return arg1.factory([arg0]~arg1.range);
         return new List([arg0, arg1]);
     }
 
@@ -403,13 +404,8 @@ class Interpreter {
 
     Expression CDR(ref Scope s, Expression[] args) {
         auto collection = args[0].eval(s);
-        if(collection.type & Type.Tuple) //TODO: Mixins!
-            return collection.range.length > 1 ? new Tuple(collection.range[1 .. $]) : FNORD;
-        if(collection.type & Type.List)
-            return collection.range.length > 1 ? new List(collection.range[1 .. $]) : FNORD;
-        if(collection.type & Type.Set)
-            return collection.range.length > 1 ? new Set(collection.range[1 .. $]) : FNORD;
-        return FNORD;
+        if(collection.range.length < 2) return FNORD;
+        return collection.factory(collection.range[1 .. $]);
     }
 
     /***********************************************************************************
@@ -418,24 +414,24 @@ class Interpreter {
 
     Expression MAP(ref Scope s, Expression[] args) {
         if(args.length != 2) throw new SemanticError("Function 'map' requires exactly two arguments.");
-        Expression[] tuple;
+        Expression[] coll;
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
-        foreach(ref value; collection.range) tuple ~= func.call(s, [pass(value)]);
-        return new Tuple(tuple);
+        foreach(ref value; collection.range) coll ~= func.call(s, [pass(value)]);
+        return collection.factory(coll);
     }
 
     /***********************************************************************************
      * Maps an operation to a collection reducing it to a single value. Type generic.
-     * FIXME: pass() the result and value?
      *********************/
 
     Expression REDUCE(ref Scope s, Expression[] args) {
-        if(args.length != 2) throw new SemanticError("Function 'reduce' requires exactly two arguments.");
+        if(args.length != 2)
+            throw new SemanticError("Function 'reduce' requires exactly two arguments.");
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
         auto result = collection.range[0];
-        foreach(value; collection.range) result = func.call(s, [pass(result), pass(value)]);
+        foreach(ref value; collection.range) result = func.call(s, [pass(result), pass(value)]);
         return result;
     }
 
@@ -452,6 +448,44 @@ class Interpreter {
     }
 
     /***********************************************************************************
+     * Returns a type tuple of an object.
+     *********************/
+
+    Expression TYPEOF(ref Scope s, Expression[] args) {
+        if(args.length != 1)
+            throw new SemanticError("Function '"~Keywords.TypeOf~"' requires exactly one argument.");
+        auto argType = args[0].eval(s).type;
+        Expression[] typeTuple;
+
+        alias ETuple!(Type.Immutable, Type.Settable, Type.Pure, Type.Builtin, Type.Atom, Type.Callable,
+                      Type.Collection, Type.Number, Type.Symbol, Type.String, Type.Function, Type.Keyword,
+                      Type.Scope, Type.Set, Type.Tuple, Type.List)
+              types;
+        alias ETuple!("immutable", "settable", "pure", "builtin", "atom", "callable", "collection", "number",
+                      "symbol", "string", "function", "keyword", "scope", "set", "tuple", "list")
+              typeNames;
+
+        /*static*/ foreach(i, type; types) if(argType & type) typeTuple ~= new Symbol(typeNames[i]);
+        return new Tuple(typeTuple);
+    }
+
+
+    /***********************************************************************************
+     * Returns a keyword tuple of an object.
+     *********************/
+
+    Expression KEYWORDSOF(ref Scope s, Expression[] args) {
+        if(args.length != 1)
+            throw new SemanticError("Function '"~Keywords.KeywordsOf~"' requires exactly one argument.");
+        auto keywords = args[0].eval(s).keywords;
+        if(!keywords.length) return FNORD;
+
+        Expression[] tuple;
+        foreach(keyword; keywords) tuple ~= new Symbol(keyword);
+        return new Tuple(tuple);
+    }
+
+    /***********************************************************************************
      * Creates a tuple of its arguments.
      *********************/
 
@@ -463,23 +497,13 @@ class Interpreter {
     }
 
     /***********************************************************************************
-     * True if an argument is a tuple.
-     * TODO: out
-     *********************/
-
-    Expression ISTUPLE(ref Scope s, Expression[] args) {
-        if(args.length != 1) throw new SemanticError("Function 'tuple?' requires exactly one argument.");
-        auto arg = args[0].eval(s);
-        if(arg.type & Type.Tuple) return arg;
-        return FNORD;
-    }
-
-    /***********************************************************************************
      * Returns a set representation of a collection.
      * TODO: Change args type in place if possible?
      *********************/
 
     Expression SETOF(ref Scope s, Expression[] args) {
+        if(args.length != 1)
+            throw new SemanticError("Function 'setof' requires exactly one argument.");
         return new Set(args[0].eval(s).range.dup);
     }
 
@@ -489,6 +513,8 @@ class Interpreter {
      *********************/
 
     Expression LISTOF(ref Scope s, Expression[] args) {
+        if(args.length != 1)
+            throw new SemanticError("Function 'listof' requires exactly one argument.");
         return new List(args[0].eval(s).range.dup);
     }
 
@@ -498,7 +524,15 @@ class Interpreter {
      *********************/
 
     Expression TUPLEOF(ref Scope s, Expression[] args) {
+        if(args.length != 1)
+            throw new SemanticError("Function 'tupleof' requires exactly one argument.");
         return new Tuple(args[0].eval(s).range);
+    }
+
+    Expression STRINGOF(ref Scope s, Expression [] args) {
+        if(args.length != 1)
+            throw new SemanticError("Function 'stringof' requires exactly one argument.");
+        return new String("\""~args[0].eval(s).toString~"\"");
     }
 
     /***********************************************************************************
@@ -508,11 +542,11 @@ class Interpreter {
     Expression RANGE(ref Scope s, Expression[] args) {
         if(args.length != 2 && args.length != 3)
             throw new SemanticError("Function 'range' requires two or three arguments.");
-        Value[] tuple;
+        Number[] tuple;
         auto left = args[0].eval(s).value;
         auto right = args[1].eval(s).value;
         auto increment = (args.length == 3) ? args[2].eval(s).value : 1;
-        for(auto i = left; i < right; i += increment) tuple ~= new Value(i);
+        for(auto i = left; i < right; i += increment) tuple ~= new Number(i);
         return new Tuple(tuple);
     }
 
@@ -528,9 +562,9 @@ class Interpreter {
         auto randomGenerator = MinstdRand(unpredictableSeed);
         Expression randomImpl(Expression arg) {
             auto r = arg.eval(s);
-            if(r.type & Type.Value) {
+            if(r.type & Type.Number) {
                 auto v = r.value;
-                return new Value(uniform(0, v));
+                return new Number(uniform(0, v));
             }
             //The other use case has to be a collection.
             auto len = r.range.length;

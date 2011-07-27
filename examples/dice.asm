@@ -2,14 +2,14 @@
 
 (import 'imports.core)
 
-(def roll (dice)                                # Dice rolling function.
+(defun roll (dice)                              # Dice rolling function.
     (if (tuple? dice)
         (random dice)))
 
-(def rollRandom ()
+(defun rollRandom ()
     (roll (roll dRANDOM)))
 
-(def d (dice)                                   # An additional dice rolling function.
+(defun d (dice)                                 # An additional dice rolling function.
     (roll (range 1 (dice + 1))))
 
 (var d4 (range 1 5))
@@ -23,12 +23,12 @@
 (var dHIT '("head" "upper body" "lower body"
             "left arm" "right arm" "left leg"
             "right leg"))
-(var dRANDOM (tuple d4 d6 d8 d10 d% d20 d30))
+(var dRANDOM (tuple<- d4 d6 d8 d10 d% d20 d30))
 
 ## Roll some dice:
 
 (roll 2)                                        # Fnord!
-#(rollRandom)
+(rollRandom)
 (roll d4)
 (* 2 (roll d20))
 (2 * (roll d20))
@@ -36,5 +36,5 @@
 (+ (* 2 (d 4)) 3)
 ((2 * (d 4)) + 3)
 
-(def hitTheOrc ()                               # Ouch!
+(defun hitTheOrc ()                             # Ouch!
     `(You hit the Orc in the $(roll dHIT) for $((d 8) + 4) damage!))

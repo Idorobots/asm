@@ -21,10 +21,21 @@
  *********************/
 
 /***********************************************************************************
- * Module containing some compile time evaluatable functions for numerous purposes.
+ * Module containing some compile time evaluatable functions for numerous purposes,
+ * and utilities aiding CTFE design.
  *********************/
 
 module utils.ctfe;
+
+
+/***********************************************************************************
+ * Creates an expression tuple that can be aliased to something later on.
+ *********************/
+
+template ETuple(E ...) {
+    alias E ETuple;
+}
+
 
 /***********************************************************************************
  * Capitalizes the first letter in a string.

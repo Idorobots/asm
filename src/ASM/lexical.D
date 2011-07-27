@@ -119,5 +119,6 @@ enum Keywords : string {
     //Flow control:
     If          = "if",         ///if condition then else
     //Not quite predicates:
-    IsType      = "type?",      ///Not a predicate; returns type touple of an object.
+    TypeOf      = "typeof",      ///Returns type touple of an object.
+    KeywordsOf  = "keywordsof",  ///Returns keyword tuple of an object.
 }
