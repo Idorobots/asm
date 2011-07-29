@@ -101,8 +101,8 @@ enum Keywords : string {
     //Collection manipulation:
     Car         = "first",      ///Reference/value of the first element in a mutable/immutable collection.
     Cdr         = "rest",       ///Collection refering the rest of the collection.
-    Cons        = "join",       ///Joins two objects to form a collection.
-    Map         = "map",        ///Maps a function to a collection. //TODO: Out?
+    Cons        = "join!",      ///Joins two objects to form a collection.
+    Map         = "map",        ///Maps a function to a collection.
     Reduce      = "reduce",     ///Reduces a collection with a function.
     //Quoting and quasiquoting:
     Quasiquote  = "qquote",     ///Quasiquoting.
@@ -114,10 +114,11 @@ enum Keywords : string {
     Macro       = "macro",      ///Creates a macro.
     Scope       = "scope",      ///Crates a lexical scope.
     //Generic setter and getter:
-    Set         = "set",        ///Sets writeable memory locations.
+    Set         = "set!",       ///Sets writeable memory locations.
     Get         = "get",        ///Gets an object bound to a symbol.
     //Flow control:
     If          = "if",         ///if condition then else
+    Begin       = "begin",      ///Evaluates arguments and returns value of the last one.
     //Not quite predicates:
     TypeOf      = "typeof",      ///Returns type touple of an object.
     KeywordsOf  = "keywordsof",  ///Returns keyword tuple of an object.

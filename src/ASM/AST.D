@@ -46,9 +46,15 @@ class SemanticError : MyException {
     }
 }
 
-class ObjectNotApplicable : SemanticError {
+class ObjectNotAppError : SemanticError {
     public this(string obj) {
         super("The object '"~obj~"' is not applicable.");
+    }
+}
+
+class UndefinedSymError : SemanticError {
+    public this(string sym) {
+        super("Undefined symbol '"~sym~"'.");
     }
 }
 
@@ -115,7 +121,7 @@ abstract class Expression {
      *********************/
 
     Expression[] range() {
-        throw new ObjectNotApplicable(this.toString);
+        throw new ObjectNotAppError(this.toString);
     }
 
     /***********************************************************************************
@@ -123,12 +129,12 @@ abstract class Expression {
      *********************/
 
     Expression call(ref Scope s, Expression[] args) {
-        throw new ObjectNotApplicable(this.toString);
+        throw new ObjectNotAppError(this.toString);
     }
 
     //TODO: T value(T)();
     real value() {
-        throw new ObjectNotApplicable(this.toString);
+        throw new ObjectNotAppError(this.toString);
     }
 
     /***********************************************************************************
@@ -136,7 +142,7 @@ abstract class Expression {
      *********************/
 
      Expression factory(Expression[] vals) {
-        throw new ObjectNotApplicable(this.toString);
+        throw new ObjectNotAppError(this.toString);
      }
 
     /***********************************************************************************
@@ -238,7 +244,8 @@ class Atom(T, uint atomType) : Expression {
         static if(atomType & Type.Number) {
             return this.val;
         }
-        else throw new ObjectNotApplicable(val);
+        else throw new ObjectNotAppError(this.toString);
+        assert(0);
     }
 }
 
@@ -263,22 +270,7 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
 
     override Expression call(ref Scope s, Expression[] args) {
         static if(collectionType & Type.Set) {
-            Expression[] argv;
-            foreach(arg; args) argv ~= arg.eval(s);
-
-            Expression[] newSet;
-
-            foreach(ref el; coll) {
-                bool jollyRogger = true;    //A flag to tell if an element satysfies all the predicates.
-                foreach(arg; argv) {
-                    if(arg.call(s, [pass(el)]).toString == Keywords.Fnord) {
-                        jollyRogger = false;
-                        break;
-                    }
-                }
-                if(jollyRogger) newSet ~= new Reference(&el);
-            }
-            return new Set(newSet);
+            return s.get("__setcall").call(s, [pass(this)]~args); //TODO Keyword.SetCall?
         }
         else static if(collectionType & Type.List) {
             Expression[] newList;
@@ -297,8 +289,9 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
     }
 
     /***********************************************************************************
-     * Evaluates as a form for the tuple, one by one for the set, and creates
-     * an anonymous function for the list. (TODO)
+     * By default evaluates as a form for the tuple, one by one for the set, and creates
+     * an anonymous function for the list.
+     * TODO: Add "evalKeyword" and "callKeyword" template args to make this a oneliner.
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
@@ -310,19 +303,16 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
             throw new SemanticError("No applicable object in tuple "~this.toString~".");
         }
         else static if(collectionType & Type.Set) {
-            Expression output;
-            foreach(el; coll) output = el.eval(s, depth + 1);
-            return output ? output : new Symbol(Keywords.Fnord); //FIXME: Return FNORD on an empty set.
+            return s.get("__seteval").call(s, coll);
         }
         else static if(collectionType & Type.List) {
-            //TODO
-            return this;
+            return s.get("__listeval").call(s, coll);
         }
     }
 
-     override Expression factory(Expression[] vals) {
-         return new typeof(this)(vals);
-     }
+    override Expression factory(Expression[] vals) {
+        return new typeof(this)(vals);
+    }
 
     override uint type() {
         return Type.Collection|collectionType;
@@ -354,21 +344,7 @@ alias Expression delegate(ref Scope s, Expression[] args) proc_t;   //TODO += de
  *********************/
 
 class Callable(uint procType) : Expression {
-    enum string stringof = getName(procType);
     proc_t procedure;
-
-    /***********************************************************************************
-     * Returns the string representation of this Callable at compile time.
-     *********************/
-
-    private static string getName(uint procType) {
-        string output;
-        if(procType & Type.Builtin)  output ~= "compiled ";
-        if(procType & Type.Pure)     output ~= "pure ";
-        if(procType & Type.Function) output ~= "function ";
-        if(procType & Type.Keyword)  output ~= "syntax keyword ";
-        return utils.ctfe.capitalize(output);
-    }
 
     this(proc_t procedure) {
         this.procedure = procedure;
@@ -383,6 +359,16 @@ class Callable(uint procType) : Expression {
     }
 
     override string toString() {
+        //Make this actually useful.
+        string getName() {
+            string output;
+            if(procType & Type.Builtin)  output ~= "compiled ";
+            if(procType & Type.Pure)     output ~= "pure ";
+            if(procType & Type.Function) output ~= "function ";
+            if(procType & Type.Keyword)  output ~= "syntax keyword ";
+            return utils.ctfe.capitalize(output);
+        }
+        enum stringof = getName();
         return format(""~Syntax.StringDelim~stringof~"at 0x%d."~Syntax.StringDelim, cast(void*) this);
     }
 }
@@ -431,25 +417,31 @@ class Scope : Expression {
         if(auto s = sym in syntax)   return defines[*s];
         if(auto s = sym in symbols)  return defines[*s];
         if(outter)                   return outter.get(sym);
-        else throw new SemanticError("Undefined symbol '"~sym~"'.");
+        else throw new UndefinedSymError(sym);
     }
 
     Expression* getRef(string sym) {
         if(auto s = sym in syntax)  return &defines[*s];
         if(auto s = sym in symbols) return &defines[*s];
         if(outter)                  return outter.getRef(sym);
-        else throw new SemanticError("Undefined symbol '"~sym~"'.");
+        else throw new UndefinedSymError(sym);
     }
 
     /***********************************************************************************
-     * "Outside call", returns values from this scope to the outside world.
+     * Returns true if a symbol is defined in this scope.
+     *********************/
+
+    bool isDefined(string sym) {
+        if(sym in syntax || sym in symbols) return true;
+        return false;
+    }
+
+    /***********************************************************************************
+     * Scope call - defaults to this.get(sym);
      *********************/
 
     override Expression call(ref Scope s, Expression[] args) {
-        if(args.length != 1) throw new SemanticError("Scope call requires exactly one argument.");
-
-        if(args[0].type & Type.Symbol) return new Reference(getRef(args[0].toString));
-        throw new SemanticError("The object '"~args[0].toString~"' is not applicable.");
+        return s.get("__scopecall").call(this, args);
     }
 
     /***********************************************************************************
@@ -461,7 +453,9 @@ class Scope : Expression {
     }
 
     override string toString() {
-        return format(""~Syntax.StringDelim~"Scope at 0x%d."~Syntax.StringDelim, cast(void*) this);
+        string output = format(""~Syntax.LTuple~Syntax.CommentStart~"scope@0x%d ", cast(void*) this);
+        foreach(sym; (syntax.keys~symbols.keys).sort) output ~= sym~Syntax.Space;
+        return output[0 .. $-1]~Syntax.RTuple;
     }
 
     override uint type() {

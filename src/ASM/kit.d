@@ -38,7 +38,7 @@ import ASM.AST;
  * FIXME: Check why it's needed.
  *********************/
 
-Expression pass(ref Expression el) {
+Expression pass(Expression el) {
     Expression quote[];
     return new Tuple([cast(Expression)new Symbol(Keywords.Quote), el]);
 }

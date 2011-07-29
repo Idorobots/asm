@@ -42,6 +42,7 @@ import ASM.AST;
 import ASM.kit;
 import ASM.parser;
 
+
 /***********************************************************************************
  * Interpreter
  *********************/
@@ -63,6 +64,7 @@ class Interpreter {
         FNORD = new Symbol(Keywords.Fnord);
         global.defineSyntax(Keywords.Fnord, FNORD);
         global.defineSyntax(Keywords.Import, new BuiltinKeyword(&IMPORT));
+        global.defineSyntax(Keywords.Begin, new BuiltinKeyword(&BEGIN));
         global.defineSyntax(Keywords.If, new BuiltinKeyword(&IF));
         global.defineSyntax(Keywords.Set, new BuiltinKeyword(&SET));
         global.defineSyntax(Keywords.Get, new BuiltinKeyword(&GET));
@@ -83,10 +85,19 @@ class Interpreter {
         global.defineSymbol(Keywords.Reduce, new PureBuiltin(&REDUCE));
         global.defineSyntax(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
         global.defineSyntax(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
-        global.defineSymbol("tuple<-", new PureBuiltin(&TUPLE));
+        global.defineSyntax("defined?", new BuiltinKeyword(&DEFINED));
+        global.defineSymbol("filter", new PureBuiltin(&FILTER));
+        global.defineSymbol("__setcall", global.get("filter"));
+        //global.defineSymbol("__listcall", global.get("awesome name"));
+        global.defineSymbol("__scopecall", global.get(Keywords.Get));
+        global.defineSymbol("__listeval", global.get(Keywords.Function));
+        global.defineSymbol("__seteval", global.get(Keywords.Begin));
+        //global.defineSymbol("__tupleeval", global.get("call"));
+        global.defineSymbol("tuple", new PureBuiltin(&TUPLE));
         global.defineSymbol("tupleof", new PureBuiltin(&TUPLEOF));
         global.defineSymbol("setof", new PureBuiltin(&SETOF));
         global.defineSymbol("listof", new PureBuiltin(&LISTOF));
+        global.defineSymbol("stringof", new PureBuiltin(&STRINGOF));
         global.defineSymbol("random", new PureBuiltin(&RANDOM));
         global.defineSymbol("range", new PureBuiltin(&RANGE));
     }
@@ -162,6 +173,55 @@ class Interpreter {
     Expression FNORD;
 
     /***********************************************************************************
+     * Performs a call on its arguments.
+     *********************/
+
+    Expression CALL(ref Scope s, Expression[] args) {
+        return FNORD; //TODO: Move Tuple.eval here.
+    }
+
+    /***********************************************************************************
+     * Filters a collection returning a new collection containing elements satisfying
+     * all the predicates passed to it.
+     *********************/
+
+    Expression FILTER(ref Scope s, Expression[] args) {
+        if(args.length < 2)
+            throw new SemanticError("Function 'filter' requires at least two arguments.");
+
+        Expression[] predicates;
+        foreach(arg; args[1 .. $]) predicates ~= arg.eval(s);
+
+        Expression coll = args[0].eval(s);
+        Expression[] newColl;
+
+        foreach(ref el; coll.range) {
+            bool jollyRogger = true;    //A flag to tell if an element satysfies all the predicates.
+            foreach(predicate; predicates) {
+                if(predicate.call(s, [pass(el)]).toString == Keywords.Fnord) {
+                    jollyRogger = false;
+                    break;
+                }
+            }
+            if(jollyRogger) newColl ~= el;
+        }
+        return coll.factory(newColl);
+    }
+
+    /***********************************************************************************
+     * Returns wether a symbol is defined in a scope.
+     *********************/
+
+     Expression DEFINED(ref Scope s, Expression[] args) {
+         if(!args.length)
+             throw new SemanticError("Function 'defined?' requires at least one argument.");
+         Expression[] argv;
+         foreach(arg; args) argv ~= arg.eval(s);
+         foreach(arg; argv) if(!s.isDefined(arg.toString)) return FNORD;
+         return argv[0];
+     }
+
+    /***********************************************************************************
      * Imports and interprets a file, merges Scopes.
      *********************/
 
@@ -171,7 +231,7 @@ class Interpreter {
             if(arg.type & Type.String) doFile(arg.toString[1 .. $-1], s);
             else if(arg.type & Type.Symbol) doFile(tr!(".", "/")(arg.toString)~".asm", s);
             else if(arg.type & Type.Scope) assert(0, "Not yet implemented.");
-            else throw new SemanticError("The object '"~args[0].toString~"' is not applicable.");
+            else throw new ObjectNotAppError(args[0].toString);
         }
          return s;
     }
@@ -183,20 +243,20 @@ class Interpreter {
     Expression SET(ref Scope s, Expression[] args) {
         auto expr = args[0].eval(s);
         if(expr.type & Type.Settable) *((cast(Reference)expr).referee) = args[1].eval(s);
-        else throw new SemanticError("The object "~args[0].toString~" is not applicable.");
+        else throw new ObjectNotAppError(args[0].toString);
         return expr;
     }
 
     /***********************************************************************************
      * Returns an object bound to a symbol.
+     * FIXME: Should evaluate arg.
      *********************/
 
     Expression GET(ref Scope s, Expression[] args) {
         if(args.length != 1)
             throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.");
-        if(args[0].type & Type.Symbol) return s.get(args[0].toString);
-        else throw new SemanticError("Undefined symbol '"~args[0].toString~"'.");
-        assert(0);
+        if(args[0].type & Type.Symbol) return new Reference(s.getRef(args[0].toString));
+        throw new ObjectNotAppError(args[0].toString);
     }
 
     /***********************************************************************************
@@ -208,16 +268,20 @@ class Interpreter {
     }
 
     /***********************************************************************************
-     * Quasiquote
+     * Quasiquote - quotes an expression embedding any embed expressions in it.
+     * Embeds are coupled with the innermost quasiquote.
      *********************/
 
     Expression QQUOTE(ref Scope s, Expression[] args) {
         if(!args.length) return FNORD;
         Expression tryEval(Expression arg) {
             if(arg.type & Type.Collection) {
-                if(arg.type & Type.Tuple)
-                    foreach(e; arg.range) if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
-
+                if(arg.type & Type.Tuple) {
+                    foreach(e; arg.range) {
+                        if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
+                        if(e.toString == Keywords.Quasiquote) return arg;
+                    }
+                }
                 //Not embedding:
                 Expression[] collection;
                 foreach(a; arg.range) collection ~= tryEval(a);
@@ -286,7 +350,7 @@ class Interpreter {
         if(args.length != 2)
             throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires exactly two arguments.");
         if(!(args[0].type & Type.Symbol))
-            throw new SemanticError("The object "~args[0].toString~" is not applicable.");
+            throw new ObjectNotAppError(args[0].toString);
         auto value = args.length == 2 ? args[1].eval(s) : FNORD;
         s.defineSymbol(args[0].toString, value);
         return value;
@@ -302,18 +366,9 @@ class Interpreter {
 
         Expression argTuple = args[0];
         Expression functionBody = args[1];
-        Expression foo;
-
         auto tmp = s; //FIXME: OUT
-        if(argTuple.toString == Keywords.Fnord) //FIXME: FNORD
-            foo = new Function(delegate Expression (ref Scope, Expression[] callArgs) {
-                auto lambdaScope = new Scope(tmp);
-                if(callArgs.length)
-                    throw new SemanticError(format("Expected &s arguments instead of %s",
-                                                   0, callArgs.length));
-                return functionBody.eval(lambdaScope);
-            });
-        else foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
+
+        return new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
             if(callArgs.length != argTuple.range.length)
                 throw new SemanticError(format("Expected %s arguments instead of %s.",
                                                argTuple.range.length, callArgs.length));
@@ -324,7 +379,6 @@ class Interpreter {
             }
             return functionBody.eval(lambdaScope);
         });
-        return foo;
     }
 
     /***********************************************************************************
@@ -394,6 +448,7 @@ class Interpreter {
 
     Expression CAR(ref Scope s, Expression[] args) {
         auto collection = args[0].eval(s);
+        if(!collection.range.length) return FNORD;
         if(collection.type & Type.Immutable) return collection.range[0];
         else return new Reference(&(collection.range[0]));
     }
@@ -446,6 +501,16 @@ class Interpreter {
             return args[1].eval(s);
         else return args.length == 3 ? args[2].eval(s) : FNORD;
     }
+
+    /***********************************************************************************
+     * Evaluates arguments and returns value of the last one.
+     *********************/
+
+     Expression BEGIN(ref Scope s, Expression[] args) {
+         Expression output = FNORD;
+         foreach(el; args) output = el.eval(s);
+         return output;
+     }
 
     /***********************************************************************************
      * Returns a type tuple of an object.
@@ -528,6 +593,10 @@ class Interpreter {
             throw new SemanticError("Function 'tupleof' requires exactly one argument.");
         return new Tuple(args[0].eval(s).range);
     }
+
+    /***********************************************************************************
+     * Retruns a string representation of an argument.
+     *********************/
 
     Expression STRINGOF(ref Scope s, Expression [] args) {
         if(args.length != 1)

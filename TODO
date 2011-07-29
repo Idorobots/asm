@@ -21,6 +21,10 @@
 - [X] Line comments starting with "##" or "# ". E.g. # line comment\n
 - [X] Expression comments - analyzed syntacticly, used for debugging and
       documenting purposes. E.g. #(sexp comment), #sexp_comment
+*** TODO Keywords:                                                    :THINK:
+- [X] Dot prefixed.
+- [X] Stick to other objects.
+- [ ] ? Propagate through the AST.
 ** TODO Language quirks:
 *** TEST Booleans:
 - [X] Only one logical false, anything else is considered true -
@@ -46,7 +50,7 @@
 *** TEST Symbols:
 - [X] Evaluate to their bound expression.
 *** TODO Strings:                                                     :THINK:
-- [X] Immutable
+- [ ] Immutable
 - [X] Symbol:
     + [X] Evaluate to themselves unless forced to eval by embed
           expression.
@@ -55,9 +59,11 @@
     + [ ] ? Consist of one letter symbols - characters.
     + [ ] ? Consist of numerical representations of the characters.
     + [ ] ? Consist of one letter strings.
-- [ ] ? Special regex literal - /some regex/
+- [ ] ? Special regex literal - /some regex/:
+    + [ ] Creates a special, callable regex string with common regex
+          operations defined. E.g. split, join, replace etc.
+    + [ ] ? Sed-like regexes. E.g. s/from/to/g
 - [ ] ! Recognise escape sequences. E.g. "\n" etc
-- [ ] ? Used for documentation.
 - [ ] ! String expansion "$(* 2 2) != 2" -> "4 != 2"
 ** TODO Callable types:
 *** TODO Functions:                                                   :THINK:
@@ -228,7 +234,7 @@ Actually list them here.
       description.
 *** TODO Syntax:                                                      :THINK:
 - [ ] ? Change Syntax to enum Syntax : string {}.
-*** TODO Keywords:                                                    :THINK:
+*** TODO Syntax keywords:                                             :THINK:
 - [ ] Sort out which keywords are crucial and leave only those.
 - [ ] Sort the list and write proper descriptions.
 - [ ] ? Self:
@@ -236,15 +242,15 @@ Actually list them here.
     + ? Used semanticly as a self reference of an object.
 - [ ] Embed:
     + Rename to something more appropriate.
-    + ? Force double evaluation in a giver scope?
+- [ ] Add __scopecall etc keywords.
+*** TODO Semantic keywords:                                           :THINK:
+- [ ] ? Add a list of builtin, recognised keywords.
 ** TODO AST:                                                          :THINK:
 - [ ] ? Type primitive used for semantic analyzis.
 *** TODO Type:                                                        :THINK:
 - [ ] ? Namechange to Types.
-- [ ] Types should already have the correct values, for easier
-      use later. E.g. Type.String = Type.Immutable|Type.Symbol|Type.Atom;
 *** THINK Semantic analyzis:                                      :IMPORTANT:
-- [ ] version(safe) toggling semantic analyzis.
+- [ ] version(safe) toggling parts of semantic analyzis.
 - [ ] Type checking, and predictedType field in Expression.
 - [ ] Arg number and type checking in Callables.
     + [ ] AbigiousCall error when types can vary greatly. E.g. Many
@@ -253,12 +259,13 @@ Actually list them here.
 - [ ] Recursion depth checking.
 - [ ] ? Macro expansion.
 *** TODO Expression:                                                  :THINK:
-- [ ] Additional fields:
+- [-] Additional fields:
     + [ ] Line number.
     + [ ] Filename.
-    + [ ] Expression number.
+    + [ ] ? Expression number.
     + [ ] ? Doc string.
-- [ ] ? opApply instead of call(), for convinience.
+    + [X] Semantic keywords.
+- [ ] ? opApply instead of range(), for convinience.
 - [ ] T value(T)() instead of real value().
 *** TODO Atom:                                                        :THINK:
 - [ ] Take the string away from there, make it a proper immutable
@@ -268,16 +275,17 @@ Actually list them here.
 *** TODO Collection:
 - [-] call() for Set and List with no implementation for Tuple:
     + [X] call() for Set and List.
-    + [ ] No compilled implementation for Tuple.
-- [ ] List evaluating to an anonymous function.
+    + [ ] No compiled implementation for Tuple.
+- [X] List evaluating to an anonymous function.
 - [ ] No arg evaluation before the call in Tuple.eval().
 - [X] Set returning FNORD for an empty set evaluation.
+- [ ] Add "evalKeyword" and "callKeyword" template args to make eval()
+      a oneliner.
 *** TODO Callable:                                                    :THINK:
 - [ ] Depth parameter for the calls.
 - [ ] ? String representation actually showing the callable.
-- [ ] ! Fix closures after the move.
 *** TODO Scope:                                                       :THINK:
-- [ ] ? String representation actually being usefull. (A tuple of
+- [-] ? String representation actually being usefull. (A tuple of
       keys, perhaps.)
 - [ ] One lexical scope of the variables, instead of symbol and syntax
       distinction.
@@ -287,22 +295,31 @@ Actually list them here.
 - [ ] ? Add unbind(string).
 - [ ] ? Add merge(Scope).
 - [ ] ? Add import(Scope).
+- [X] Add isDefined(string).
 - [X] Scope call returning references.
 - [ ] ! Fix storing unwanted objects when rebinding symbols.
 ** TODO Kit:                                                          :THINK:
-- [ ] ? Move pass() to a separate module. (ASM.utils ?)
-- [ ] Actually write some fooking implementations. (Create a separate
-      file for these?)
-- [ ] ? Change delegate(...) to function(...).
-- [ ] Move already implemented functions there.
-- [ ] Move Scope, Set and List calls there.
+- [ ] ? Move pass() to a separate module.
+- [ ] Actually write some fooking implementations.
+- [-] Move Scope, Set and List calls there:
+    + [X] Set.call()
+    + [X] Scope.call()
+    + [ ] List.call()
+- [-] Move Set, List and Tuple evals there:
+    + [X] Set.eval()
+    + [X] List.eval()
+    + [ ] Tuple.eval()
 - [ ] Fix FNORD comparisions.
 *** TODO Implementations:
 - [ ] Fix EMBED, QUOTE and QQOTE on strings.
+- [ ] ? Force double evaluation in a given scope for EMBED?
 - [ ] Find solution to/report ref parameter delegate bug in FUNCTION.
 - [ ] Keyword dispatch for Callables declarators.
 - [ ] Make IMPORT work with default import paths etc.
-- [ ] Fix setof, tupleof, listof.
+- [ ] Fix SETOF, TUPLEOF, LISTOF.
+- [ ] GET should evaluate it's args.
+- [ ] Rename FUNCTION to LAMBDA/ANONYMOUS.
+- [ ] FUNCTION should accept multiple statements in a body.
 ** TODO Parser:                                                       :THINK:
 - [ ] Stop ESyntax expansion in symbols. E.g. some$ymbol.
 - [ ] Make parse() pretier!
@@ -323,8 +340,10 @@ Actually list them here.
 - [ ] Add line number data.
 - [ ] ? Add expression number data.
 ** TODO Interpreter:                                                  :THINK:
+- [ ] ? Move already implemented functions to ASM.kit.
 - [ ] Fix doString() and doFile().
 - [ ] ? InterpretingError for file interepretation.
 *** TODO Unittests:                                               :IMPORTANT:
 - [X] Actually write those.
 - [ ] Write more of these.
+- [ ] Write even more of these.
