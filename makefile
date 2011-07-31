@@ -1,11 +1,11 @@
 #DMD makefile.
 
 DC = dmd
-DFLAGS = -wi -I./src -I..
+DFLAGS = -wi -I./src
 GDB = -unittest -debug #-gc
 DLDLIBS =
 
-VPATH = src:src/ASM:utils
+VPATH = src:src/ASM:src/utils
 
 TARGET = asm.exe
 

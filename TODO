@@ -121,26 +121,26 @@ Actually list them here.
       interpreter).
 ** TODO Type predicates:
 - [ ] Accept multiple args.
-- [ ] Evaluate to fnord on false, to their one of their args otherwise.
+- [X] Evaluate to fnord on false, to their one of their args otherwise.
 *** TODO Functions:
-- [ ] ! type? - NOT A PREDICATE, returns type tuple of a _single_
+- [X] ! type? - NOT A PREDICATE, returns type tuple of a _single_
       object.
-- [ ] fnord? - 'yup if an expression is fnord.
-- [ ] symbol? - symbol if an expression is a symbol.
-- [ ] number? - number if an expression is a number.
-- [ ] string? - string if an expression is a string.
-- [ ] scope? - scope if an expression is a scope.
-- [ ] function? - function if an expression is a function.
-- [ ] pure? - pure if an expression is a pure function.
-- [ ] syntax? - syntax if an expression is a syntax keyword.
-- [ ] scope? - scope if an expression is repetition, sigh.
-- [ ] builtin? - builtin if an expression is a builtin.
-- [ ] immutable? - immutable if an expression is immutable.
+- [X] fnord? - 'yup if an expression is fnord.
+- [X] symbol? - symbol if an expression is a symbol.
+- [X] number? - number if an expression is a number.
+- [X] string? - string if an expression is a string.
+- [X] scope? - scope if an expression is a scope.
+- [X] function? - function if an expression is a function.
+- [X] pure? - pure if an expression is a pure function.
+- [X] syntax? - syntax if an expression is a syntax keyword.
+- [X] scope? - scope if an expression is repetition, sigh.
+- [X] builtin? - builtin if an expression is a builtin.
+- [X] immutable? - immutable if an expression is immutable.
 - [ ] mutable? - mutable if an expression is not immutable.
 ** TODO Type conversions:
 - [ ] ! Convert in place if passed a settable reference, or create a copy.
 - [ ] ? Return fnord on error.
-*** TODO Functions & return values:
+*** TODO Functions:
 - [ ] number->string - string representation of a number.
 - [ ] string->number - numerical value of a string.
 - [ ] ? symbol->string - same thing with Syntax.StringDelim all over.
@@ -153,7 +153,7 @@ Actually list them here.
 - [-] setof:
         + [X] Makes a set representation of an arg.
         + [ ] ? Should work for atoms too.
-- [ ] ! stringof - Makes a string representation of a passed arg.
+- [X] ! stringof - Makes a string representation of a passed arg.
 - ? etc
 ** THINK Working with numbers:
 - [ ] ASMKit functions accept two arguments.
@@ -199,10 +199,10 @@ Actually list them here.
 - [X] map - maps an operation to a collection collecting results.
 - [X] reduce - maps an operation to a collection reducing it to a
       single value.
-**** TODO Collection creation:
-- [ ] ? list - returns a list consisting of the call args.
+**** TEST Collection creation:
+- [X] ? list - returns a list consisting of the call args.
 - [X] tuple - returns a tuple consisting of the call args.
-- [ ] ? set - returns a set consisting of the call args.
+- [X] ? set - returns a set consisting of the call args.
 ** THINK Input:
 - [ ] Unformatted (string) reads.
 - [ ] Formatted reads (reads into the passed args).
@@ -226,14 +226,17 @@ Actually list them here.
 - ? etc
 * TODO THINGS TO IMPLEMENT IN THE INTERPRETER:
 ** TODO Lexical:
-*** TODO Formal grammar description:
-- [ ] Finish NumberLiteral formal description / split it into several
+*** TEST Formal grammar description:
+- [X] Finish NumberLiteral formal description / split it into several
       numerical values.
-- [ ] Finish Symbol formal description.
-- [ ] Add escape sequences and embeds to the String formal
+- [X] Finish Symbol formal description.
+- [X] Add escape sequences and embeds to the String formal
       description.
 *** TODO Syntax:                                                      :THINK:
-- [ ] ? Change Syntax to enum Syntax : string {}.
+- [ ] ? Change Syntax and Lexical to enum Name : string {}.
+- [X] Split to Lexical and Syntax:
+    + [X] CommentStart, EndOfLine etc - Lexical
+    + [X] Rest - Syntax
 *** TODO Syntax keywords:                                             :THINK:
 - [ ] Sort out which keywords are crucial and leave only those.
 - [ ] Sort the list and write proper descriptions.
@@ -285,9 +288,9 @@ Actually list them here.
 - [ ] Depth parameter for the calls.
 - [ ] ? String representation actually showing the callable.
 *** TODO Scope:                                                       :THINK:
-- [-] ? String representation actually being usefull. (A tuple of
+- [X] ? String representation actually being usefull. (A tuple of
       keys, perhaps.)
-- [ ] One lexical scope of the variables, instead of symbol and syntax
+- [-] One lexical scope of the variables, instead of symbol and syntax
       distinction.
 - [ ] Fix define():
     + [ ] Rename to bind()
@@ -321,7 +324,7 @@ Actually list them here.
 - [ ] Rename FUNCTION to LAMBDA/ANONYMOUS.
 - [ ] FUNCTION should accept multiple statements in a body.
 ** TODO Parser:                                                       :THINK:
-- [ ] Stop ESyntax expansion in symbols. E.g. some$ymbol.
+- [X] Stop ESyntax expansion in symbols. E.g. some$ymbol.
 - [ ] Make parse() pretier!
 - [ ] Fix number parsing and PhobosBug(TM) workarrounds.
 - [ ] ? NumberParser
@@ -333,7 +336,7 @@ Actually list them here.
 *** TODO Unittests:                                         :IMPORTANT:THINK:
 - [ ] Make unittests Syntax independant.
 - [X] More preprocess() unittests.
-- [ ] More tokenize() unittests.
+- [X] More tokenize() unittests.
 - [ ] ? parse() unittests.
 *** THINK Metadata:
 - [ ] Add file data.

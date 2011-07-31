@@ -441,7 +441,7 @@ class Scope : Expression {
      *********************/
 
     override Expression call(ref Scope s, Expression[] args) {
-        return s.get("__scopecall").call(this, args);
+        return s.get("__scopecall").call(this, args);  //TODO: Add a keyword?
     }
 
     /***********************************************************************************
@@ -453,8 +453,8 @@ class Scope : Expression {
     }
 
     override string toString() {
-        string output = format(""~Syntax.LTuple~Syntax.CommentStart~"scope@0x%d ", cast(void*) this);
-        foreach(sym; (syntax.keys~symbols.keys).sort) output ~= sym~Syntax.Space;
+        string output = format(""~Syntax.LTuple~Lexical.CommentStart~"scope@0x%d ", cast(void*) this);
+        foreach(sym; (syntax.keys~symbols.keys).sort) output ~= sym~Lexical.Space;
         return output[0 .. $-1]~Syntax.RTuple;
     }
 

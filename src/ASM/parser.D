@@ -106,7 +106,7 @@ class DefaultParser : Parser {
 
         string stringCollapse(in string input) {
             string output;
-            auto s = (input~Syntax.EndOfFile).ptr;
+            auto s = (input~Lexical.EndOfFile).ptr;
             while(*s) {
                 if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
@@ -114,7 +114,7 @@ class DefaultParser : Parser {
                     str ~= *s++;
                     while(*s && *s != Syntax.StringDelim) str ~= *s++;
                     str ~= *s++;
-                    output ~= Syntax.StringDelim~to!string(stringBank.length)~Syntax.Space;
+                    output ~= Syntax.StringDelim~to!string(stringBank.length)~Lexical.Space;
                     stringBank ~= str;
                 }
                 else output ~= *s++;
@@ -128,11 +128,11 @@ class DefaultParser : Parser {
 
         pure string commentCollapse(in string input) {
             string output;
-            auto s = (input~Syntax.EndOfFile).ptr;
+            auto s = (input~Lexical.EndOfFile).ptr;
             while(*s) {
-                if(*s == Syntax.CommentStart) {
-                    if(s[1] && contains([Syntax.CommentStart, Syntax.Space], s[1]))
-                        while(*s && *s != Syntax.EndOfLine) s++;
+                if(*s == Lexical.CommentStart) {
+                    if(s[1] && contains([Lexical.CommentStart, Lexical.Space], s[1]))
+                        while(*s && *s != Lexical.EndOfLine) s++;
                 }
                 output ~= *s++;
             }
@@ -145,32 +145,32 @@ class DefaultParser : Parser {
 
         pure string syntaxExpand(in string input) {
             string expanded;
-            auto s = (input~Syntax.EndOfFile).ptr;
+            auto s = (input~Lexical.EndOfFile).ptr;
             auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                            Syntax.LList,  Syntax.RList,       //List parentesis
                            Syntax.LSet,   Syntax.RSet,        //Set parentesis
                            Syntax.StringDelim];               //String delimiter.
             while(*s) {
-                if(contains(syntax, *s)) expanded ~= ""~Syntax.Space~s[0 .. 1]~Syntax.Space;
+                if(contains(syntax, *s)) expanded ~= ""~Lexical.Space~s[0 .. 1]~Lexical.Space;
                 else expanded ~= s[0 .. 1];
                 s++;
             }
 
             string output;
-            s = (expanded~Syntax.EndOfFile).ptr;
-            auto prefix = [Syntax.CommentStart,               //Sexp comment.
+            s = (expanded~Lexical.EndOfFile).ptr;
+            auto prefix = [Lexical.CommentStart,               //Sexp comment.
                            ESyntax.Keyword[0],                //. -> nothing. //TODO
                            ESyntax.Quote[0],                  //' -> (quote )
                            ESyntax.Quasiquote[0],             //` -> (qquote )
                            ESyntax.Embed[0]];                 //$ -> (embed )
             bool jollyRogger = true;
             while(*s) {
-                if(*s <= Syntax.Space) {
+                if(*s <= Lexical.Space) {
                     output ~= s[0 .. 1];
                     jollyRogger = true;
                 }
                 else if(jollyRogger && contains(prefix, *s))
-                    output ~= ""~Syntax.Space~s[0 .. 1]~Syntax.Space;
+                    output ~= ""~Lexical.Space~s[0 .. 1]~Lexical.Space;
                 else {
                     output ~= s[0 .. 1];
                     jollyRogger = false;
@@ -181,14 +181,14 @@ class DefaultParser : Parser {
         }
 
         string output;
-        auto s = (syntaxExpand(commentCollapse(stringCollapse(input)))~Syntax.EndOfFile).ptr;
+        auto s = (syntaxExpand(commentCollapse(stringCollapse(input)))~Lexical.EndOfFile).ptr;
 
         while(*s && *s < 0x21) s++;                                     //Spaces, spaces everywhere.
         while(*s) {
             switch(*s) {
-                case Syntax.Space:                                      //Spaces.
+                case Lexical.Space:                                     //Spaces.
                     output ~= *s++;
-                    while(*s && *s <= Syntax.Space) s++;
+                    while(*s && *s <= Lexical.Space) s++;
                     continue;
                 case 0x0: .. case 0x1F:                                 //Whitespaces
                     s++;
@@ -197,7 +197,7 @@ class DefaultParser : Parser {
             }
             output ~= *s++;
         }
-        if(output.length && output[$-1] == Syntax.Space) return output[0 .. $-1];
+        if(output.length && output[$-1] == Lexical.Space) return output[0 .. $-1];
         return output;
     }
     unittest {
@@ -273,7 +273,7 @@ class DefaultParser : Parser {
         auto parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                        Syntax.LList,  Syntax.RList,       //List parentesis
                        Syntax.LSet,   Syntax.RSet];       //Set parentesis
-        auto s = (input~Syntax.EndOfFile).ptr;
+        auto s = (input~Lexical.EndOfFile).ptr;
         while(*s) {
             if(*s == ' ') {
                 if(token != "") {
@@ -344,7 +344,7 @@ class DefaultParser : Parser {
                 else throw new SyntacticError("Invalid keyword '"~keyword.toString~"'.");
             }
         }
-        if(token == ""~Syntax.CommentStart) {      //Deletes the following expression from the token stream.
+        if(token == ""~Lexical.CommentStart) {     //Deletes the following expression from the token stream.
             if(tokens.length) parse(tokens);       //It still does the syntactic analyzis,
             return null;                           //as this is ment solely for debugging.
         }

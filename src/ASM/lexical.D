@@ -21,63 +21,34 @@
  *********************/
 
 /***********************************************************************************
- * Language grammar and definitions.
+ * Language grammar definitions.
  *********************/
 
 module ASM.lexical;
 
 /***********************************************************************************
- * ASM Grammar:
- *
- *    Expression:
- *                  Atom
- *                  Collection
- *    Atom:
- *                  Number
- *                  Symbol
- *    Number:
- *                  Real
-.*                  Integer
- *                  Complex
- *    Integer:
- *                  //TODO
- *    Real:
- *                  //TODO
- *    Complex:
- *                  //TODO
- *    Symbol:
- *                  [^Syntax]+
- *                  String
- *    String:
- *                  //TODO
- *    Collection:
- *                  Tuple
- *                  List
- *                  Set
- *    Tuple:
- *                  Syntax.LTuple Expresion+ Syntax.RTuple
- *    List:
- *                  Syntax.LList Expression* Syntax.RListn
- *    Set:
- *                  Syntax.LSet Expression* Syntax.RSet
+ * Lexical tokens:
  *********************/
 
-/***********************************************************************************
- * Syntax Tokens:
- *********************/
-
-enum Syntax : char {
+enum Lexical : char {
     Space           = ' ',          ///Space, separates tokens.
     EndOfLine       = '\n',         ///Line end.
     EndOfFile       = '\0',         ///EOF
     CommentStart    = '#',          ///Both for line and sexp comments.
+}
+
+/***********************************************************************************
+ * Syntax tokens:
+ *********************/
+
+enum Syntax : char {
     LTuple          = '(',          ///Left tuple paren.
     RTuple          = ')',          ///Right tuple paren.
     LList           = '[',          ///Left list paren.
     RList           = ']',          ///Right list paren.
     LSet            = '{',          ///Left set paren.
     RSet            = '}',          ///Right set paren.
-    StringDelim     = '\"',         ///String delimiters.
+    StringDelim     = '"',         ///String delimiters.
 }
 
 /***********************************************************************************
