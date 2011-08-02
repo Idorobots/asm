@@ -64,8 +64,9 @@ class Interpreter {
         FNORD = new Symbol(Keywords.Fnord);
         global.defineSyntax(Keywords.Fnord, FNORD);
         global.defineSyntax(Keywords.Import, new BuiltinKeyword(&IMPORT));
-        global.defineSyntax(Keywords.Begin, new BuiltinKeyword(&BEGIN));
+        global.defineSyntax(Keywords.Do, new BuiltinKeyword(&DO));
         global.defineSyntax(Keywords.If, new BuiltinKeyword(&IF));
+        global.defineSyntax(Keywords.While, new BuiltinKeyword(&WHILE));
         global.defineSyntax(Keywords.Set, new BuiltinKeyword(&SET));
         global.defineSyntax(Keywords.Get, new BuiltinKeyword(&GET));
         global.defineSyntax(Keywords.Quote, new BuiltinKeyword(&QUOTE));
@@ -85,14 +86,17 @@ class Interpreter {
         global.defineSymbol(Keywords.Reduce, new PureBuiltin(&REDUCE));
         global.defineSyntax(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
         global.defineSyntax(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
+//        global.defineSyntax("__defaultArgDispatcher", new BuiltinKeyword(&DEFAULTARGDISPATCHER));
+        global.defineSyntax("call", new BuiltinKeyword(&CALL));
         global.defineSyntax("defined?", new BuiltinKeyword(&DEFINED));
+        global.defineSymbol("at", new PureBuiltin(&AT));
         global.defineSymbol("filter", new PureBuiltin(&FILTER));
         global.defineSymbol("__setcall", global.get("filter"));
-        //global.defineSymbol("__listcall", global.get("awesome name"));
+        global.defineSymbol("__listcall", global.get("at"));
         global.defineSymbol("__scopecall", global.get(Keywords.Get));
         global.defineSymbol("__listeval", global.get(Keywords.Function));
-        global.defineSymbol("__seteval", global.get(Keywords.Begin));
-        //global.defineSymbol("__tupleeval", global.get("call"));
+        global.defineSymbol("__seteval", global.get(Keywords.Do));
+        global.defineSymbol("__tupleeval", global.get("call"));
         global.defineSymbol("tuple", new PureBuiltin(&TUPLE));
         global.defineSymbol("tupleof", new PureBuiltin(&TUPLEOF));
         global.defineSymbol("setof", new PureBuiltin(&SETOF));
@@ -121,6 +125,7 @@ class Interpreter {
         test("`($(* 2 2))", "(4)");
         test("`{$(* 2 2)}", "{4}");
         test("`[$(* 2 2)]", "[4]");
+        test("(var a 12) (var b 23) (var tmp a) (set! a b) (set! b tmp)", "12");
     }
 
 
@@ -177,8 +182,42 @@ class Interpreter {
      *********************/
 
     Expression CALL(ref Scope s, Expression[] args) {
-        return FNORD; //TODO: Move Tuple.eval here.
+        if(!args.length)
+            throw new SemanticError("Syntax keyword 'call' requires at least one argument.");
+
+        foreach(i, el; args) {
+            auto op = el.eval(s); //FIXME TODO No evaluation before the call.
+            if(op.type & Type.Callable) return op.call(s, args[0 .. i]~args[i+1 .. $]);
+        }
+
+        throw new SemanticError("No applicable object found.");
     }
+
+    /***********************************************************************************
+     * Returns a subcollection containing values at given ideces.
+     *********************/
+
+    Expression AT(ref Scope s, Expression[] args) {
+        if(!args.length)
+            throw new SemanticError("Function 'at' requires at least one argument.");
+
+        auto coll = args[0].eval(s);
+        auto max = coll.range.length;
+        Expression[] newColl;
+
+        foreach(arg; args[1 .. $]) {
+            uint index;
+            try index = to!uint(arg.eval(s).value);
+            catch (Exception) { throw new ObjectNotAppError(arg.toString); }
+
+            if(index < max) newColl ~= coll.range[index];
+            else throw new SemanticError("Index out of bounds: '"~arg.toString~"'.");
+        }
+
+        if(newColl.length == 1) return newColl[0];
+        else return coll.factory(newColl);
+    }
+
 
     /***********************************************************************************
      * Filters a collection returning a new collection containing elements satisfying
@@ -241,21 +280,26 @@ class Interpreter {
      *********************/
 
     Expression SET(ref Scope s, Expression[] args) {
-        auto expr = args[0].eval(s);
-        if(expr.type & Type.Settable) *((cast(Reference)expr).referee) = args[1].eval(s);
+        auto location = args[0].eval(s);
+        auto value = args[1].eval(s);
+
+        if(location.type & Type.Settable) {
+            auto reference = cast(Reference)location;
+            reference.set(value);
+        }
         else throw new ObjectNotAppError(args[0].toString);
-        return expr;
+        return value;
     }
 
     /***********************************************************************************
      * Returns an object bound to a symbol.
-     * FIXME: Should evaluate arg.
      *********************/
 
     Expression GET(ref Scope s, Expression[] args) {
         if(args.length != 1)
             throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.");
-        if(args[0].type & Type.Symbol) return new Reference(s.getRef(args[0].toString));
+        auto arg = args[0].eval(s);
+        if(arg.type & Type.Symbol) return new Reference(s.getRef(arg.toString));
         throw new ObjectNotAppError(args[0].toString);
     }
 
@@ -347,11 +391,12 @@ class Interpreter {
      *********************/
 
     Expression VAR(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires exactly two arguments.");
+        if(!args.length || args.length > 2)
+            throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires one or two arguments.");
         if(!(args[0].type & Type.Symbol))
             throw new ObjectNotAppError(args[0].toString);
         auto value = args.length == 2 ? args[1].eval(s) : FNORD;
+        if(value.type & Type.Settable) value = (cast(Reference)value).get;
         s.defineSymbol(args[0].toString, value);
         return value;
     }
@@ -360,24 +405,46 @@ class Interpreter {
      * Returns an anonymous closure
      *********************/
 
+    // Expression DEFAULTARGDISPATCHER(ref Scope s, Expression[] args) { //TODO: OUT
+    //     if(args.length != 2)
+    //         throw new SemanticError("Syntax keyword '__defaultArgDispatcher' requires exactly two arguments.");
+
+    //     auto argList = args[0].range;
+    //     auto callArgs = args[1].range;
+
+    //     if(callArgs.length != argList.length)
+    //         throw new SemanticError(format("Expected %s arguments instead of %s.",
+    //                                        argList.length, callArgs.length));
+
+    //     Expression[] tuple = [new Symbol(Keywords.Begin)];
+    //     foreach(i, arg; argList) {
+    //         tuple ~= new Tuple([new Symbol(Keywords.Var), arg, callArgs[i].eval(s)]);
+    //     }
+    //     return new Tuple(tuple);
+    // }
+
     Expression FUNCTION(ref Scope s, Expression[] args) {
         if(args.length != 2)
             throw new SemanticError("Syntax keyword '"~Keywords.Function~"' requires exactly two arguments.");
 
-        Expression argTuple = args[0];
+        Expression argList = args[0];
         Expression functionBody = args[1];
         auto tmp = s; //FIXME: OUT
 
         return new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            if(callArgs.length != argTuple.range.length)
-                throw new SemanticError(format("Expected %s arguments instead of %s.",
-                                               argTuple.range.length, callArgs.length));
+            auto closureScope = new Scope(tmp);
 
-            auto lambdaScope = new Scope(tmp);
-            foreach(i, argName; argTuple.range) {
-                lambdaScope.defineSymbol(argName.toString, callArgs[i].eval(callScope));
+            if(callArgs.length != argList.range.length)
+                throw new SemanticError(format("Expected %s arguments instead of %s.",
+                                               argList.range.length, callArgs.length));
+
+            foreach(i, arg; argList.range) {
+                closureScope.defineSymbol(arg.toString, callArgs[i].eval(callScope));
             }
-            return functionBody.eval(lambdaScope);
+            // auto dispatchedArgs = callScope.get("__argDispatcher").call(closureScope, [argList, new List(callArgs)]);
+            // writeln("Dispatched args: ", dispatchedArgs);
+            // dispatchedArgs.eval(closureScope);
+            return functionBody.eval(closureScope);
         });
     }
 
@@ -390,21 +457,21 @@ class Interpreter {
             throw new SemanticError("Syntax keyword '"~Keywords.Macro~"' requires exactly three argements.");
 
         Expression macroName = args[0];
-        Expression argTuple   = args[1];
+        Expression argList   = args[1];
         Expression macroBody = args[2];
 
         auto foo = new Keyword(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            // if(callArgs.length != argTuple.range.length)
+            // if(callArgs.length != argList.range.length)
             //     throw new SemanticError(format("Expected %s arguments instead of %s.",
-            //                                    argTuple.range.length, callArgs.length));
+            //                                    argList.range.length, callArgs.length));
 
             auto macroScope = new Scope(callScope);
-            foreach(i, argName; argTuple.range) {
-                if(argName.toString == "@tuple") {
+            foreach(i, arg; argList.range) {
+                if(arg.toString == "@tuple") {
                     macroScope.defineSymbol("@tuple", new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
                     break;
                 }
-                else macroScope.defineSymbol(argName.toString, callArgs[i]);
+                else macroScope.defineSymbol(arg.toString, callArgs[i]);
             }
             return macroBody.eval(macroScope).eval(callScope);
         });
@@ -506,11 +573,32 @@ class Interpreter {
      * Evaluates arguments and returns value of the last one.
      *********************/
 
-     Expression BEGIN(ref Scope s, Expression[] args) {
+     Expression DO(ref Scope s, Expression[] args) {
          Expression output = FNORD;
          foreach(el; args) output = el.eval(s);
          return output;
      }
+
+
+    /***********************************************************************************
+     * While loop. Repeats it's contents while condition is not fnord.
+     *********************/
+
+    Expression WHILE(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("Syntax keyword '"~Keywords.While~"' requires two or three arguments.");
+
+        auto condition = args[0];
+        auto body_ = args[1];
+        Expression output = FNORD;
+
+        writeln(condition.toString, " ", body_.toString);
+
+        while(condition.eval(s).toString != Keywords.Fnord) {
+            output = body_.eval(s);
+        }
+        return output;
+    }
 
     /***********************************************************************************
      * Returns a type tuple of an object.

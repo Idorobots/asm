@@ -170,6 +170,19 @@ class Reference : Expression {
         else referee = expr;
     }
 
+    /***********************************************************************************
+     * Sets the reference to an object.
+     *********************/
+
+    void set(Expression expr) {
+        if(expr.type & Type.Settable) *referee = (cast(Reference)expr).get;
+        else *referee = expr;
+    }
+
+    Expression get() {
+        return *referee;
+    }
+
     override Expression eval(ref Scope s, uint depth = 0) {
         return referee.eval(s, depth + 1);
     }
@@ -257,7 +270,11 @@ alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WY
  * Collection class representing lisp-like and python-like sequences.
  *********************/
 
-class Collection(uint collectionType, char LParen, char RParen) : Expression {
+class Collection(uint collectionType,
+                 char LParen, char RParen,
+                 string evalKeyword = Keywords.Fnord,
+                 string callKeyword = Keywords.Fnord) : Expression {
+
     private Expression[] coll;
 
     this(Expression[] coll) {
@@ -269,45 +286,16 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
     }
 
     override Expression call(ref Scope s, Expression[] args) {
-        static if(collectionType & Type.Set) {
-            return s.get("__setcall").call(s, [pass(this)]~args); //TODO Keyword.SetCall?
-        }
-        else static if(collectionType & Type.List) {
-            Expression[] newList;
-
-            foreach(arg; args) {
-                uint index = to!uint(arg.eval(s).value);
-                if(index < coll.length) {
-                    newList ~= new Reference(&coll[index]);
-                }
-                else throw new SemanticError("Index out of bounds: '"~arg.toString~"'.");
-            }
-            if(newList.length == 1) return newList[0];
-            else return new List(newList);
-        }
-        assert(0);
+        return s.get(callKeyword).call(s, [pass(this)]~args);
     }
 
     /***********************************************************************************
      * By default evaluates as a form for the tuple, one by one for the set, and creates
      * an anonymous function for the list.
-     * TODO: Add "evalKeyword" and "callKeyword" template args to make this a oneliner.
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        static if(collectionType & Type.Tuple) {
-            foreach(i, el; coll) {
-                auto op = el.eval(s, depth + 1); //FIXME TODO No evaluation before the call.
-                if(op.type & Type.Callable) return op.call(s, coll[0 .. i]~coll[i+1 .. $]);
-            }
-            throw new SemanticError("No applicable object in tuple "~this.toString~".");
-        }
-        else static if(collectionType & Type.Set) {
-            return s.get("__seteval").call(s, coll);
-        }
-        else static if(collectionType & Type.List) {
-            return s.get("__listeval").call(s, coll);
-        }
+        return s.get(evalKeyword).call(s, coll);
     }
 
     override Expression factory(Expression[] vals) {
@@ -329,9 +317,15 @@ class Collection(uint collectionType, char LParen, char RParen) : Expression {
     }
 }
 
-alias Collection!(Type.Tuple|Type.Immutable, Syntax.LTuple, Syntax.RTuple)      Tuple;
-alias Collection!(Type.Callable|Type.List, Syntax.LList, Syntax.RList)          List;
-alias Collection!(Type.Callable|Type.Set, Syntax.LSet, Syntax.RSet)             Set;
+alias Collection!(Type.Tuple|Type.Immutable,
+                  Syntax.LTuple, Syntax.RTuple,
+                  "__tupleeval")                       Tuple;
+alias Collection!(Type.Callable|Type.List,
+                  Syntax.LList, Syntax.RList,
+                  "__listeval", "__listcall")          List;
+alias Collection!(Type.Callable|Type.Set,
+                  Syntax.LSet, Syntax.RSet,
+                  "__seteval", "__setcall")            Set;
 
 /***********************************************************************************
  * Procedure type for the Callable datatype.
@@ -443,10 +437,6 @@ class Scope : Expression {
     override Expression call(ref Scope s, Expression[] args) {
         return s.get("__scopecall").call(this, args);  //TODO: Add a keyword?
     }
-
-    /***********************************************************************************
-     * For iteration.
-     *********************/
 
     override Expression[] range() {
         return defines;

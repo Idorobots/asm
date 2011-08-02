@@ -89,7 +89,8 @@ enum Keywords : string {
     Get         = "get",        ///Gets an object bound to a symbol.
     //Flow control:
     If          = "if",         ///if condition then else
-    Begin       = "begin",      ///Evaluates arguments and returns value of the last one.
+    Do          = "do",         ///Evaluates arguments and returns value of the last one.
+    While       = "while",      ///While loop.
     //Not quite predicates:
     TypeOf      = "typeof",      ///Returns type touple of an object.
     KeywordsOf  = "keywordsof",  ///Returns keyword tuple of an object.
