@@ -49,7 +49,7 @@ import ASM.interpreter;
 int main(string[] args) {
     auto i = new Interpreter();
 
-    i.doString("(import 'imports.core)");
+//    i.doString("(import 'imports.core)");
 
     /***********************************************************************************
      * Files:

@@ -111,9 +111,9 @@ class DefaultParser : Parser {
                 if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
                     string str;
-                    str ~= *s++;
+                    s++;
                     while(*s && *s != Syntax.StringDelim) str ~= *s++;
-                    str ~= *s++;
+                    s++;
                     output ~= Syntax.StringDelim~to!string(stringBank.length)~Lexical.Space;
                     stringBank ~= str;
                 }

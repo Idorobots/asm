@@ -19,6 +19,10 @@
   `(macro $name $targs
     (function $args $body)))
 
+# Package declarator.
+(macro package [name @tuple]
+  `(var $name $(join! 'scope @tuple)))
+
 # Class declarator.
 (macro class [name body]
   (do (var statics '{})
@@ -64,11 +68,6 @@
       `(if $__a $__a (if $__b $__b))))
 
 # Other macros:
-(macro set [@tuple]  # TODO: Turn it into a function.
-  `'$(setof @tuple))
-
-(macro list [@tulpe]
-  `'$(listof @tuple))
 
 # Lispy macros:
 
@@ -80,7 +79,9 @@
                      vars))
         $body))))
 
+(var define var)
 (var lambda function)
+(var begin do)
 
 ## Convinience functions:
 
@@ -114,6 +115,12 @@
       (do (var tmp (first where))
           (set! where (rest where))
            tmp)))
+
+(defun assoc [key alist]
+  (if (not (fnord? alist))
+      (if (equal? key (first (first alist)))
+          (second (first alist))
+          (assoc key (rest alist)))))
 
 # Predicates:
 (defun fnord? [obj]
@@ -152,3 +159,43 @@
   (do (var __this this)
       (set! this that)
       (set! that __this)))
+
+(defun twice [x]
+  (* 2 x))
+
+(defun compose [f g]
+  (function [x]
+    (f (g x))))
+
+(defun repeat [f]
+  (compose f f))
+
+(defun fact [n]
+  (if (<= n 1)
+      1
+      (* n (fact (- n 1)))))
+
+(defun abs [n]
+  ((if (> n 0) + -) 0 n))
+
+(defun combine [f]
+  (function [x y]
+    (if (not (fnord? x))
+        (f (f (first x) (first y))
+           ((combine f) (rest x) (rest y))))))
+
+(var zip (combine join!))
+
+(defun riff-shuffl [deck]
+  (do (defun take [n seq]
+        (if (> n 0)
+            (join! (first seq)
+                   (take (- n 1) (rest seq)))))
+      (defun drop [n seq]
+        (if (<= n 0)
+            seq
+            (drop (- n 1) (rest seq))))
+      (defun mid [seq]
+        (/ (length seq) 2))
+      ((combine append) (take (mid deck) deck)
+                        (drop (mid deck) deck))))

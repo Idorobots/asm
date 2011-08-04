@@ -239,8 +239,7 @@ class Atom(T, uint atomType) : Expression {
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-         static if(atomType & Type.String) return this;
-         else static if(atomType & Type.Symbol) return new Reference(s.getRef(val));
+         static if(atomType & Type.Symbol) return new Reference(s.getRef(val));
          else return this;
     }
 
@@ -254,20 +253,17 @@ class Atom(T, uint atomType) : Expression {
 
     //TODO: string value() for symbols too.
     override real value() {
-        static if(atomType & Type.Number) {
-            return this.val;
-        }
+        static if(atomType & Type.Number) return this.val;
         else throw new ObjectNotAppError(this.toString);
-        assert(0);
     }
 }
 
-alias Atom!(real, Type.Number)                                 Number;     ///A number.
-alias Atom!(string, Type.Symbol)                               Symbol;     ///Regular symbol.
-alias Atom!(string, Type.Immutable|Type.Symbol|Type.String)    String;     ///WYSIWYG symbol.
+alias Atom!(real, Type.Number)          Number;     ///A number.
+alias Atom!(string, Type.Symbol)        Symbol;     ///Regular symbol.
 
 /***********************************************************************************
  * Collection class representing lisp-like and python-like sequences.
+ * TODO: Take the tuple away from here.
  *********************/
 
 class Collection(uint collectionType,
@@ -289,13 +285,9 @@ class Collection(uint collectionType,
         return s.get(callKeyword).call(s, [pass(this)]~args);
     }
 
-    /***********************************************************************************
-     * By default evaluates as a form for the tuple, one by one for the set, and creates
-     * an anonymous function for the list.
-     *********************/
-
     override Expression eval(ref Scope s, uint depth = 0) {
-        return s.get(evalKeyword).call(s, coll);
+        static if(collectionType & Type.Tuple) return s.get("call").call(s, coll);
+        else return s.get(evalKeyword).call(s, coll);
     }
 
     override Expression factory(Expression[] vals) {
@@ -317,15 +309,54 @@ class Collection(uint collectionType,
     }
 }
 
+/***********************************************************************************
+ * Collection specialisation for the string datatype.
+ *********************/
+
+class Collection(T, uint stringType) : Expression {
+    private T letters;
+
+    this(T letters) {
+        this.letters = letters;
+    }
+
+    this(Expression[] collection) {
+        foreach(el; collection) {
+            if(el.type & Type.String) letters ~= el.toString[1 .. $-1]; //TODO: Generic!
+            else letters ~= el.toString;
+        }
+    }
+
+    override Expression[] range() {
+        Expression[] collection;
+        foreach(c; letters)
+            collection ~= new typeof(this)(""~c);
+        return collection;
+    }
+
+    override Expression factory(Expression[] vals) {
+        return new typeof(this)(vals);
+    }
+
+    override uint type() {
+        return Type.Collection|stringType;
+    }
+
+    override string toString() {
+        return format("\"%s\"", letters);
+    }
+}
+
+alias Collection!(string, Type.Immutable|Type.Symbol|Type.String)       String;         ///WYSIWYG symbol.
 alias Collection!(Type.Tuple|Type.Immutable,
                   Syntax.LTuple, Syntax.RTuple,
-                  "__tupleeval")                       Tuple;
+                  "__tupleeval")                                        Tuple;          ///Immutable tuple. //TODO: Clean this up!
 alias Collection!(Type.Callable|Type.List,
                   Syntax.LList, Syntax.RList,
-                  "__listeval", "__listcall")          List;
+                  "__listeval", "__listcall")                           List;           ///Mutable list.
 alias Collection!(Type.Callable|Type.Set,
                   Syntax.LSet, Syntax.RSet,
-                  "__seteval", "__setcall")            Set;
+                  "__seteval", "__setcall")                             Set;            ///Mutable set.
 
 /***********************************************************************************
  * Procedure type for the Callable datatype.
@@ -380,9 +411,7 @@ alias Callable!(Type.Builtin|Type.Keyword)              BuiltinKeyword; ///Synta
 
 class Scope : Expression {
     Expression[] defines;       ///Object definitions.
-    uint[string] syntax;        ///Syntax scope.
     uint[string] symbols;       ///Other symbols.
-
     Scope outter;               ///Outter scope.
 
     this(Scope outter = null) {
@@ -394,13 +423,13 @@ class Scope : Expression {
      * Eg. use: scope.definePure(somePure);
      *********************/
 
-    private void define(string where)(string sym, Expression expression) {
-        mixin(where~"[sym] = defines.length;");
-        defines ~= expression;
+    void define(string sym, Expression expression) {
+        if(auto s = sym in symbols) defines[*s] = expression;   //FIXME: throw ShadowingDeclarationError?
+        else {
+            symbols[sym] = defines.length;
+            defines ~= expression;
+        }
     }
-
-    alias define!"syntax"   defineSyntax;
-    alias define!"symbols"  defineSymbol;
 
     /***********************************************************************************
      * Returns the definition of a symbol or throws "Undefined symbol" exception
@@ -408,14 +437,12 @@ class Scope : Expression {
      *********************/
 
     Expression get(string sym) {
-        if(auto s = sym in syntax)   return defines[*s];
         if(auto s = sym in symbols)  return defines[*s];
         if(outter)                   return outter.get(sym);
         else throw new UndefinedSymError(sym);
     }
 
     Expression* getRef(string sym) {
-        if(auto s = sym in syntax)  return &defines[*s];
         if(auto s = sym in symbols) return &defines[*s];
         if(outter)                  return outter.getRef(sym);
         else throw new UndefinedSymError(sym);
@@ -426,8 +453,7 @@ class Scope : Expression {
      *********************/
 
     bool isDefined(string sym) {
-        if(sym in syntax || sym in symbols) return true;
-        return false;
+        return (sym in symbols) != null;
     }
 
     /***********************************************************************************
@@ -444,7 +470,7 @@ class Scope : Expression {
 
     override string toString() {
         string output = format(""~Syntax.LTuple~Lexical.CommentStart~"scope@0x%d ", cast(void*) this);
-        foreach(sym; (syntax.keys~symbols.keys).sort) output ~= sym~Lexical.Space;
+        foreach(sym; symbols.keys.sort) output ~= sym~Lexical.Space;
         return output[0 .. $-1]~Syntax.RTuple;
     }
 

@@ -62,51 +62,55 @@ class Interpreter {
         global = new Scope();
 
         FNORD = new Symbol(Keywords.Fnord);
-        global.defineSyntax(Keywords.Fnord, FNORD);
-        global.defineSyntax(Keywords.Import, new BuiltinKeyword(&IMPORT));
-        global.defineSyntax(Keywords.Do, new BuiltinKeyword(&DO));
-        global.defineSyntax(Keywords.If, new BuiltinKeyword(&IF));
-        global.defineSyntax(Keywords.While, new BuiltinKeyword(&WHILE));
-        global.defineSyntax(Keywords.Set, new BuiltinKeyword(&SET));
-        global.defineSyntax(Keywords.Get, new BuiltinKeyword(&GET));
-        global.defineSyntax(Keywords.Quote, new BuiltinKeyword(&QUOTE));
-        global.defineSyntax(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE));
-        global.defineSyntax(Keywords.Embed, new BuiltinKeyword(&EMBED));
-        global.defineSyntax(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL));
-        global.defineSymbol(Keywords.Mult, new PureBuiltin(&MULT));
-        global.defineSymbol(Keywords.Add, new PureBuiltin(&ADD));
-        global.defineSyntax(Keywords.Var, new BuiltinKeyword(&VAR));
-        global.defineSyntax(Keywords.Function, new BuiltinKeyword(&FUNCTION));
-        global.defineSyntax(Keywords.Macro, new BuiltinKeyword(&MACRO));
-        global.defineSyntax(Keywords.Scope, new BuiltinKeyword(&SCOPE));
-        global.defineSyntax(Keywords.Cons, new BuiltinKeyword(&CONS));
-        global.defineSyntax(Keywords.Car, new BuiltinKeyword(&CAR));
-        global.defineSyntax(Keywords.Cdr, new BuiltinKeyword(&CDR));
-        global.defineSymbol(Keywords.Map, new PureBuiltin(&MAP));
-        global.defineSymbol(Keywords.Reduce, new PureBuiltin(&REDUCE));
-        global.defineSyntax(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
-        global.defineSyntax(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
-//        global.defineSyntax("__defaultArgDispatcher", new BuiltinKeyword(&DEFAULTARGDISPATCHER));
-        global.defineSyntax("call", new BuiltinKeyword(&CALL));
-        global.defineSyntax("defined?", new BuiltinKeyword(&DEFINED));
-        global.defineSymbol("at", new PureBuiltin(&AT));
-        global.defineSymbol("filter", new PureBuiltin(&FILTER));
-        global.defineSymbol("__setcall", global.get("filter"));
-        global.defineSymbol("__listcall", global.get("at"));
-        global.defineSymbol("__scopecall", global.get(Keywords.Get));
-        global.defineSymbol("__listeval", global.get(Keywords.Function));
-        global.defineSymbol("__seteval", global.get(Keywords.Do));
-        global.defineSymbol("__tupleeval", global.get("call"));
-        global.defineSymbol("tuple", new PureBuiltin(&TUPLE));
-        global.defineSymbol("tupleof", new PureBuiltin(&TUPLEOF));
-        global.defineSymbol("setof", new PureBuiltin(&SETOF));
-        global.defineSymbol("listof", new PureBuiltin(&LISTOF));
-        global.defineSymbol("stringof", new PureBuiltin(&STRINGOF));
-        global.defineSymbol("random", new PureBuiltin(&RANDOM));
-        global.defineSymbol("range", new PureBuiltin(&RANGE));
+        global.define(Keywords.Fnord, FNORD);
+        global.define(Keywords.Import, new BuiltinKeyword(&IMPORT));
+        global.define(Keywords.Do, new BuiltinKeyword(&DO));
+        global.define(Keywords.If, new BuiltinKeyword(&IF));
+        global.define(Keywords.While, new BuiltinKeyword(&WHILE));
+        global.define(Keywords.Set, new BuiltinKeyword(&SET));
+        global.define(Keywords.Get, new BuiltinKeyword(&GET));
+        global.define(Keywords.Quote, new BuiltinKeyword(&QUOTE));
+        global.define(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE));
+        global.define(Keywords.Embed, new BuiltinKeyword(&EMBED));
+        global.define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL));
+        global.define(Keywords.Mult, new PureBuiltin(&MULT));
+        global.define(Keywords.Add, new PureBuiltin(&ADD));
+        global.define(Keywords.Var, new BuiltinKeyword(&VAR));
+        global.define(Keywords.Function, new BuiltinKeyword(&FUNCTION));
+        global.define(Keywords.Macro, new BuiltinKeyword(&MACRO));
+        global.define(Keywords.Scope, new BuiltinKeyword(&SCOPE));
+        global.define(Keywords.Cons, new BuiltinKeyword(&CONS));
+        global.define(Keywords.Car, new BuiltinKeyword(&CAR));
+        global.define(Keywords.Cdr, new BuiltinKeyword(&CDR));
+        global.define(Keywords.Map, new PureBuiltin(&MAP));
+        global.define(Keywords.Reduce, new PureBuiltin(&REDUCE));
+        global.define(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
+        global.define(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
+//        global.define("__defaultArgDispatcher", new BuiltinKeyword(&DEFAULTARGDISPATCHER));
+        global.define("callable", new BuiltinKeyword(&CALLABLE)); //TODO: OUT
+        global.define("call", new BuiltinKeyword(&CALL));
+        global.define("defined?", new BuiltinKeyword(&DEFINED));
+        global.define("at", new PureBuiltin(&AT));
+        global.define("filter", new PureBuiltin(&FILTER));
+        global.define("__setcall", global.get("filter"));
+        global.define("__listcall", global.get("at"));
+        global.define("__scopecall", global.get(Keywords.Get));
+        global.define("__listeval", global.get(Keywords.Function));
+        global.define("__seteval", global.get(Keywords.Do));
+        global.define("__tupleeval", global.get("call"));
+        global.define("tuple", new PureBuiltin(&MAKETUPLE));
+        global.define("set", new PureBuiltin(&MAKESET));
+        global.define("list", new PureBuiltin(&MAKELIST));
+        global.define("tupleof", new PureBuiltin(&TUPLEOF));
+        global.define("setof", new PureBuiltin(&SETOF));
+        global.define("listof", new PureBuiltin(&LISTOF));
+        global.define("stringof", new PureBuiltin(&STRINGOF));
+        global.define("random", new PureBuiltin(&RANDOM));
+        global.define("range", new PureBuiltin(&RANGE));
+        global.define("writeln", new Builtin(&WRITELN));
     }
     unittest {
-        auto t = TestCase("Interpreter.implementations");
+        auto t = TestCase("Interpreter.builtins");
         auto i = new Interpreter();
 
         void test(int line = __LINE__)(string input, string expected) {
@@ -118,6 +122,7 @@ class Interpreter {
 
         //FIXME: Make these Syntax-independant.
         //Quote, Quasiquote and embed:
+        test("(tuple () '() fnord 'fnord)", "(fnord fnord fnord fnord)");
         test("'(foo bar)","(foo bar)");
         test("''foo", "(quote foo)");
         test("'`foo","(qquote foo)");
@@ -126,6 +131,20 @@ class Interpreter {
         test("`{$(* 2 2)}", "{4}");
         test("`[$(* 2 2)]", "[4]");
         test("(var a 12) (var b 23) (var tmp a) (set! a b) (set! b tmp)", "12");
+        test("(stringof (tupleof \"cool\"))", "\"cool\"");
+        test("(join! 1 1)", "[1 1]");
+        test("(join! 1 fnord)", "[1]");
+        test("(join! '[1 2 3] fnord)", "[[1 2 3]]");
+        test("(join! \"foo\" \"bar\")", "\"foobar\"");
+        test("(+ 2 2)", "4");
+        test("(+ (* 2 100) (* 1 10))", "210");
+        test("(if (> 6 5) (+ 1 1) (+ 2 2))", "2");
+        test("(if (< 6 5) (+ 1 1) (+ 2 2))", "4");
+        test("(var x 3)", "3");
+        test("x", "3");
+        test("(+ x x)", "6");
+        test("(do (var x 1) (set! x (+ x 1)) (+ x 1))", "3");
+        test("((function [x] (+ x x)) 5)", "10");
     }
 
 
@@ -208,7 +227,7 @@ class Interpreter {
         foreach(arg; args[1 .. $]) {
             uint index;
             try index = to!uint(arg.eval(s).value);
-            catch (Exception) { throw new ObjectNotAppError(arg.toString); }
+            catch(Exception) { throw new ObjectNotAppError(arg.toString); } //FIXME: ConvException
 
             if(index < max) newColl ~= coll.range[index];
             else throw new SemanticError("Index out of bounds: '"~arg.toString~"'.");
@@ -272,7 +291,7 @@ class Interpreter {
             else if(arg.type & Type.Scope) assert(0, "Not yet implemented.");
             else throw new ObjectNotAppError(args[0].toString);
         }
-         return s;
+         return FNORD;
     }
 
     /***********************************************************************************
@@ -397,7 +416,7 @@ class Interpreter {
             throw new ObjectNotAppError(args[0].toString);
         auto value = args.length == 2 ? args[1].eval(s) : FNORD;
         if(value.type & Type.Settable) value = (cast(Reference)value).get;
-        s.defineSymbol(args[0].toString, value);
+        s.define(args[0].toString, value);
         return value;
     }
 
@@ -439,7 +458,7 @@ class Interpreter {
                                                argList.range.length, callArgs.length));
 
             foreach(i, arg; argList.range) {
-                closureScope.defineSymbol(arg.toString, callArgs[i].eval(callScope));
+                closureScope.define(arg.toString, callArgs[i].eval(callScope));
             }
             // auto dispatchedArgs = callScope.get("__argDispatcher").call(closureScope, [argList, new List(callArgs)]);
             // writeln("Dispatched args: ", dispatchedArgs);
@@ -468,15 +487,15 @@ class Interpreter {
             auto macroScope = new Scope(callScope);
             foreach(i, arg; argList.range) {
                 if(arg.toString == "@tuple") {
-                    macroScope.defineSymbol("@tuple", new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
+                    macroScope.define("@tuple", new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
                     break;
                 }
-                else macroScope.defineSymbol(arg.toString, callArgs[i]);
+                else macroScope.define(arg.toString, callArgs[i]);
             }
             return macroBody.eval(macroScope).eval(callScope);
         });
 
-        s.defineSyntax(macroName.toString, foo);
+        s.define(macroName.toString, foo);
         return macroName;
     }
 
@@ -492,7 +511,7 @@ class Interpreter {
 
     /***********************************************************************************
      * Joins two objects into a collection according to these rules:
-     * foo, bar --> (foo bar)
+     * foo, bar --> [foo bar]
      * foo, (bar) --> (foo bar)
      * (foo), bar --> ((foo) bar)
      * (foo), (bar) --> ((foo) bar)
@@ -505,6 +524,7 @@ class Interpreter {
         auto arg1 = args[1].eval(s);
 
         if(arg1.type & Type.Collection) return arg1.factory([arg0]~arg1.range);
+        if(arg1.toString == Keywords.Fnord) return new List([arg0]); //FIXME: FNORD
         return new List([arg0, arg1]);
     }
 
@@ -592,8 +612,6 @@ class Interpreter {
         auto body_ = args[1];
         Expression output = FNORD;
 
-        writeln(condition.toString, " ", body_.toString);
-
         while(condition.eval(s).toString != Keywords.Fnord) {
             output = body_.eval(s);
         }
@@ -642,7 +660,7 @@ class Interpreter {
      * Creates a tuple of its arguments.
      *********************/
 
-    Expression TUPLE(ref Scope s, Expression[] args) {
+    Expression MAKETUPLE(ref Scope s, Expression[] args) {
         Expression[] tuple;
         foreach(arg; args) tuple ~= arg.eval(s);
         if(tuple.length) return new Tuple(tuple);
@@ -650,8 +668,20 @@ class Interpreter {
     }
 
     /***********************************************************************************
+     * Creates a set of its arguments.
+     *********************/
+
+    Expression MAKECOLL(T)(ref Scope s, Expression[] args) {
+        Expression[] coll;
+        foreach(arg; args) coll ~= arg.eval(s);
+        return new T(coll);
+    }
+
+    alias MAKECOLL!(Set)        MAKESET;
+    alias MAKECOLL!(List)       MAKELIST;
+
+    /***********************************************************************************
      * Returns a set representation of a collection.
-     * TODO: Change args type in place if possible?
      *********************/
 
     Expression SETOF(ref Scope s, Expression[] args) {
@@ -662,7 +692,6 @@ class Interpreter {
 
     /***********************************************************************************
      * Returns a list representation of a collection.
-     * TODO: Same as above.
      *********************/
 
     Expression LISTOF(ref Scope s, Expression[] args) {
@@ -673,13 +702,14 @@ class Interpreter {
 
     /***********************************************************************************
      * Retruns a tuple representation of a collection.
-     * TODO: Same as above?
      *********************/
 
     Expression TUPLEOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
             throw new SemanticError("Function 'tupleof' requires exactly one argument.");
-        return new Tuple(args[0].eval(s).range);
+        auto arg = args[0].eval(s).range;
+        if(!arg.length) return FNORD;
+        return new Tuple(arg);
     }
 
     /***********************************************************************************
@@ -689,6 +719,8 @@ class Interpreter {
     Expression STRINGOF(ref Scope s, Expression [] args) {
         if(args.length != 1)
             throw new SemanticError("Function 'stringof' requires exactly one argument.");
+        auto arg = args[0].eval(s);
+        if(arg.type & Type.Collection) return new String(arg.range);
         return new String("\""~args[0].eval(s).toString~"\"");
     }
 
@@ -714,7 +746,8 @@ class Interpreter {
      *********************/
 
     Expression RANDOM(ref Scope s, Expression[] args) {
-        if(!args.length) throw new SemanticError("Function 'random' requires at least one argument.");
+        if(!args.length)
+            throw new SemanticError("Function 'random' requires at least one argument.");
 
         auto randomGenerator = MinstdRand(unpredictableSeed);
         Expression randomImpl(Expression arg) {
@@ -734,5 +767,20 @@ class Interpreter {
             foreach(arg; args) set ~= randomImpl(arg);
             return new Set(set);
         }
+    }
+
+    //TODO
+    Expression WRITELN(ref Scope s, Expression[] args) {
+        writeln(args[0].eval(s));
+        return FNORD;
+    }
+
+    Expression CALLABLE(ref Scope s, Expression[] args) {
+        auto tmp = s; //FIXME
+        return new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
+            auto closureScope = new Scope(tmp);
+            closureScope.define("__args", new Tuple(callArgs));
+            return args[0].eval(closureScope);
+        });
     }
 }
