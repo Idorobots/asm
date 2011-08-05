@@ -76,7 +76,7 @@ class Interpreter {
         global.define(Keywords.Mult, new PureBuiltin(&MULT));
         global.define(Keywords.Add, new PureBuiltin(&ADD));
         global.define(Keywords.Var, new BuiltinKeyword(&VAR));
-        global.define(Keywords.Function, new BuiltinKeyword(&FUNCTION));
+        global.define(Keywords.Lambda, new BuiltinKeyword(&LAMBDA));
         global.define(Keywords.Macro, new BuiltinKeyword(&MACRO));
         global.define(Keywords.Scope, new BuiltinKeyword(&SCOPE));
         global.define(Keywords.Cons, new BuiltinKeyword(&CONS));
@@ -86,18 +86,15 @@ class Interpreter {
         global.define(Keywords.Reduce, new PureBuiltin(&REDUCE));
         global.define(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
         global.define(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
-//        global.define("__defaultArgDispatcher", new BuiltinKeyword(&DEFAULTARGDISPATCHER));
-        global.define("callable", new BuiltinKeyword(&CALLABLE)); //TODO: OUT
         global.define("call", new BuiltinKeyword(&CALL));
         global.define("defined?", new BuiltinKeyword(&DEFINED));
-        global.define("at", new PureBuiltin(&AT));
+        global.define("nth", new PureBuiltin(&NTH));
         global.define("filter", new PureBuiltin(&FILTER));
         global.define("__setcall", global.get("filter"));
-        global.define("__listcall", global.get("at"));
+        global.define("__listcall", global.get("nth"));
         global.define("__scopecall", global.get(Keywords.Get));
-        global.define("__listeval", global.get(Keywords.Function));
+        global.define("__listeval", global.get(Keywords.Lambda));
         global.define("__seteval", global.get(Keywords.Do));
-        global.define("__tupleeval", global.get("call"));
         global.define("tuple", new PureBuiltin(&MAKETUPLE));
         global.define("set", new PureBuiltin(&MAKESET));
         global.define("list", new PureBuiltin(&MAKELIST));
@@ -108,6 +105,8 @@ class Interpreter {
         global.define("random", new PureBuiltin(&RANDOM));
         global.define("range", new PureBuiltin(&RANGE));
         global.define("writeln", new Builtin(&WRITELN));
+        global.define("append!", new PureBuiltin(&APPEND));
+        global.define("apply", new PureBuiltin(&APPLY));
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
@@ -144,7 +143,10 @@ class Interpreter {
         test("x", "3");
         test("(+ x x)", "6");
         test("(do (var x 1) (set! x (+ x 1)) (+ x 1))", "3");
-        test("((function [x] (+ x x)) 5)", "10");
+        test("((lambda [x] (+ x x)) 5)", "10");
+        test("('[1 2 3] 1)", "2");
+        test("('[1 2 3] -1)", "3");
+        test("(equal? fnord 'fnord () '())", "yup");
     }
 
 
@@ -204,37 +206,23 @@ class Interpreter {
         if(!args.length)
             throw new SemanticError("Syntax keyword 'call' requires at least one argument.");
 
-        foreach(i, el; args) {
-            auto op = el.eval(s); //FIXME TODO No evaluation before the call.
-            if(op.type & Type.Callable) return op.call(s, args[0 .. i]~args[i+1 .. $]);
-        }
-
-        throw new SemanticError("No applicable object found.");
+        auto op = args[0].eval(s);
+        return op.call(s, args[1 .. $]);
     }
 
     /***********************************************************************************
-     * Returns a subcollection containing values at given ideces.
+     * Returns an element at a given index.
      *********************/
 
-    Expression AT(ref Scope s, Expression[] args) {
-        if(!args.length)
-            throw new SemanticError("Function 'at' requires at least one argument.");
+    Expression NTH(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("Function 'nth' requires exactly two arguments.");
 
-        auto coll = args[0].eval(s);
-        auto max = coll.range.length;
-        Expression[] newColl;
-
-        foreach(arg; args[1 .. $]) {
-            uint index;
-            try index = to!uint(arg.eval(s).value);
-            catch(Exception) { throw new ObjectNotAppError(arg.toString); } //FIXME: ConvException
-
-            if(index < max) newColl ~= coll.range[index];
-            else throw new SemanticError("Index out of bounds: '"~arg.toString~"'.");
-        }
-
-        if(newColl.length == 1) return newColl[0];
-        else return coll.factory(newColl);
+        int index = to!int(args[1].eval(s).value);           //TODO: Idiotproof
+        auto coll = args[0].eval(s).range;
+        if((index >= 0) && (index < coll.length)) return coll[index];
+        if((index < 0) && (coll.length - index >= 0)) return coll[$+index];
+        return FNORD;
     }
 
 
@@ -244,24 +232,16 @@ class Interpreter {
      *********************/
 
     Expression FILTER(ref Scope s, Expression[] args) {
-        if(args.length < 2)
-            throw new SemanticError("Function 'filter' requires at least two arguments.");
+        if(args.length != 2)
+            throw new SemanticError("Function 'filter' requires exactly two arguments.");
 
-        Expression[] predicates;
-        foreach(arg; args[1 .. $]) predicates ~= arg.eval(s);
-
+        Expression predicate = args[1].eval(s);
         Expression coll = args[0].eval(s);
         Expression[] newColl;
 
         foreach(ref el; coll.range) {
-            bool jollyRogger = true;    //A flag to tell if an element satysfies all the predicates.
-            foreach(predicate; predicates) {
-                if(predicate.call(s, [pass(el)]).toString == Keywords.Fnord) {
-                    jollyRogger = false;
-                    break;
-                }
-            }
-            if(jollyRogger) newColl ~= el;
+            if(predicate.call(s, [pass(el)]).toString != Keywords.Fnord)        //FIXME: FNORD
+                newColl ~= el;
         }
         return coll.factory(newColl);
     }
@@ -378,7 +358,7 @@ class Interpreter {
         foreach(arg; args[1 .. $]) {
             if(arg.eval(s).toString != first.toString) return FNORD;
         }
-        return first;
+        return first.toString != Keywords.Fnord ? first : new Symbol("yup");    //TODO: FNORD
     }
 
     /***********************************************************************************
@@ -421,30 +401,12 @@ class Interpreter {
     }
 
     /***********************************************************************************
-     * Returns an anonymous closure
+     * Returns an anonymous closure.
      *********************/
 
-    // Expression DEFAULTARGDISPATCHER(ref Scope s, Expression[] args) { //TODO: OUT
-    //     if(args.length != 2)
-    //         throw new SemanticError("Syntax keyword '__defaultArgDispatcher' requires exactly two arguments.");
-
-    //     auto argList = args[0].range;
-    //     auto callArgs = args[1].range;
-
-    //     if(callArgs.length != argList.length)
-    //         throw new SemanticError(format("Expected %s arguments instead of %s.",
-    //                                        argList.length, callArgs.length));
-
-    //     Expression[] tuple = [new Symbol(Keywords.Begin)];
-    //     foreach(i, arg; argList) {
-    //         tuple ~= new Tuple([new Symbol(Keywords.Var), arg, callArgs[i].eval(s)]);
-    //     }
-    //     return new Tuple(tuple);
-    // }
-
-    Expression FUNCTION(ref Scope s, Expression[] args) {
+    Expression LAMBDA(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Function~"' requires exactly two arguments.");
+            throw new SemanticError("Syntax keyword '"~Keywords.Lambda~"' requires exactly two arguments.");
 
         Expression argList = args[0];
         Expression functionBody = args[1];
@@ -460,9 +422,6 @@ class Interpreter {
             foreach(i, arg; argList.range) {
                 closureScope.define(arg.toString, callArgs[i].eval(callScope));
             }
-            // auto dispatchedArgs = callScope.get("__argDispatcher").call(closureScope, [argList, new List(callArgs)]);
-            // writeln("Dispatched args: ", dispatchedArgs);
-            // dispatchedArgs.eval(closureScope);
             return functionBody.eval(closureScope);
         });
     }
@@ -486,8 +445,8 @@ class Interpreter {
 
             auto macroScope = new Scope(callScope);
             foreach(i, arg; argList.range) {
-                if(arg.toString == "@tuple") {
-                    macroScope.define("@tuple", new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
+                if(contains(arg.keywords, "tuple")) {
+                    macroScope.define(arg.toString, new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
                     break;
                 }
                 else macroScope.define(arg.toString, callArgs[i]);
@@ -782,5 +741,25 @@ class Interpreter {
             closureScope.define("__args", new Tuple(callArgs));
             return args[0].eval(closureScope);
         });
+    }
+
+    Expression APPLY(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("Function 'apply' requires exactly two arguments.");
+        auto func = args[0].eval(s);
+        Expression[] callArgs;
+        foreach(a; args[1].eval(s).range) callArgs ~= pass(a);
+        return func.call(s, callArgs);
+    }
+
+    Expression APPEND(ref Scope s, Expression[] args) {
+        if(!args.length)
+            throw new SemanticError("Function 'append!' requires at least one argument.");
+        auto coll = args[0].eval(s);
+
+        Expression[] newColl = coll.range;
+        foreach(arg; args[1 .. $]) newColl ~= arg.eval(s).range;        //TODO: Atoms!
+
+        return coll.factory(newColl);
     }
 }

@@ -4,55 +4,65 @@
 
 ## Some basics:
 
-# Convinient Scope.call.
+# Convinient Scope.call():
 (macro __scopecall [arg]
   `(get '$arg))
+
+# Convinient Set.call(): # FIXME: Doesn't work.
+#(macro __setcall [s .tuple predicates]
+  `(filter $s $(reduce compose predicates)))
+
+# Convinient List.call():
+(macro __listcall [l .tuple indeces]
+  (if (rest indeces)
+      `(map (lambda [i] (nth $l i)) '$(listof indeces))
+      `(nth $l $(first indeces))))
 
 ## Convinience macros:
 
 # Function declarator.
-(macro defun [name args body]
-  `(var $name (function $args $body)))
+(macro function [name args body]
+  `(var $name (lambda $args $body)))
 
 # Function template declarator.
 (macro template [name targs args body]
   `(macro $name $targs
-    (function $args $body)))
+    (lambda $args $body)))
 
 # Package declarator.
-(macro package [name @tuple]
-  `(var $name $(join! 'scope @tuple)))
+(macro package [name .tuple body]
+  `(var $name $(join! 'scope body)))
 
 # Class declarator.
 (macro class [name body]
   (do (var statics '{})
       (var locals '{})
-      (defun dispatch [arg]
+      (function dispatch [arg]
         (if (tuple? arg)
             (if (equal? 'static (first arg))
-                (push (rest arg) statics)
-                (push arg locals))))
+                (push! (rest arg) statics)
+                (push! arg locals))))
       (map dispatch body)
       `(var $name
             (scope $(join! 'do (tupleof statics))
-                   (defun new []
+                   (function new []
                      (scope $(join! 'do (tupleof locals))))))))
 
 # Binds variables allowing for lazy evaluation:
 (macro bind [sym obj]
-  (if (in? 'lazy (keywordsof sym))
-      `(var $sym '$obj)
+  (if (member? 'lazy (keywordsof sym))
+      `(var $sym (lambda [] $obj))
       `(var $sym $obj)))
 
 # Multiple symbol binder:
-(macro alias [object @tuple]
-  (if (rest @tuple)
-      (do (var 1st `(var $(first @tuple) $object))
-          (defun makeAlias [t] `(var $t $(first @tuple)))
+(macro alias [object .tuple aliases]
+  (if (rest aliases)
+      (do (var 1st `(var $(first aliases) $object))
+          (function makeAlias [t]
+            `(var $t $(first aliases)))
           (join! 'do
-                 (join! 1st (map makeAlias (rest @tuple)))))
-  #else `(var $(first @tuple) $object)))
-
+                 (join! 1st (map makeAlias (rest aliases)))))
+  #else `(var $(first aliases) $object)))
 
 # Boolean operations:
 (macro not [a]
@@ -69,69 +79,56 @@
 
 # Other macros:
 
-# Lispy macros:
-
-(macro let* (vars body)
-  `((function []
-    (do $(join! 'do
-                (map (function [pair]
-                       (join! 'var pair))
-                     vars))
-        $body))))
-
-(var define var)
-(var lambda function)
-(var begin do)
+(macro scoped [body]
+  `((lambda [] $body)))
 
 ## Convinience functions:
 
 # Collection manipulation:
-(defun second [c]
+(function second [c]
   (first (rest c)))
 
-(defun third [c]
+(function third [c]
   (first (rest (rest c))))
 
-(defun fourth [c]
+(function fourth [c]
   (first (rest (rest (rest c)))))
 
-(defun fifth [c]
+(function fifth [c]
   (first (rest (rest (rest (rest c))))))
 
-(defun in? [el coll]
-  (reduce (function [result arg]
-            (if (fnord? result)
-                # In case of (in? fnord collection)
-                (if (equal? arg el) 'yup)
-                result))
-          (join! fnord coll))) #TODO
+(function member? [el coll]
+  (if (not (fnord? coll))
+      (if (equal? el (first coll))
+          coll
+          (member? el (rest coll)))))
 
-(defun push [what where]
+(function push! [what where]
   (if (settable? where)
       (set! where (join! what where))))
 
-(defun pop [where]
+(function pop! [where]
   (if (settable? (collection? where))
       (do (var tmp (first where))
           (set! where (rest where))
            tmp)))
 
-(defun assoc [key alist]
+(function assoc [key alist]
   (if (not (fnord? alist))
       (if (equal? key (first (first alist)))
-          (second (first alist))
+          (first alist)
           (assoc key (rest alist)))))
 
 # Predicates:
-(defun fnord? [obj]
+(function fnord? [obj]
   (not obj))
 
 # Type predicate template:
 (template typePredicate [type] [object]
-  (if (in? $type (typeof object)) object))
+  (if (member? $type (typeof object)) object))
 
 (macro __definePredicates [predicates]
-  (do (defun makeDecl [arg]
+  (do (function makeDecl [arg]
         `(var $(first arg) (typePredicate $(second arg))))
       (join! 'do (map makeDecl predicates))))
 
@@ -155,47 +152,47 @@
 
 # Other functions:
 
-(defun swap [this that]
+(function swap [this that]
   (do (var __this this)
       (set! this that)
       (set! that __this)))
 
-(defun twice [x]
+(function twice [x]
   (* 2 x))
 
-(defun compose [f g]
-  (function [x]
+(function compose [f g]
+  (lambda [x]
     (f (g x))))
 
-(defun repeat [f]
+(function repeat [f]
   (compose f f))
 
-(defun fact [n]
+(function fact [n]
   (if (<= n 1)
       1
       (* n (fact (- n 1)))))
 
-(defun abs [n]
+(function abs [n]
   ((if (> n 0) + -) 0 n))
 
-(defun combine [f]
-  (function [x y]
+(function combine [f]
+  (lambda [x y]
     (if (not (fnord? x))
         (f (f (first x) (first y))
            ((combine f) (rest x) (rest y))))))
 
 (var zip (combine join!))
 
-(defun riff-shuffl [deck]
-  (do (defun take [n seq]
+(function riff-shuffl [deck]
+  (do (function take [n seq]
         (if (> n 0)
             (join! (first seq)
                    (take (- n 1) (rest seq)))))
-      (defun drop [n seq]
+      (function drop [n seq]
         (if (<= n 0)
             seq
             (drop (- n 1) (rest seq))))
-      (defun mid [seq]
+      (function mid [seq]
         (/ (length seq) 2))
       ((combine append) (take (mid deck) deck)
                         (drop (mid deck) deck))))

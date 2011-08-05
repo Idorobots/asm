@@ -81,8 +81,9 @@ enum Keywords : string {
     Embed       = "embed",      ///Embeding. //TODO Namechange to eval?
     //Declarators:
     Var         = "var",        ///Binds a variable to an expression (or fnord).
-    Function    = "function",   ///Creates an anonymous function.
-    Macro       = "macro",      ///Creates a macro.
+    Lambda      = "lambda",     ///Creates an anonymous closure.
+    Function    = "function",   ///Creates a named function.
+    Macro       = "macro",      ///Creates a named macro.
     Scope       = "scope",      ///Crates a lexical scope.
     //Generic setter and getter:
     Set         = "set!",       ///Sets writeable memory locations.

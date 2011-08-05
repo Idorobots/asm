@@ -286,7 +286,7 @@ class Collection(uint collectionType,
     }
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        static if(collectionType & Type.Tuple) return s.get("call").call(s, coll);
+        static if(collectionType & Type.Tuple) return s.get("call").call(s, coll);              //FIXME: Make in unredefineable.
         else return s.get(evalKeyword).call(s, coll);
     }
 
