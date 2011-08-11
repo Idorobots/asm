@@ -50,9 +50,8 @@
            (describe-objects *location* *objects* *object-locations*)))
 
 (function walk [direction] {
-  (var next (first (filter (rest (assoc *location* *edges*))
+  (var next (first (select (rest (assoc *location* *edges*))
                            [[edge] (equal? (second edge) direction)])))
-  (writeln next)
   (if next {
       (set! *location* (first next))
       (look)
@@ -70,3 +69,33 @@
 (function inventory []
   (join! 'inventory:
          (objects-at 'inventory *objects* *object-locations*)))
+
+## Game repl:
+(function game-read []
+  (if (collection? (var command (read)))
+      (tuple (first command) `(quote $(second command)))
+      (tuple command)))
+
+(function game-print [what] {
+  (map [[arg] (write arg \space)] what)
+  (write \newline)
+})
+
+(function game-repl [] {
+  (var accepted-commands '{look walk pickup inventory quit})
+  (if (equal? (first (var command (game-read)))
+              'quit)
+      (game-print '(Bye, bye.))
+  #else {
+      (if (member? (first command) accepted-commands)
+          (game-print (eval command))
+      #else (game-print '(I don't know this command.)))
+      (game-repl)
+  })
+})
+
+(function new-game [] {
+  (set! *location* 'living-room)
+  (game-print (look))
+  (game-repl)
+})

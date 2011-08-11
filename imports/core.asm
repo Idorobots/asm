@@ -10,7 +10,7 @@
 
 # Convinient Set.call(): # FIXME: Doesn't work.
 #(macro __setcall [s .tuple predicates]
-  `(filter $s $(reduce compose predicates)))
+  `(select $s $(reduce compose predicates)))
 
 # Convinient List.call():
 (macro __listcall [l .tuple indeces]
@@ -44,9 +44,9 @@
                 (push! arg locals))))
       (map dispatch body)
       `(var $name
-            (scope $(join! 'do (tupleof statics))
+            (scope $(append! '(do fnord) (tupleof statics))
                    (function new []
-                     (scope $(join! 'do (tupleof locals))))))))
+                     (scope $(join! '(do fnord) (tupleof locals))))))))
 
 # Binds variables allowing for lazy evaluation:
 (macro bind [sym obj]
@@ -60,11 +60,25 @@
       (do (var 1st `(var $(first aliases) $object))
           (function makeAlias [t]
             `(var $t $(first aliases)))
-          (join! 'do
+          (append! '(do fnord)
                  (join! 1st (map makeAlias (rest aliases)))))
   #else `(var $(first aliases) $object)))
 
-# Boolean operations:
+# Loops:
+
+# Infinite loop.
+(macro loop [.tuple body]
+  (append! '(do .while 1) body))
+
+# While loop.
+#(macro while [condition .tuple body]
+  (append! `(do $.while condition) body))
+
+# Until loop.
+#(macro until [condition .tuple body]
+  (append! `(do $.until condition) body))
+
+# Boolean operations and conditionals:
 (macro not [a]
   `(if $a fnord 'yup))
 
@@ -76,6 +90,15 @@
   (do (var __a a)
       (var __b b)
       `(if $__a $__a (if $__b $__b))))
+
+(macro unless [condition .tuple body]
+  `(if $condition
+       fnord
+       $(append! '(do fnord) body)))
+
+(macro when [condition .tuple body]
+  `(if $condition
+       $(append! '(do fnord) body)))
 
 # Other macros:
 
@@ -98,17 +121,17 @@
   (first (rest (rest (rest (rest c))))))
 
 (function member? [el coll]
-  (if (not (fnord? coll))
+  (if coll
       (if (equal? el (first coll))
           coll
           (member? el (rest coll)))))
 
 (function push! [what where]
-  (if (settable? where)
+  (if where
       (set! where (join! what where))))
 
 (function pop! [where]
-  (if (settable? (collection? where))
+  (if (collection? where)
       (do (var tmp (first where))
           (set! where (rest where))
            tmp)))
@@ -134,7 +157,6 @@
 
 (__definePredicates
   ((immutable? immutable)
-  (settable? settable)        # FIXME: This doesn't work as it should.
   (pure? pure)
   (builtin? builtin)
   (atom? atom)
@@ -149,6 +171,10 @@
   (set? set)
   (tuple? tuple)
   (list? list)))
+
+(macro settable? [arg]
+  `(if (member? 'settable (typeof $arg))
+       $arg))
 
 # Other functions:
 
@@ -196,3 +222,6 @@
         (/ (length seq) 2))
       ((combine append) (take (mid deck) deck)
                         (drop (mid deck) deck))))
+
+(function join [strings]
+  (reduce append! strings))

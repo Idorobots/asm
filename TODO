@@ -71,7 +71,7 @@
 - [X] Immutable
 - [X] Call the first Callable object in them with the rest of the
       tuple as the call arguments upon their evaluation. (by default)
-- [X] Evaluate to "__tupleeval" function with the elements passed as
+- [ ] Evaluate to "__tupleeval" function with the elements passed as
       the arguments.
 *** TODO List:
 - [X] Evaluate to an anonymous function built from the list. (by
@@ -214,7 +214,7 @@ Actually list them here.
       + (join! 1 '[1 2 3]) -> [1 1 2 3]
       + (join! '(a b) '[1 2 3]) -> [(a b) 1 2 3]
       + (join! 'a 'b) -> (a b)
-- [ ] append! - if argument types match - appends element or a
+- [-] append! - if argument types match - appends element or a
       collection to another collection, if types don't match - appends
       the second argument to the collection.
       Creates a new collection if the first argument is immutable or
@@ -276,9 +276,9 @@ Actually list them here.
 - [ ] ? Self:
     + ? Used only for representation of Collections/Scopes/Functions.
     + ? Used semanticly as a self reference of an object.
-- [ ] Embed:
-    + Rename to something more appropriate.
-    + Make it evaluate the expression twice.
+- [ ] ? Embed:
+    + ? Rename to something more appropriate.
+    + ? Make it evaluate the expression twice.
 - [ ] ? Add __scopecall etc keywords.
 *** TODO Semantic keywords:                                           :THINK:
 - [ ] ? Add a list of builtin, recognised keywords.
@@ -361,8 +361,8 @@ Actually list them here.
 - [ ] Make IMPORT work with default import paths etc.
 - [ ] Fix SETOF, TUPLEOF, LISTOF.
 - [X] GET should evaluate it's args.
-- [ ] Rename FUNCTION to LAMBDA/ANONYMOUS.
-- [ ] FUNCTION should accept multiple statements in a body.
+- [X] Rename FUNCTION to LAMBDA/ANONYMOUS.
+- [ ] LAMBDA should accept multiple statements in a body.
 *** TODO Unittests:                                               :IMPORTANT:
 - [X] Actually write those.
 - [ ] Write more of these.

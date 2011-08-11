@@ -220,7 +220,7 @@ some$ymbol!
     set!
     get
     if
-    begin
+    do
     typeof
     keywordsof
     *

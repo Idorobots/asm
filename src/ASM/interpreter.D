@@ -66,7 +66,6 @@ class Interpreter {
         global.define(Keywords.Import, new BuiltinKeyword(&IMPORT));
         global.define(Keywords.Do, new BuiltinKeyword(&DO));
         global.define(Keywords.If, new BuiltinKeyword(&IF));
-        global.define(Keywords.While, new BuiltinKeyword(&WHILE));
         global.define(Keywords.Set, new BuiltinKeyword(&SET));
         global.define(Keywords.Get, new BuiltinKeyword(&GET));
         global.define(Keywords.Quote, new BuiltinKeyword(&QUOTE));
@@ -89,8 +88,8 @@ class Interpreter {
         global.define("call", new BuiltinKeyword(&CALL));
         global.define("defined?", new BuiltinKeyword(&DEFINED));
         global.define("nth", new PureBuiltin(&NTH));
-        global.define("filter", new PureBuiltin(&FILTER));
-        global.define("__setcall", global.get("filter"));
+        global.define("select", new PureBuiltin(&SELECT));
+        global.define("__setcall", global.get("select"));
         global.define("__listcall", global.get("nth"));
         global.define("__scopecall", global.get(Keywords.Get));
         global.define("__listeval", global.get(Keywords.Lambda));
@@ -104,9 +103,13 @@ class Interpreter {
         global.define("stringof", new PureBuiltin(&STRINGOF));
         global.define("random", new PureBuiltin(&RANDOM));
         global.define("range", new PureBuiltin(&RANGE));
-        global.define("writeln", new Builtin(&WRITELN));
+        global.define("write", new Builtin(&WRITE));
         global.define("append!", new PureBuiltin(&APPEND));
         global.define("apply", new PureBuiltin(&APPLY));
+        global.define("eval", new BuiltinKeyword(&EVAL));
+        global.define("read", new BuiltinKeyword(&READ));
+        global.define("\\space", new String(" "));
+        global.define("\\newline", new String("\n"));
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
@@ -231,9 +234,9 @@ class Interpreter {
      * all the predicates passed to it.
      *********************/
 
-    Expression FILTER(ref Scope s, Expression[] args) {
+    Expression SELECT(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Function 'filter' requires exactly two arguments.");
+            throw new SemanticError("Function 'select' requires exactly two arguments.");
 
         Expression predicate = args[1].eval(s);
         Expression coll = args[0].eval(s);
@@ -518,7 +521,8 @@ class Interpreter {
         Expression[] coll;
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
-        foreach(ref value; collection.range) coll ~= func.call(s, [pass(value)]);
+        foreach(ref value; collection.range)
+            coll ~= func.call(s, [pass(value)]);
         return collection.factory(coll);
     }
 
@@ -532,7 +536,8 @@ class Interpreter {
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
         auto result = collection.range[0];
-        foreach(ref value; collection.range) result = func.call(s, [pass(result), pass(value)]);
+        foreach(ref value; collection.range[1 .. $])
+            result = func.call(s, [pass(result), pass(value)]);
         return result;
     }
 
@@ -553,29 +558,27 @@ class Interpreter {
      *********************/
 
      Expression DO(ref Scope s, Expression[] args) {
+         if(!args.length) return FNORD;
+
+         auto keywords = args[0].keywords;
          Expression output = FNORD;
-         foreach(el; args) output = el.eval(s);
+
+         if(!keywords.length) {
+             foreach(arg; args) output = arg.eval(s);
+         }
+         else {
+             void loop(bool delegate () condition) {
+                 while(condition())
+                     foreach(arg; args[1 .. $]) output = arg.eval(s);
+             }
+
+             if(contains(keywords, "while"))
+                 loop({return args[0].eval(s).toString != Keywords.Fnord;});
+             else if(contains(keywords, "until"))
+                 loop({return args[0].eval(s).toString == Keywords.Fnord;});
+         }
          return output;
      }
-
-
-    /***********************************************************************************
-     * While loop. Repeats it's contents while condition is not fnord.
-     *********************/
-
-    Expression WHILE(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.While~"' requires two or three arguments.");
-
-        auto condition = args[0];
-        auto body_ = args[1];
-        Expression output = FNORD;
-
-        while(condition.eval(s).toString != Keywords.Fnord) {
-            output = body_.eval(s);
-        }
-        return output;
-    }
 
     /***********************************************************************************
      * Returns a type tuple of an object.
@@ -616,28 +619,25 @@ class Interpreter {
     }
 
     /***********************************************************************************
-     * Creates a tuple of its arguments.
-     *********************/
-
-    Expression MAKETUPLE(ref Scope s, Expression[] args) {
-        Expression[] tuple;
-        foreach(arg; args) tuple ~= arg.eval(s);
-        if(tuple.length) return new Tuple(tuple);
-        return FNORD;
-    }
-
-    /***********************************************************************************
      * Creates a set of its arguments.
      *********************/
 
     Expression MAKECOLL(T)(ref Scope s, Expression[] args) {
         Expression[] coll;
-        foreach(arg; args) coll ~= arg.eval(s);
+        foreach(arg; args) {
+            auto earg = arg.eval(s);
+            auto ref_ = new Reference(&earg);
+            coll ~= ref_.get;
+        }
+        static if(is(T : Tuple)) {
+           if(!coll.length) return FNORD;
+        }
         return new T(coll);
     }
 
     alias MAKECOLL!(Set)        MAKESET;
     alias MAKECOLL!(List)       MAKELIST;
+    alias MAKECOLL!(Tuple)      MAKETUPLE;
 
     /***********************************************************************************
      * Returns a set representation of a collection.
@@ -729,18 +729,14 @@ class Interpreter {
     }
 
     //TODO
-    Expression WRITELN(ref Scope s, Expression[] args) {
-        writeln(args[0].eval(s));
-        return FNORD;
-    }
-
-    Expression CALLABLE(ref Scope s, Expression[] args) {
-        auto tmp = s; //FIXME
-        return new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            auto closureScope = new Scope(tmp);
-            closureScope.define("__args", new Tuple(callArgs));
-            return args[0].eval(closureScope);
-        });
+    Expression WRITE(ref Scope s, Expression[] args) {
+        auto output = FNORD;
+        foreach(arg; args) {
+            output = arg.eval(s);
+            if(output.type & Type.String) write(output.toString[1 .. $-1]);
+            else write(output);
+        }
+        return output;
     }
 
     Expression APPLY(ref Scope s, Expression[] args) {
@@ -753,13 +749,28 @@ class Interpreter {
     }
 
     Expression APPEND(ref Scope s, Expression[] args) {
-        if(!args.length)
-            throw new SemanticError("Function 'append!' requires at least one argument.");
+        if(!args.length) return FNORD;
         auto coll = args[0].eval(s);
 
         Expression[] newColl = coll.range;
-        foreach(arg; args[1 .. $]) newColl ~= arg.eval(s).range;        //TODO: Atoms!
+        foreach(arg; args[1 .. $]) {
+            auto earg = arg.eval(s);
+            if(earg.toString != Keywords.Fnord) newColl ~= earg.range;        //TODO: Atoms!
+        }
 
         return coll.factory(newColl);
+    }
+
+    Expression EVAL(ref Scope s, Expression[] args) {
+        if(!args.length) return FNORD;
+        return args[0].eval(s).eval(s);
+    }
+
+    Expression READ(ref Scope s, Expression[] args) {
+        auto input = stdin.readln;
+        auto output = parser.parse(input);
+        if(output.length != 1) return new Tuple(output);
+        if(!output.length) return FNORD;
+        return output[0];
     }
 }
