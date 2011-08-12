@@ -1,0 +1,24 @@
+#DMD makefile.
+
+DC = dmd
+DFLAGS = -wi -I./src -I..
+GDB = -unittest -debug -gc
+DLDLIBS = -L-lreadline
+
+VPATH = src:src/ASM:src/utils
+
+OBJS = main.o interpreter.o parser.o AST.o kit.o lexical.o testing.o exception.o ctfe.o
+
+TARGET = asm
+
+all : $(TARGET)
+
+$(TARGET) : $(OBJS)
+	$(DC) $^ $(DLDLIBS) -of$@
+
+%.o : %.d
+	$(DC) $(DFLAGS) $(GDB) $< -c
+
+clean:
+	rm -f $(TARGET)
+	rm -f *.o

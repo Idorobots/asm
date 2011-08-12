@@ -1,3 +1,11 @@
-ASM - Another Syntactic Monstrosity.
+ASM - Another Syntactic Monstrosity version.
+
 A sandbox programming language "because I can".
-Visit the homepage at http://idorobots.org/asm
+ASM is my ill attempt to make Lisp even more expressive.
+
+For licensing info see LICENSE file.
+For things needing attention see TODO file.
+For language specs see lang directory:
+    lang/lexical - ASM language formal description.
+
+Visit its homepage at http://idorobots.org/asm/

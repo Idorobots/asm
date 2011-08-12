@@ -1,0 +1,245 @@
+#This is the formal description of the ASM programming language:
+
+* Lexical:
+**    Characters:
+                  Character
+                  Character Characters
+**    Character:
+                  Any unicode character.
+**    Whitespaces:
+                  Whitespace
+                  Whitespace Whitespaces
+**    Whitespace:
+                  \u0009
+                  \u000B
+                  \u000D
+                  EndOfLine
+                  Space
+**    EndOfLine:
+                  \u000A
+                  EndOfFile
+**    EndOfFile:
+                  \u0000
+                  Physical end of file.
+**    Space:
+                  \u0020
+
+* Comments:
+**    Comment:
+                  LineComment
+                  ExpressionComment
+**    LineComment:
+                  CommentStart Lexical.Space Lexical.Characters Lexical.EndOfLine
+                  CommentStart CommentStart Lexical.Characters Lexical.EndOfLine
+**    ExpressionComment:
+                  CommentStart Grammar.Expression
+**    CommentStart:
+                  #
+
+** Examples:
+
+# This is a valid line comment.
+##So is this.
+
+#####################################
+# And even this.
+################
+
+#So-is_this*
+#(And this)
+#"Even this is a \tvalid ExpressionComment\n"
+
+* Syntax:
+**    LTuple:
+                  (
+**    RTuple:
+                  )
+**    LList:
+                  [
+**    RList:
+                  ]
+**    LSet:
+                  {
+**    RSet:
+                  }
+**    StringDelim:
+                  "
+
+** Examples (some syntacticly valid code):
+
+()
+{([""])}
+{({[[]()]})}
+"Some string"
+
+* Numbers:
+**    Complex:
+                  Real Sign Imaginary
+**    Real:
+                  Integer Dot Digits
+**    Integer:
+                  Digits
+                  Sign Digits
+**    Digits:
+                  Digit
+                  Digit Digits
+**    Digit:
+                  0
+                  1
+                  2
+                  3
+                  4
+                  5
+                  6
+                  7
+                  8
+                  9
+**    Sign:
+                  -
+                  +
+**    Dot:
+                  .
+**    Imaginary:
+                  Real ImaginarySuffix
+**    ImaginarySuffix:
+                  i
+
+** Examples:
+
+123
+-3.14159268
+2.0+3.0i
+-23.534-298.2363476i
+
+* Symbols:
+**    Identifier:
+                  IdentifierChars
+**    IdentifierChararacters:
+                  IdentifierChararacter
+                  IdentifierCharacter IdentifierCharacters
+**    IdentifierCharacter:
+                  Digit
+                  NonReservedCharacter
+**    NonReservedCharacter:
+                  Lexical.Character not found in Syntax or Lexical.Whitespace, or CommentStart.
+**    String:
+                  Syntax.StringDelim StringCharacters Syntax.StringDelim
+**    StringCharacters:
+                  StringCharacter
+                  StringCharacter StringCharacters
+**    StringCharacter:
+                  Lexical.Character
+                  Lexical.Whitespace
+                  EscapeSequence
+                  EmbeddedExpression
+**    EscapeSequence:
+                  \"
+                  \\
+                  \ Lexical.EmbedSymbol
+                  \0
+                  \n
+                  \t
+                  \v
+                  \r
+**    EmbeddedExpression:
+                  EmbedSymbol Grammar.Expression
+**    EmbedSymbol:
+                  $
+
+** Examples (valid identifiers):
+
+NOTE: Identifier consists of any number of casesensitive unicode
+characters, that makes it pretty flexible.
+
+set!
+*some-identifier*
+¿Ó³Æ
+classInstance
+__&@%^
+string->listOfChars
+
+** Examples (valid strings):
+
+"Some string."
+"Some () #syntax {in a string."
+"\n escape\t sequences\r\n"
+"Embedded $(Expression)"
+
+* Collections:
+**    List:
+                  Syntax.LList Syntax.RList
+                  Syntax.LList Expressions Syntax.RList
+**    Set:
+                  Syntax.LSet Syntax.RSet
+                  Syntax.LSet Expressions Syntax.RSet
+**    Tuple:
+                  Syntax.LTuple Expresions Syntax.RTuple
+**    Expressions:
+                  Grammar.Expression
+                  Grammar.Expression Expressions
+
+** Examples:
+
+[This is a valid List.]
+[] - empty list.
+{This is a Set.}
+{} - empty set.
+(This is a Tuple.)
+
+NOTE: Empty Tuple cannot exist. It's a fnord!
+
+* Grammar:
+**    Expression:
+                  Atom
+                  Collection
+**    Atom:
+                  Number
+                  Symbol
+**    Number:
+                  Numbers.Integer
+                  Numbers.Real
+                  Numbers.Complex
+**    Symbol:
+                  Symbols.Identifier
+                  Symbols.String
+**    Collection:
+                  Collections.List
+                  Collections.Set
+                  Collections.Tuple
+
+** Examples:
+
+23.5
+some$ymbol!
+"A WYSIWYG symbol - a.k.a. string."
+(A tuple with a {set inside.})
+
+* Keywords:
+    fnord
+    self
+    set!
+    get
+    if
+    do
+    typeof
+    keywordsof
+    *
+    +
+    -
+    /
+    mod
+    leq?
+    equal?
+    first
+    rest
+    join!
+    map
+    reduce
+    qquote
+    quote
+    embed
+    var
+    function
+    macro
+    scope
+    import
