@@ -353,7 +353,7 @@ class DefaultParser : Parser {
                               tokens.length ? parse(tokens) : new Symbol(Keywords.Fnord)]);
         }
         if(contains(parens.keys, token[0])) {
-            auto delimiter = parens[token[0]];
+            auto delimiter = cast(immutable(char))parens[token[0]];
             Expression[] collection;
 
             do {

@@ -67,7 +67,7 @@ auto toUpper(in char c) {
  * TODO: is for reference parameters.
  *********************/
 
-bool contains(R, E)(auto ref R range, auto ref E e)
+pure bool contains(R, E)(auto ref R range, auto ref E e)
 body {
     foreach(el; range) if(el == e) return true;
     return false;
@@ -83,7 +83,7 @@ unittest {
  * Translates all characters from 'from' to coresponding ones in 'to' in 'here'..
  *********************/
 
-string tr(string from, string to)(string here) {
+pure string tr(string from, string to)(string here) {
     static assert(from.length == to.length, "The lengths of 'from' and 'to' must be equal.");
     string output;
     foreach(c; here) {

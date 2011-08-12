@@ -1,7 +1,7 @@
 #GDC makefile.
 
 DC = gdc
-DFLAGS = -Wall -Wextra -pedantic -I./src -I..
+DFLAGS = -Wall -Wextra -pedantic -I./src
 GDB = -funittest -fdebug -ggdb3
 DLDLIBS = -lreadline
 
