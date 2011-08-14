@@ -158,7 +158,7 @@ class DefaultParser : Parser {
 
             string output;
             s = (expanded~Lexical.EndOfFile).ptr;
-            auto prefix = [Lexical.CommentStart,               //Sexp comment.
+            auto prefix = [Lexical.CommentStart,              //Sexp comment.
                            ESyntax.Keyword[0],                //. -> nothing. //TODO
                            ESyntax.Quote[0],                  //' -> (quote )
                            ESyntax.Quasiquote[0],             //` -> (qquote )
