@@ -26,20 +26,20 @@
 
 module ASM.interpreter;
 
-debug import std.stdio;
-debug import utils.testing;
-
-
-//import std.parallelism; //TODO: Parallel!
+import std.stdio;
 import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
+import std.regex : match, regex;
 
 import utils.ctfe : tr, ETuple;
+import utils.testing : TestCase;
+import utils.readline : readLine, addHistory;
 
 import ASM.lexical;
 import ASM.AST;
 import ASM.kit;
+import ASM.lexer;
 import ASM.parser;
 
 
@@ -109,7 +109,14 @@ class Interpreter {
         global.define("eval", new BuiltinKeyword(&EVAL));
         global.define("read", new BuiltinKeyword(&READ));
         global.define("\\space", new String(" "));
+        global.define("\\tab", new String("\t"));
         global.define("\\newline", new String("\n"));
+
+        //New parser/lexer routines:
+        global.define("readln", new BuiltinKeyword(&READRAW));
+        global.define("lex", new BuiltinKeyword(&LEX));
+        global.define("catch", new BuiltinKeyword(&CATCH));
+        global.define("quit", new BuiltinKeyword(&QUIT));
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
@@ -415,8 +422,10 @@ class Interpreter {
         Expression functionBody = args[1];
         auto tmp = s; //FIXME: OUT
 
-        return new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
+        Expression foo;
+        foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
             auto closureScope = new Scope(tmp);
+            closureScope.define(Keywords.Self, foo);
 
             if(callArgs.length != argList.range.length)
                 throw new SemanticError(format("Expected %s arguments instead of %s.",
@@ -427,6 +436,7 @@ class Interpreter {
             }
             return functionBody.eval(closureScope);
         });
+        return foo;
     }
 
     /***********************************************************************************
@@ -666,9 +676,11 @@ class Interpreter {
     Expression TUPLEOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
             throw new SemanticError("Function 'tupleof' requires exactly one argument.");
-        auto arg = args[0].eval(s).range;
-        if(!arg.length) return FNORD;
-        return new Tuple(arg);
+        auto arg = args[0].eval(s);
+        if(arg.toString == Keywords.Fnord) return FNORD;        //TODO FNORD, OUT
+        auto range = arg.range;
+        if(!range.length) return FNORD;
+        return new Tuple(range);
     }
 
     /***********************************************************************************
@@ -680,7 +692,7 @@ class Interpreter {
             throw new SemanticError("Function 'stringof' requires exactly one argument.");
         auto arg = args[0].eval(s);
         if(arg.type & Type.Collection) return new String(arg.range);
-        return new String("\""~args[0].eval(s).toString~"\"");
+        return new String(args[0].eval(s).toString);
     }
 
     /***********************************************************************************
@@ -728,7 +740,9 @@ class Interpreter {
         }
     }
 
-    //TODO
+    ///////////////////////
+    //TODO:
+
     Expression WRITE(ref Scope s, Expression[] args) {
         auto output = FNORD;
         foreach(arg; args) {
@@ -767,10 +781,62 @@ class Interpreter {
     }
 
     Expression READ(ref Scope s, Expression[] args) {
-        auto input = stdin.readln;
+        string prompt = "";
+        if(args.length) prompt = args[0].eval(s).toString;
+        auto input = readLine(prompt);
+        addHistory(input);
         auto output = parser.parse(input);
         if(output.length != 1) return new Tuple(output);
         if(!output.length) return FNORD;
         return output[0];
+    }
+
+    /////////////////////////////////////////////////////////////////////
+    // New parser:
+
+    Expression READRAW(ref Scope s, Expression[] args) {
+        string prompt = "";
+        if(args.length) prompt = args[0].eval(s).toString;
+        auto input = readLine(prompt);
+        addHistory(input);
+        return new String(input);
+    }
+
+    //TODO: Numbers and strings!
+
+    Expression LEX(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.");
+        auto input = args[0].eval(s).toString[1 .. $-1];
+        auto expressionTable = args[1].eval(s).range;
+        string[] syntaxTable;
+        foreach(e; expressionTable) syntaxTable ~= e.toString[1 .. $-1];
+
+        auto tokens = ASM.lexer.lex(input, syntaxTable);
+        Expression[] list;
+
+        foreach(token; tokens) list ~= new Symbol(token);
+        return new List(list);
+    }
+
+    Expression CATCH(ref Scope s, Expression[] args) {
+        if(args.length < 2)
+            throw new SemanticError("SyntaxKeyword 'catch' requires at least two arguments");
+        auto output = FNORD;
+
+        void walkTheDinosaur(Exception e) {
+            auto catchScope = new Scope(s);
+            catchScope.define("error", new String(e.toString));
+            args[$-1].eval(catchScope);
+        }
+
+        try foreach(arg; args[0 .. $-1]) output = arg.eval(s);
+        catch(SemanticError e) walkTheDinosaur(e);
+        catch(SyntacticError e) walkTheDinosaur(e);
+        return output;
+    }
+
+    Expression QUIT(ref Scope s, Expression[] args) {
+        throw new Exception("Bye, bye.");
     }
 }

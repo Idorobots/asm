@@ -80,12 +80,14 @@ unittest {
 }
 
 /************************************************************************************
- * Translates all characters from 'from' to coresponding ones in 'to' in 'here'..
+ * Translates all elements from 'from' to coresponding ones in 'to' in 'here'.
  *********************/
 
-pure string tr(string from, string to)(string here) {
+pure Array tr(alias from, alias to, Array)(Array here)
+    if(is(typeof(from) == Array) && is(typeof(to) == Array))
+{
     static assert(from.length == to.length, "The lengths of 'from' and 'to' must be equal.");
-    string output;
+    Array output;
     foreach(c; here) {
         bool jollyRogger = true;        //A flag to tell if an element was translated.
         foreach(i, f; from) {
@@ -98,4 +100,29 @@ pure string tr(string from, string to)(string here) {
         if(jollyRogger) output ~= c;
     }
     return output;
+}
+
+/************************************************************************************
+ * Splits "what" array on elements in "at".
+ *********************/
+
+pure Array[] split(alias at, Array)(Array what)
+    if(is(typeof(at) == Array))
+{
+     Array[] tokens;
+     Array token;
+
+     foreach(c; what) {
+        if(contains(at, c)) {
+            if(token.length) tokens ~= token;
+            token.length = 0;
+        }
+        else token ~= c;
+     }
+     if(token.length) tokens ~= token;
+     return tokens;
+}
+unittest {
+    assert(split!" "("test test lol") == ["test", "test", "lol"]);
+    assert(split!" \t\n"("\ttest \ntest lol\n") == ["test", "test", "lol"]);
 }

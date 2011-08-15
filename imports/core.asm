@@ -120,6 +120,18 @@
 (function fifth [c]
   (first (rest (rest (rest (rest c))))))
 
+(function empty? [coll]
+  (if coll
+      (equal? (first coll) (rest coll) fnord)
+      'yup))
+
+(function length? [coll]
+  ((lambda [coll len]
+     (if (empty? coll)
+         len
+         (self (rest coll) (+ 1 len))))
+   coll 0))
+
 (function member? [el coll]
   (if coll
       (if (equal? el (first coll))
@@ -127,14 +139,18 @@
           (member? el (rest coll)))))
 
 (function push! [what where]
-  (if where
-      (set! where (join! what where))))
+  (set! where (join! what where)))
 
 (function pop! [where]
   (if (collection? where)
       (do (var tmp (first where))
           (set! where (rest where))
            tmp)))
+
+(function reverse [l]
+  (if (rest l)
+      (append! (reverse (rest l)) (list (first l)))
+      l))
 
 (function assoc [key alist]
   (if (not (fnord? alist))
@@ -219,7 +235,7 @@
             seq
             (drop (- n 1) (rest seq))))
       (function mid [seq]
-        (/ (length seq) 2))
+        (/ (length? seq) 2))
       ((combine append) (take (mid deck) deck)
                         (drop (mid deck) deck))))
 

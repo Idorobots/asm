@@ -21,30 +21,10 @@
  *********************/
 
 import std.stdio;
-import std.conv : to;
 import core.memory;
 
+import utils.readline;
 import ASM.interpreter;
-
-/***********************************************************************************
- * GNU Readline.
- *********************/
-
-extern (C) {
-   char* readline(const char* prompt);
-   void add_history(const char* line);
-}
-
-string readLine(string prompt) {
-   auto line = readline((prompt~"\0").ptr);
-   auto str = to!string(line);
-   std.c.stdlib.free(line);
-   return str;
-}
-
-void addHistory(string line) {
-  return add_history((line~"\0").ptr);
-}
 
 int main(string[] args) {
     auto i = new Interpreter();
@@ -83,5 +63,7 @@ int main(string[] args) {
         GC.collect();   //FIXME Fix memory management.
         GC.minimize();
     }
+
+    clearHistory();
     return 0;
 }
