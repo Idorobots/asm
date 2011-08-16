@@ -31,6 +31,7 @@ import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
 import std.regex : match, regex;
+import std.algorithm : sort;
 
 import utils.ctfe : tr, ETuple;
 import utils.testing : TestCase;
@@ -114,8 +115,10 @@ class Interpreter {
 
         //New parser/lexer routines:
         global.define("readln", new BuiltinKeyword(&READRAW));
-        global.define("lex", new BuiltinKeyword(&LEX));
+        global.define("lex", new BuiltinKeyword(&LEX2));
         global.define("catch", new BuiltinKeyword(&CATCH));
+        global.define("error", new BuiltinKeyword(&ERROR));
+        global.define("syntax-error", new BuiltinKeyword(&SYNTAXERROR));
         global.define("quit", new BuiltinKeyword(&QUIT));
     }
     unittest {
@@ -140,11 +143,11 @@ class Interpreter {
         test("`{$(* 2 2)}", "{4}");
         test("`[$(* 2 2)]", "[4]");
         test("(var a 12) (var b 23) (var tmp a) (set! a b) (set! b tmp)", "12");
-        test("(stringof (tupleof \"cool\"))", "\"cool\"");
+        test(`(stringof (tupleof "cool"))`, `"cool"`);
         test("(join! 1 1)", "[1 1]");
         test("(join! 1 fnord)", "[1]");
         test("(join! '[1 2 3] fnord)", "[[1 2 3]]");
-        test("(join! \"foo\" \"bar\")", "\"foobar\"");
+        test(`(join! "foo" "bar")`, `"foobar"`);
         test("(+ 2 2)", "4");
         test("(+ (* 2 100) (* 1 10))", "210");
         test("(if (> 6 5) (+ 1 1) (+ 2 2))", "2");
@@ -404,8 +407,7 @@ class Interpreter {
             throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires one or two arguments.");
         if(!(args[0].type & Type.Symbol))
             throw new ObjectNotAppError(args[0].toString);
-        auto value = args.length == 2 ? args[1].eval(s) : FNORD;
-        if(value.type & Type.Settable) value = (cast(Reference)value).get;
+        auto value = args.length == 2 ? args[1].eval(s).deref : FNORD;
         s.define(args[0].toString, value);
         return value;
     }
@@ -492,8 +494,8 @@ class Interpreter {
     Expression CONS(ref Scope s, Expression[] args) {
         if(args.length != 2)
             throw new SemanticError("Function '"~Keywords.Cons~"' requires exactly two arguments.");
-        auto arg0 = args[0].eval(s);
-        auto arg1 = args[1].eval(s);
+        auto arg0 = args[0].eval(s).deref;
+        auto arg1 = args[1].eval(s).deref;
 
         if(arg1.type & Type.Collection) return arg1.factory([arg0]~arg1.range);
         if(arg1.toString == Keywords.Fnord) return new List([arg0]); //FIXME: FNORD
@@ -634,11 +636,7 @@ class Interpreter {
 
     Expression MAKECOLL(T)(ref Scope s, Expression[] args) {
         Expression[] coll;
-        foreach(arg; args) {
-            auto earg = arg.eval(s);
-            auto ref_ = new Reference(&earg);
-            coll ~= ref_.get;
-        }
+        foreach(arg; args) coll ~= arg.eval(s).deref;
         static if(is(T : Tuple)) {
            if(!coll.length) return FNORD;
         }
@@ -819,24 +817,76 @@ class Interpreter {
         return new List(list);
     }
 
-    Expression CATCH(ref Scope s, Expression[] args) {
-        if(args.length < 2)
-            throw new SemanticError("SyntaxKeyword 'catch' requires at least two arguments");
-        auto output = FNORD;
+    Expression LEX2(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.");
+        auto input = args[0].eval(s).toString[1 .. $-1];
+        auto expressionTable = args[1].eval(s).range;
+        string[] syntaxTable;
+        foreach(e; expressionTable) syntaxTable ~= e.toString[1 .. $-1];
 
-        void walkTheDinosaur(Exception e) {
-            auto catchScope = new Scope(s);
-            catchScope.define("error", new String(e.toString));
-            args[$-1].eval(catchScope);
+
+        bool lenCompare(string a, string b) {
+            return a.length == b.length ? a > b : a.length > b.length;
         }
 
-        try foreach(arg; args[0 .. $-1]) output = arg.eval(s);
-        catch(SemanticError e) walkTheDinosaur(e);
-        catch(SyntacticError e) walkTheDinosaur(e);
+
+        Array[] tokenize(Array)(Array input, Array[] syntax) {
+            if(!input.length) return [];
+            if(!syntax.length) return [input];
+
+            foreach(i, token; syntax) {
+                auto m = match(input, regex(token));
+                if(!m.empty)
+                    return tokenize(m.pre, syntax[i .. $])~
+                           (""~'"'~token~'"')~
+                           tokenize(m.post, syntax[i .. $]);
+            }
+            return [input];
+        }
+
+        string[] lex(string input, string[] syntax) {
+            sort!lenCompare(syntax);
+
+            string[] tokens;
+            foreach(part; split!" \t\n\0"(input)) {
+                tokens ~= tokenize(part, syntax);
+            }
+
+            return tokens;
+        }
+
+
+        auto tokens = lex(input, syntaxTable);
+        Expression[] list;
+
+        foreach(token; tokens) list ~= new Symbol(token);
+        return new List(list);
+    }
+
+
+    Expression CATCH(ref Scope s, Expression[] args) {
+        if(args.length != 2)
+            throw new SemanticError("SyntaxKeyword 'catch' requires exactly two arguments");
+        auto output = FNORD;
+
+        try output = args[0].eval(s);
+        catch(ASM.AST.MyException e)
+            return args[1].eval(s).call(s, [pass(new String(e.toString))]);
         return output;
     }
 
     Expression QUIT(ref Scope s, Expression[] args) {
         throw new Exception("Bye, bye.");
+    }
+
+    //TODO: ParsingError(Expression) ?
+
+    Expression SYNTAXERROR(ref Scope s, Expression[] args) {
+        throw new SyntacticError(args[0].eval(s).toString[1 .. $-1]);
+    }
+
+    Expression ERROR(ref Scope s, Expression[] args) {
+        throw new SemanticError(args[0].eval(s).toString[1 .. $-1]);
     }
 }

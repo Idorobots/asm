@@ -22,7 +22,7 @@
 
 module ASM.lexer;
 
-import std.stdio, std.string, std.regex, std.algorithm;
+import std.regex, std.algorithm;
 
 import utils.testing;
 import utils.ctfe : split;

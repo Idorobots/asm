@@ -139,7 +139,8 @@
           (member? el (rest coll)))))
 
 (function push! [what where]
-  (set! where (join! what where)))
+  (set! where (join! what where)))      # Either prepends element to a collection
+                                        # or joins two elements.
 
 (function pop! [where]
   (if (collection? where)
@@ -148,9 +149,11 @@
            tmp)))
 
 (function reverse [l]
-  (if (rest l)
-      (append! (reverse (rest l)) (list (first l)))
-      l))
+  (when l
+        (if (rest l)
+            (append! (reverse (rest l))
+                     (list (first l)))
+            l)))
 
 (function assoc [key alist]
   (if (not (fnord? alist))

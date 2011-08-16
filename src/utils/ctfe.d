@@ -126,3 +126,10 @@ unittest {
     assert(split!" "("test test lol") == ["test", "test", "lol"]);
     assert(split!" \t\n"("\ttest \ntest lol\n") == ["test", "test", "lol"]);
 }
+
+pure uint find(alias what, Array)(Array where)
+    if(is(typeof(what) == Array))
+{
+    foreach(i, el; where) if(contains(what, el)) return i;
+    return where.length;
+}

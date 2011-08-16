@@ -141,21 +141,29 @@ abstract class Expression {
      * Returns an expression of the same type as this.
      *********************/
 
-     Expression factory(Expression[] vals) {
+    Expression factory(Expression[] vals) {
         throw new ObjectNotAppError(this.toString);
-     }
+    }
+
+    /***********************************************************************************
+     * Returns this. For cleaner reference treating in the interpreter.
+     *********************/
+
+    Expression deref() {
+        return this;
+    }
 
     /***********************************************************************************
      * Returns keywords of this expression.
      *********************/
 
-     @property string[] keywords() {
-         return keys;
-     }
+    @property string[] keywords() {
+        return keys;
+    }
 
-     @property void keywords(string key) {
-         keys ~= key;
-     }
+    @property void keywords(string key) {
+        keys ~= key;
+    }
 }
 
 /***********************************************************************************
@@ -175,12 +183,7 @@ class Reference : Expression {
      *********************/
 
     void set(Expression expr) {
-        if(expr.type & Type.Settable) *referee = (cast(Reference)expr).get;
-        else *referee = expr;
-    }
-
-    Expression get() {
-        return *referee;
+        *referee = expr.deref;
     }
 
     override Expression eval(ref Scope s, uint depth = 0) {
@@ -208,17 +211,25 @@ class Reference : Expression {
         return referee.value;
     }
 
-     override Expression factory(Expression[] vals) {
-        return referee.factory(vals);
-     }
+    override Expression factory(Expression[] vals) {
+       return referee.factory(vals);
+    }
 
-     override string[] keywords() {
-         return referee.keywords;
-     }
+    /***********************************************************************************
+     * Returns referee.
+     *********************/
 
-     override void keywords(string key) {
-         referee.keywords(key);
-     }
+    override Expression deref() {
+        return *referee;
+    }
+
+    override string[] keywords() {
+        return referee.keywords;
+    }
+
+    override void keywords(string key) {
+        referee.keywords(key);
+    }
 }
 
 /***********************************************************************************
