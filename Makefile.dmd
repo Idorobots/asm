@@ -3,7 +3,7 @@
 DC = dmd
 DFLAGS = -wi -Isrc
 GDB = -unittest -debug -gc
-DLDLIBS = -L-Llib -L-ledit
+DLDLIBS = -L-Llib -L-ledit -L-ltermcap
 
 VPATH = src:src/ASM:src/utils
 
