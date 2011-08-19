@@ -64,7 +64,7 @@
 
 ## Reader functions:
 
-(function macro-call [token ostream istream]
+(function parser-macro-call [token ostream istream]
   (when (callable? (get token))
         (var argnum (second (assoc token macro-table)))
         (var args (list))
@@ -74,7 +74,7 @@
              (set! i (+ i 1)))
        (push! (apply (get token) args) ostream)))
 
-(function try-call [token ostream istream]
+(function parser-try-call [token ostream istream]
   (if (callable? (get token))
       ((get token) ostream istream)
       (push! (get token) ostream)))
@@ -82,9 +82,9 @@
 (function read-expression [ostream istream]
   (do (var token (pop! istream))
       (if (member? token syntax-table)
-          (try-call token ostream istream)
+          (parser-try-call token ostream istream)
       (#else if (assoc token macro-table)
-          (macro-call token ostream istream)
+          (parser-macro-call token ostream istream)
       #else (push! token ostream)))))
 
 (function read-delimited-list [delimiter ostream istream]

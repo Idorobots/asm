@@ -43,21 +43,21 @@ import ASM.AST;
  *********************/
 
 class SyntacticError : MyException {
-    public this(string what) {
-        super("Error: "~what);
+    public this(string what, uint line, string file) {
+        super(file~"("~to!string(line)~"): "~what);
     }
 }
-
 
 /***********************************************************************************
  * Mismatched token exception..
  *********************/
 
 class MismatchError : SyntacticError {
-    public this(string token) {
-        super("Mismatched '"~token~"'.");
+    public this(string token, uint line, string file) {
+        super("Mismatched '"~token~"'.", line, file);
     }
 }
+
 /***********************************************************************************
  * An abstract class for an easy substitution. If you need a faster-than-default
  * parser - feel free to make one.
@@ -68,7 +68,7 @@ abstract class Parser {
      * Parses a string into an AST.
      *********************/
 
-    public Expression[] parse(in string input);
+    public Expression[] parse(in string input, in string filename);
 }
 
 /***********************************************************************************
@@ -92,6 +92,10 @@ class DefaultParser : Parser {
     }
     string[] stringBank;                ///Stores string literals for convinient parsing later on.
 
+    uint lineCount;                     /// For preprocess();
+    uint lineNumber;                    /// For parse();
+    string fileName;                    /// For parse();
+
     /***********************************************************************************
      * Removes comments, substitutes syntactic sugars, etc.
      ****************************************/
@@ -101,12 +105,48 @@ class DefaultParser : Parser {
         stringBank.clear;
 
         /***********************************************************************************
+         * Adds some metadata - line numbers.
+         * TODO: Escape sequences \" etc.
+         *********************/
+
+        string addMetadata(in string input) {
+            auto spc = Lexical.Space;
+            auto c = Lexical.CommentStart;
+
+            string output = ""~c~"LINE"~spc~to!string(lineCount++)~spc;
+
+            auto s = (input~Lexical.EndOfFile).ptr;
+            bool inAString = false, addCount = false;
+
+            while(*s) {
+                output ~= *s;
+                if(*s == Lexical.EndOfLine) {
+                    if(!inAString) output ~= ""~spc~c~"LINE"~spc~to!string(lineCount++)~spc;
+                    else {
+                        addCount = true;
+                        lineCount++;
+                    }
+                }
+                else if(*s == Syntax.StringDelim) {
+                    inAString = !inAString;
+                    if(!inAString && addCount) {
+                         addCount = false;
+                         output ~= ""~spc~c~"LINE"~spc~to!string(lineCount-1)~spc;
+                    }
+                }
+                s++;
+            }
+            return output;
+        }
+
+        /***********************************************************************************
          * Stores string literals in stringBank to ease parsing.
          *********************/
 
         string stringCollapse(in string input) {
             string output;
             auto s = (input~Lexical.EndOfFile).ptr;
+
             while(*s) {
                 if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
@@ -181,7 +221,7 @@ class DefaultParser : Parser {
         }
 
         string output;
-        auto s = (syntaxExpand(commentCollapse(stringCollapse(input)))~Lexical.EndOfFile).ptr;
+        auto s = (syntaxExpand(commentCollapse(stringCollapse(addMetadata(input))))~Lexical.EndOfFile).ptr;
 
         while(*s && *s < 0x21) s++;                                     //Spaces, spaces everywhere.
         while(*s) {
@@ -211,55 +251,79 @@ class DefaultParser : Parser {
 
         void test1(int line = __LINE__)(string input, string expected) {
             i.preprocess(input);
-            t.assertion!"=="(i.stringBank[0], expected);
+            t.assertion!"=="(i.stringBank[0], expected, line);
         }
 
         //TODO: FIXME: Unittests should be Syntax-independant.
         ///Whitespaces:
-        test("   \n\r  Leading whitespaces.", "Leading whitespaces.");
-        test("Trailing whitespaces.  \n\t  \r\n", "Trailing whitespaces.");
-        test("Lots\t\na white\r\nspaces      \nand\t shit.", "Lotsa whitespaces and shit.");
-        test("Lots\t\na white\r\nspaces   \"   \nand a string\".", "Lotsa whitespaces \" 0 .");
-        test("Some multi\nline str\ning without comments.", "Some multiline string without comments.");
+        test("   \n\r  Leading whitespaces.",
+             "# LINE 0 # LINE 1 Leading whitespaces.");
+        test("Trailing whitespaces.  \n\t  \r\n",
+             "# LINE 2 Trailing whitespaces. # LINE 3 # LINE 4");
+        test("Lots\t\na white\r\nspaces      \nand\t shit.",
+             "# LINE 5 Lots # LINE 6 a white # LINE 7 spaces # LINE 8 and shit.");
+        test("Lots\t\na white\r\nspaces   \"   \nand a string\".",
+             "# LINE 9 Lots # LINE 10 a white # LINE 11 spaces \" 0 # LINE 12 .");
+        test("Some multi\nline str\ning without comments.",
+             "# LINE 13 Some multi # LINE 14 line str # LINE 15 ing without comments.");
         ///Parenteses:
-        test("String (with parenteses (all over)).", "String ( with parenteses ( all over ) ) .");
+        test("String (with parenteses (all over)).",
+             "# LINE 16 String ( with parenteses ( all over ) ) .");
         test("String (with [different] {parens (all)} over).",
-             "String ( with [ different ] { parens ( all ) } over ) .");
+             "# LINE 17 String ( with [ different ] { parens ( all ) } over ) .");
         ///Comments:
-        test("Some string with a # line comment\n.", "Some string with a .");
-        test("Some string ##with a line\n comment.", "Some string comment.");
-        test("Some string #(with Expression) comment.", "Some string # ( with Expression ) comment.");
-        test("Some string #{with Set} comment.", "Some string # { with Set } comment.");
+        test("Some string with a # line comment\n.",
+             "# LINE 18 Some string with a # LINE 19 .");
+        test("Some string ##with a line\n comment.",
+             "# LINE 20 Some string # LINE 21 comment.");
+        test("Some string #(with Expression) comment.",
+             "# LINE 22 Some string # ( with Expression ) comment.");
+        test("Some string #{with Set} comment.",
+             "# LINE 23 Some string # { with Set } comment.");
         test("Some string #(with an (Expression embedded in a) Expression) comment.",
-             "Some string # ( with an ( Expression embedded in a ) Expression ) comment.");
-        test("String with a single #word comment.", "String with a single # word comment.");
-        test("[Expression with a single word #comment.]", "[ Expression with a single word # comment. ]");
+             "# LINE 24 Some string # ( with an ( Expression embedded in a ) Expression ) comment.");
+        test("String with a single #word comment.",
+             "# LINE 25 String with a single # word comment.");
+        test("[Expression with a single word #comment.]",
+             "# LINE 26 [ Expression with a single word # comment. ]");
         test("{Expression with (a)#comment rigth #next} to a paren.",
-             "{ Expression with ( a ) # comment rigth # next } to a paren.");
+             "# LINE 27 { Expression with ( a ) # comment rigth # next } to a paren.");
         ///Strings and comments:
-        test("String with a \"#(comment in a string), lol.\"", "String with a \" 0");
-        test("A #\"string commented out\".", "A # \" 0 .");
-        test("Some string \"with an \nembeded \tstring\" in it.", "Some string \" 0 in it.");
-        test("\"Comment rigth next to a string.\"#comment", "\" 0 # comment");
-        test("#Comment_rigth\"next to a string.\"", "# Comment_rigth \" 0");
+        test("String with a \"#(comment in a string), lol.\"",
+             "# LINE 28 String with a \" 0");
+        test("A #\"string commented out\".",
+             "# LINE 29 A # \" 0 .");
+        test("Some string \"with an \nembeded \tstring\" in it.",
+             "# LINE 30 Some string \" 0 # LINE 31 in it.");
+        test("\"Comment rigth next to a string.\"#comment",
+             "# LINE 32 \" 0 # comment");
+        test("#Comment_rigth\"next to a string.\"",
+             "# LINE 33 # Comment_rigth \" 0");
         ///Expression embedding and escape sequences:
-        test1("\"\\tString with\\nescape sequences.\\r\\n\"", "\"String with\nescape sequences.\r\n\"");
-        test1("\"$Strings with simple $embeds in it\"", "\"$0 with simple $1 in it\"");
-        test1("\"$String-with? more $(complex 3.14 2.71) embeds.\"", "\"$0 more $1 embeds.\"");
-        test1("\"$(Really {complex} embed (with multiple (parens) [and whatnot]))\"", "\"$0\"");
-        test1("\"${Same deal (but {with another [set of]} parens.)}\"","\"$0\"");
-        test1("\"$[Same () thing for [ a {list}]]\"","\"$0\"");
+        test1("\"\\tString with\\nescape sequences.\\r\\n\"", "String with\nescape sequences.\r\n");
+        test1("\"$Strings with simple $embeds in it\"", "$0 with simple $1 in it");
+        test1("\"$String-with? more $(complex 3.14 2.71) embeds.\"", "$0 more $1 embeds.");
+        test1("\"$(Really {complex} embed (with multiple (parens) [and whatnot]))\"", "$0");
+        test1("\"${Same deal (but {with another [set of]} parens.)}\"", "$0");
+        test1("\"$[Same () thing for [ a {list}]]\"", "$0");
         ///Keywords dispatch:
-        test("String with .keywords in it.", "String with . keywords in it.");
+        test("String with .keywords in it.",
+             "# LINE 40 String with . keywords in it.");
         test("(Expression with .keywords (and .other expressions).in it.)",
-             "( Expression with . keywords ( and . other expressions ) . in it. )");
-        test("(.keyword rigth next to).a paren.", "( . keyword rigth next to ) . a paren.");
+             "# LINE 41 ( Expression with . keywords ( and . other expressions ) . in it. )");
+        test("(.keyword rigth next to).a paren.",
+             "# LINE 42 ( . keyword rigth next to ) . a paren.");
         ///General fun:
-        test("not.a.keyword.", "not.a.keyword.");
-        test("not#a#comment#", "not#a#comment#");
-        test("not$an$embed$", "not$an$embed$");
-        test("not`a`qquote`", "not`a`qquote`");
-        test("not'a'quote'", "not'a'quote'");
+        test("not.a.keyword.",
+             "# LINE 43 not.a.keyword.");
+        test("not#a#comment#",
+             "# LINE 44 not#a#comment#");
+        test("not$an$embed$",
+             "# LINE 45 not$an$embed$");
+        test("not`a`qquote`",
+             "# LINE 46 not`a`qquote`");
+        test("not'a'quote'",
+             "# LINE 47 not'a'quote'");
     }
 
     /***********************************************************************************
@@ -329,7 +393,7 @@ class DefaultParser : Parser {
         if(token == ""~Syntax.StringDelim) {
             auto index = tokens.front;             //The next token is _always_ the offset in string bank.
             tokens.popFront;
-            return new String(stringBank[to!uint(index)]);
+            return new String(stringBank[to!uint(index)], lineNumber, fileName);
         }
         if(token == ESyntax.Keyword) {
             if(tokens.length) {
@@ -341,23 +405,30 @@ class DefaultParser : Parser {
                         return expr;
                     }
                 }
-                else throw new SyntacticError("Invalid keyword '"~keyword.toString~"'.");
+                else throw new SyntacticError("Invalid keyword '"~keyword.toString~"'.", lineNumber, fileName);
             }
         }
         if(token == ""~Lexical.CommentStart) {     //Deletes the following expression from the token stream.
-            if(tokens.length) parse(tokens);       //It still does the syntactic analyzis,
+            if(tokens.length) {
+                auto str = parse(tokens).toString; //It still does the syntactic analyzis,
+                if(str == "LINE") {
+                    lineNumber = to!uint(tokens.front);
+                    tokens.popFront;
+                }
+            }
             return null;                           //as this is ment solely for debugging.
         }
         if(contains(expandables.keys, token)) {
-            return new Tuple([new Symbol(expandables[token]),   //FIXME: Pretier!
-                              tokens.length ? parse(tokens) : new Symbol(Keywords.Fnord)]);
+           return  new Tuple([new Symbol(expandables[token], lineNumber, fileName),
+                              tokens.length ? parse(tokens) :
+                                              new Symbol(Keywords.Fnord, lineNumber, fileName)]);
         }
         if(contains(parens.keys, token[0])) {
             auto delimiter = cast(immutable(char))parens[token[0]];
             Expression[] collection;
 
             do {
-                if(!tokens.length) throw new MismatchError(token);
+                if(!tokens.length) throw new MismatchError(token, lineNumber, fileName);
                 if(tokens.front == ""~delimiter) break;
                 if(auto e = parse(tokens)) collection ~= e;
             } while(true);
@@ -365,25 +436,25 @@ class DefaultParser : Parser {
 
             switch(delimiter) {
                 case Syntax.RTuple:
-                    if(collection.length) return new Tuple(collection);
-                    return new Symbol(Keywords.Fnord);
+                    if(collection.length) return new Tuple(collection, lineNumber, fileName);
+                    return new Symbol(Keywords.Fnord, lineNumber, fileName);
                 case Syntax.RList:
-                    return new List(collection);
+                    return new List(collection, lineNumber, fileName);
                 case Syntax.RSet:
-                    return new Set(collection);
+                    return new Set(collection, lineNumber, fileName);
                 default: assert(0);
             }
         }
-        if(contains(antyparens.keys, token[0])) throw new MismatchError(token);
+        if(contains(antyparens.keys, token[0])) throw new MismatchError(token, lineNumber, fileName);
 
         //The last possible case - a symbol or a number.
         try { //BUG FIXME with a rake or something. Seriously?
             if(token == "-" || token == "in" || token == "I" || token == "i")
                 throw new Exception("A Phobos bug workarround.");
             auto value = to!real(token);
-            return new Number(value);
+            return new Number(value, lineNumber, fileName);
         }
-        catch(Exception) return new Symbol(token);
+        catch(Exception) return new Symbol(token, lineNumber, fileName);
     }
 
     public:
@@ -392,7 +463,9 @@ class DefaultParser : Parser {
      * Parses a string into an array of ASTs each representing independant statement.
      *********************/
 
-    override Expression[] parse(in string input) {
+    override Expression[] parse(in string input, in string fileName) {
+        this.fileName = fileName;
+        this.lineCount = 0;    //TODO: reset it from outside.
         Expression[] output;
         auto tokens = tokenize(preprocess(input));
         while(tokens.length) {

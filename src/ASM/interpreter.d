@@ -114,6 +114,7 @@ class Interpreter {
         global.define("\\newline", new String("\n"));
 
         //New parser/lexer routines:
+        global.define("read-from-string", new BuiltinKeyword(&READSTRING));
         global.define("readln", new BuiltinKeyword(&READRAW));
         global.define("lex", new BuiltinKeyword(&LEX2));
         global.define("catch", new BuiltinKeyword(&CATCH));
@@ -167,17 +168,17 @@ class Interpreter {
      * Reads and evaluates a string.
      *********************/
 
-    string doString(in string input, Scope s) {
+    string doString(in string input, Scope s, string filename) {
         string output;
-        auto statements = parser.parse(input);
+        auto statements = parser.parse(input, filename);
         foreach(statement; statements) {
             output = statement.eval(s).toString;
         }
         return output;
     }
 
-    string doString(in string input) {  //FIXME
-        return doString(input, global);
+    string doString(in string input, in string filename = "__main__") {  //FIXME
+        return doString(input, global, filename);
     }
 
     /***********************************************************************************
@@ -194,12 +195,20 @@ class Interpreter {
         catch(UtfException e) {
             throw new SemanticError("Malformed file '"~filename~"'.");
         }
-        return doString(input, s);
+        return doString(input, s, filename);
     }
 
     string doFile(in string filename) {
         return doFile(filename, global);
     }
+
+    /***********************************************************************************
+     * Defines a new native function
+     *********************/
+
+     void define(string name, proc_t proc) {
+         global.define(name, new Builtin(proc));
+     }
 
     /***********************************************************************************
      * DEFINITIONS:
@@ -783,14 +792,22 @@ class Interpreter {
         if(args.length) prompt = args[0].eval(s).toString;
         auto input = readLine(prompt);
         addHistory(input);
-        auto output = parser.parse(input);
-        if(output.length != 1) return new Tuple(output);
+        auto output = parser.parse(input, "__string__");
         if(!output.length) return FNORD;
+        if(output.length != 1) return new List(output);
         return output[0];
     }
 
     /////////////////////////////////////////////////////////////////////
     // New parser:
+
+    Expression READSTRING(ref Scope s, Expression[] args) {
+        auto input = args[0].eval(s).toString[1 .. $-1];
+        auto output = parser.parse(input, "__string__");
+        if(!output.length) return FNORD;
+        if(output.length != 1) return new List(output);
+        return output[0];
+    }
 
     Expression READRAW(ref Scope s, Expression[] args) {
         string prompt = "";
@@ -881,9 +898,9 @@ class Interpreter {
     }
 
     //TODO: ParsingError(Expression) ?
-
+    //TODO metadata
     Expression SYNTAXERROR(ref Scope s, Expression[] args) {
-        throw new SyntacticError(args[0].eval(s).toString[1 .. $-1]);
+        throw new SyntacticError(args[0].eval(s).toString[1 .. $-1], 0, "nope");
     }
 
     Expression ERROR(ref Scope s, Expression[] args) {

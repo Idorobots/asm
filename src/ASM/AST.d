@@ -42,7 +42,7 @@ import ASM.kit;
 
 class SemanticError : MyException {
     public this(string what) {
-        super("Error: "~what);
+        super(what);
     }
 }
 
@@ -100,8 +100,8 @@ abstract class Expression {
      * Meta- and semantic data:
      *********************/
 
-    //string filename;
-    //uint line;
+    string file;
+    uint line;
     private string[] keys;
 
     /***********************************************************************************
@@ -173,7 +173,9 @@ abstract class Expression {
 class Reference : Expression {
     Expression* referee;
 
-    this(Expression* expr) {
+    this(Expression* expr, uint line = 0, string file = "fnord") {
+        this.line = line;
+        this.file = file;
         if(expr.type & Type.Settable) referee = (cast(Reference)*expr).referee;
         else referee = expr;
     }
@@ -241,7 +243,9 @@ class Reference : Expression {
 class Atom(T, uint atomType) : Expression {
     private T val;
 
-    this(T val) {
+    this(T val, uint line = 0, string file = "fnord") {
+        this.line = line;
+        this.file = file;
         this.val = val;
     }
 
@@ -284,7 +288,9 @@ class Collection(uint collectionType,
 
     private Expression[] coll;
 
-    this(Expression[] coll) {
+    this(Expression[] coll, uint line = 0, string file = "fnord") {
+        this.line = line;
+        this.file = file;
         this.coll = coll;
     }
 
@@ -327,7 +333,9 @@ class Collection(uint collectionType,
 class Collection(T, uint stringType) : Expression {
     private T letters;
 
-    this(T letters) {
+    this(T letters, uint line = 0, string file = "fnord") {
+        this.line = line;
+        this.file = file;
         this.letters = letters;
     }
 
@@ -382,7 +390,9 @@ alias Expression delegate(ref Scope s, Expression[] args) proc_t;   //TODO += de
 class Callable(uint procType) : Expression {
     proc_t procedure;
 
-    this(proc_t procedure) {
+    this(proc_t procedure, uint line = 0, string file = "fnord") {
+        this.line = line;
+        this.file = file;
         this.procedure = procedure;
     }
 
@@ -425,7 +435,9 @@ class Scope : Expression {
     uint[string] symbols;       ///Other symbols.
     Scope outter;               ///Outter scope.
 
-    this(Scope outter = null) {
+    this(Scope outter = null, uint line = 0, string file = "fnord") {
+        this.line = line;
+        this.file = file;
         this.outter = outter;
     }
 
