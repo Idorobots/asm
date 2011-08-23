@@ -35,7 +35,6 @@ import std.algorithm : sort;
 
 import utils.ctfe : tr, ETuple;
 import utils.testing : TestCase;
-import utils.readline : readLine, addHistory;
 
 import ASM.lexical;
 import ASM.AST;
@@ -115,7 +114,7 @@ class Interpreter {
 
         //New parser/lexer routines:
         global.define("read-from-string", new BuiltinKeyword(&READSTRING));
-        global.define("readln", new BuiltinKeyword(&READRAW));
+        global.define("readln", new BuiltinKeyword(&READLN));
         global.define("lex", new BuiltinKeyword(&LEX2));
         global.define("catch", new BuiltinKeyword(&CATCH));
         global.define("error", new BuiltinKeyword(&ERROR));
@@ -177,7 +176,7 @@ class Interpreter {
         return output;
     }
 
-    string doString(in string input, in string filename = "__main__") {  //FIXME
+    string doString(in string input, in string filename = "__main") {  //FIXME
         return doString(input, global, filename);
     }
 
@@ -189,11 +188,11 @@ class Interpreter {
     string doFile(in string filename, Scope s) {    //FIXME
         string input;
         try input = readText(filename);
-        catch(FileException e) {
-            throw new SemanticError("Unable to read file '"~filename~"'.");
+        catch(FileException e) { //TODO: Change both of these to InterpretingError?
+            throw new SemanticError("Unable to read file '"~filename~"'.", 0, "__main"); //FIXME
         }
         catch(UtfException e) {
-            throw new SemanticError("Malformed file '"~filename~"'.");
+            throw new SemanticError("Malformed file '"~filename~"'.", 0, "__main"); //FIXME
         }
         return doString(input, s, filename);
     }
@@ -226,7 +225,7 @@ class Interpreter {
 
     Expression CALL(ref Scope s, Expression[] args) {
         if(!args.length)
-            throw new SemanticError("Syntax keyword 'call' requires at least one argument.");
+            throw new SemanticError("Syntax keyword 'call' requires at least one argument.", 0, ":("); //FIXME
 
         auto op = args[0].eval(s);
         return op.call(s, args[1 .. $]);
@@ -238,7 +237,7 @@ class Interpreter {
 
     Expression NTH(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Function 'nth' requires exactly two arguments.");
+            throw new SemanticError("Function 'nth' requires exactly two arguments.", 0, ":("); //FIXME
 
         int index = to!int(args[1].eval(s).value);           //TODO: Idiotproof
         auto coll = args[0].eval(s).range;
@@ -255,7 +254,7 @@ class Interpreter {
 
     Expression SELECT(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Function 'select' requires exactly two arguments.");
+            throw new SemanticError("Function 'select' requires exactly two arguments.", 0, ":("); //FIXME
 
         Expression predicate = args[1].eval(s);
         Expression coll = args[0].eval(s);
@@ -274,7 +273,7 @@ class Interpreter {
 
      Expression DEFINED(ref Scope s, Expression[] args) {
          if(!args.length)
-             throw new SemanticError("Function 'defined?' requires at least one argument.");
+             throw new SemanticError("Function 'defined?' requires at least one argument.", 0, ":("); //FIXME
          Expression[] argv;
          foreach(arg; args) argv ~= arg.eval(s);
          foreach(arg; argv) if(!s.isDefined(arg.toString)) return FNORD;
@@ -291,7 +290,7 @@ class Interpreter {
             if(arg.type & Type.String) doFile(arg.toString[1 .. $-1], s);
             else if(arg.type & Type.Symbol) doFile(tr!(".", "/")(arg.toString)~".asm", s);
             else if(arg.type & Type.Scope) assert(0, "Not yet implemented.");
-            else throw new ObjectNotAppError(args[0].toString);
+            else throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
         }
          return FNORD;
     }
@@ -308,7 +307,7 @@ class Interpreter {
             auto reference = cast(Reference)location;
             reference.set(value);
         }
-        else throw new ObjectNotAppError(args[0].toString);
+        else throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
         return value;
     }
 
@@ -318,10 +317,10 @@ class Interpreter {
 
     Expression GET(ref Scope s, Expression[] args) {
         if(args.length != 1)
-            throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.");
+            throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.", 0, ":("); //FIXME
         auto arg = args[0].eval(s);
         if(arg.type & Type.Symbol) return new Reference(s.getRef(arg.toString));
-        throw new ObjectNotAppError(args[0].toString);
+        throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
     }
 
     /***********************************************************************************
@@ -335,6 +334,7 @@ class Interpreter {
     /***********************************************************************************
      * Quasiquote - quotes an expression embedding any embed expressions in it.
      * Embeds are coupled with the innermost quasiquote.
+     * FIXME: StackOverflow when tryEvaling strings.
      *********************/
 
     Expression QQUOTE(ref Scope s, Expression[] args) {
@@ -346,6 +346,9 @@ class Interpreter {
                         if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
                         if(e.toString == Keywords.Quasiquote) return arg;
                     }
+                }
+                else if(arg.type & Type.String) {
+                    return arg;
                 }
                 //Not embedding:
                 Expression[] collection;
@@ -375,7 +378,7 @@ class Interpreter {
 
     Expression ISEQUAL(ref Scope s, Expression[] args) {
         if(args.length < 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.IsEqual~"' requires at least two arguments.");
+            throw new SemanticError("Syntax keyword '"~Keywords.IsEqual~"' requires at least two arguments.", 0, ":("); //FIXME
         auto first = args[0].eval(s);
         foreach(arg; args[1 .. $]) {
             if(arg.eval(s).toString != first.toString) return FNORD;
@@ -389,7 +392,8 @@ class Interpreter {
      *********************/
 
     Expression MULT(ref Scope s, Expression[] args) {
-        if(!args.length) throw new SemanticError("Function '"~Keywords.Mult~"' requires at least one argument.");
+        if(!args.length)
+            throw new SemanticError("Function '"~Keywords.Mult~"' requires at least one argument.", 0, ":("); //FIXME
         auto accumulator = args[0].eval(s).value;
         foreach(arg; args[1 .. $]) accumulator *= arg.eval(s).value;
         return new Number(accumulator);
@@ -401,7 +405,8 @@ class Interpreter {
      *********************/
 
     Expression ADD(ref Scope s, Expression[] args) {
-        if(!args.length) throw new SemanticError("Function '"~Keywords.Add~"' requires at least one argument.");
+        if(!args.length)
+            throw new SemanticError("Function '"~Keywords.Add~"' requires at least one argument.", 0, ":("); //FIXME
         auto accumulator = args[0].eval(s).value;
         foreach(arg; args[1 .. $]) accumulator += arg.eval(s).value;
         return new Number(accumulator);
@@ -413,9 +418,9 @@ class Interpreter {
 
     Expression VAR(ref Scope s, Expression[] args) {
         if(!args.length || args.length > 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires one or two arguments.");
+            throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires one or two arguments.", 0, ":("); //FIXME
         if(!(args[0].type & Type.Symbol))
-            throw new ObjectNotAppError(args[0].toString);
+            throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
         auto value = args.length == 2 ? args[1].eval(s).deref : FNORD;
         s.define(args[0].toString, value);
         return value;
@@ -427,7 +432,7 @@ class Interpreter {
 
     Expression LAMBDA(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Lambda~"' requires exactly two arguments.");
+            throw new SemanticError("Syntax keyword '"~Keywords.Lambda~"' requires exactly two arguments.", 0, ":("); //FIXME
 
         Expression argList = args[0];
         Expression functionBody = args[1];
@@ -440,7 +445,7 @@ class Interpreter {
 
             if(callArgs.length != argList.range.length)
                 throw new SemanticError(format("Expected %s arguments instead of %s.",
-                                               argList.range.length, callArgs.length));
+                                               argList.range.length, callArgs.length), 0, ":("); //FIXME
 
             foreach(i, arg; argList.range) {
                 closureScope.define(arg.toString, callArgs[i].eval(callScope));
@@ -456,7 +461,7 @@ class Interpreter {
 
     Expression MACRO(ref Scope s, Expression[] args) {
         if(args.length != 3)
-            throw new SemanticError("Syntax keyword '"~Keywords.Macro~"' requires exactly three argements.");
+            throw new SemanticError("Syntax keyword '"~Keywords.Macro~"' requires exactly three argements.", 0, ":("); //FIXME
 
         Expression macroName = args[0];
         Expression argList   = args[1];
@@ -502,7 +507,7 @@ class Interpreter {
 
     Expression CONS(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Function '"~Keywords.Cons~"' requires exactly two arguments.");
+            throw new SemanticError("Function '"~Keywords.Cons~"' requires exactly two arguments.", 0, ":("); //FIXME
         auto arg0 = args[0].eval(s).deref;
         auto arg1 = args[1].eval(s).deref;
 
@@ -538,7 +543,8 @@ class Interpreter {
      *********************/
 
     Expression MAP(ref Scope s, Expression[] args) {
-        if(args.length != 2) throw new SemanticError("Function 'map' requires exactly two arguments.");
+        if(args.length != 2)
+           throw new SemanticError("Function 'map' requires exactly two arguments.", 0, ":("); //FIXME
         Expression[] coll;
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
@@ -553,7 +559,7 @@ class Interpreter {
 
     Expression REDUCE(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Function 'reduce' requires exactly two arguments.");
+            throw new SemanticError("Function 'reduce' requires exactly two arguments.", 0, ":("); //FIXME
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
         auto result = collection.range[0];
@@ -568,7 +574,7 @@ class Interpreter {
 
     Expression IF(ref Scope s, Expression[] args) {
         if(args.length != 2 && args.length != 3)
-            throw new SemanticError("Syntax keyword '"~Keywords.If~"' requires two or three arguments.");
+            throw new SemanticError("Syntax keyword '"~Keywords.If~"' requires two or three arguments.", 0, ":("); //FIXME
         if(args[0].eval(s).toString != Keywords.Fnord) //FIXME: FNORD
             return args[1].eval(s);
         else return args.length == 3 ? args[2].eval(s) : FNORD;
@@ -607,7 +613,7 @@ class Interpreter {
 
     Expression TYPEOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
-            throw new SemanticError("Function '"~Keywords.TypeOf~"' requires exactly one argument.");
+            throw new SemanticError("Function '"~Keywords.TypeOf~"' requires exactly one argument.", 0, ":("); //FIXME
         auto argType = args[0].eval(s).type;
         Expression[] typeTuple;
 
@@ -630,7 +636,7 @@ class Interpreter {
 
     Expression KEYWORDSOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
-            throw new SemanticError("Function '"~Keywords.KeywordsOf~"' requires exactly one argument.");
+            throw new SemanticError("Function '"~Keywords.KeywordsOf~"' requires exactly one argument.", 0, ":("); //FIXME
         auto keywords = args[0].eval(s).keywords;
         if(!keywords.length) return FNORD;
 
@@ -662,7 +668,7 @@ class Interpreter {
 
     Expression SETOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
-            throw new SemanticError("Function 'setof' requires exactly one argument.");
+            throw new SemanticError("Function 'setof' requires exactly one argument.", 0, ":("); //FIXME
         return new Set(args[0].eval(s).range.dup);
     }
 
@@ -672,7 +678,7 @@ class Interpreter {
 
     Expression LISTOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
-            throw new SemanticError("Function 'listof' requires exactly one argument.");
+            throw new SemanticError("Function 'listof' requires exactly one argument.", 0, ":("); //FIXME
         return new List(args[0].eval(s).range.dup);
     }
 
@@ -682,7 +688,7 @@ class Interpreter {
 
     Expression TUPLEOF(ref Scope s, Expression[] args) {
         if(args.length != 1)
-            throw new SemanticError("Function 'tupleof' requires exactly one argument.");
+            throw new SemanticError("Function 'tupleof' requires exactly one argument.", 0, ":("); //FIXME
         auto arg = args[0].eval(s);
         if(arg.toString == Keywords.Fnord) return FNORD;        //TODO FNORD, OUT
         auto range = arg.range;
@@ -696,7 +702,7 @@ class Interpreter {
 
     Expression STRINGOF(ref Scope s, Expression [] args) {
         if(args.length != 1)
-            throw new SemanticError("Function 'stringof' requires exactly one argument.");
+            throw new SemanticError("Function 'stringof' requires exactly one argument.", 0, ":("); //FIXME
         auto arg = args[0].eval(s);
         if(arg.type & Type.Collection) return new String(arg.range);
         return new String(args[0].eval(s).toString);
@@ -708,7 +714,7 @@ class Interpreter {
 
     Expression RANGE(ref Scope s, Expression[] args) {
         if(args.length != 2 && args.length != 3)
-            throw new SemanticError("Function 'range' requires two or three arguments.");
+            throw new SemanticError("Function 'range' requires two or three arguments.", 0, ":("); //FIXME
         Number[] tuple;
         auto left = args[0].eval(s).value;
         auto right = args[1].eval(s).value;
@@ -725,7 +731,7 @@ class Interpreter {
 
     Expression RANDOM(ref Scope s, Expression[] args) {
         if(!args.length)
-            throw new SemanticError("Function 'random' requires at least one argument.");
+            throw new SemanticError("Function 'random' requires at least one argument.", 0, ":("); //FIXME
 
         auto randomGenerator = MinstdRand(unpredictableSeed);
         Expression randomImpl(Expression arg) {
@@ -762,7 +768,7 @@ class Interpreter {
 
     Expression APPLY(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Function 'apply' requires exactly two arguments.");
+            throw new SemanticError("Function 'apply' requires exactly two arguments.", 0, ":("); //FIXME
         auto func = args[0].eval(s);
         Expression[] callArgs;
         foreach(a; args[1].eval(s).range) callArgs ~= pass(a);
@@ -790,9 +796,8 @@ class Interpreter {
     Expression READ(ref Scope s, Expression[] args) {
         string prompt = "";
         if(args.length) prompt = args[0].eval(s).toString;
-        auto input = readLine(prompt);
-        addHistory(input);
-        auto output = parser.parse(input, "__string__");
+        auto input = stdin.readln;
+        auto output = parser.parse(input[0 .. $-1], "__stdin");
         if(!output.length) return FNORD;
         if(output.length != 1) return new List(output);
         return output[0];
@@ -803,25 +808,24 @@ class Interpreter {
 
     Expression READSTRING(ref Scope s, Expression[] args) {
         auto input = args[0].eval(s).toString[1 .. $-1];
-        auto output = parser.parse(input, "__string__");
+        auto output = parser.parse(input, "__string");
         if(!output.length) return FNORD;
         if(output.length != 1) return new List(output);
         return output[0];
     }
 
-    Expression READRAW(ref Scope s, Expression[] args) {
+    Expression READLN(ref Scope s, Expression[] args) {
         string prompt = "";
         if(args.length) prompt = args[0].eval(s).toString;
-        auto input = readLine(prompt);
-        addHistory(input);
-        return new String(input);
+        auto input = stdin.readln;
+        return new String(input[0 .. $-1]);
     }
 
     //TODO: Numbers and strings!
 
     Expression LEX(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.");
+            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.", 0, ":("); //FIXME
         auto input = args[0].eval(s).toString[1 .. $-1];
         auto expressionTable = args[1].eval(s).range;
         string[] syntaxTable;
@@ -836,7 +840,7 @@ class Interpreter {
 
     Expression LEX2(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.");
+            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.", 0, ":("); //FIXME
         auto input = args[0].eval(s).toString[1 .. $-1];
         auto expressionTable = args[1].eval(s).range;
         string[] syntaxTable;
@@ -873,7 +877,6 @@ class Interpreter {
             return tokens;
         }
 
-
         auto tokens = lex(input, syntaxTable);
         Expression[] list;
 
@@ -881,14 +884,13 @@ class Interpreter {
         return new List(list);
     }
 
-
     Expression CATCH(ref Scope s, Expression[] args) {
         if(args.length != 2)
-            throw new SemanticError("SyntaxKeyword 'catch' requires exactly two arguments");
+            throw new SemanticError("SyntaxKeyword 'catch' requires exactly two arguments", 0, ":("); //FIXME
         auto output = FNORD;
 
         try output = args[0].eval(s);
-        catch(ASM.AST.MyException e)
+        catch(utils.exception.MyException e)
             return args[1].eval(s).call(s, [pass(new String(e.toString))]);
         return output;
     }
@@ -904,6 +906,6 @@ class Interpreter {
     }
 
     Expression ERROR(ref Scope s, Expression[] args) {
-        throw new SemanticError(args[0].eval(s).toString[1 .. $-1]);
+        throw new SemanticError(args[0].eval(s).toString[1 .. $-1], args[0].line, args[0].file);
     }
 }

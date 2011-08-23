@@ -23,10 +23,9 @@
 import std.stdio;
 import core.memory;
 
-import utils.readline;
 import ASM.interpreter;
 
-int main(string[] args) {
+void main(string[] args) {
     auto i = new Interpreter();
 
     i.doString("(import 'imports.core)");
@@ -42,7 +41,7 @@ int main(string[] args) {
                 writeln(e);
             }
         }
-        return 0;
+        return;
     }
 
     /***********************************************************************************
@@ -50,9 +49,9 @@ int main(string[] args) {
      *********************/
 
     while(true) {
-        auto input = readLine("> ");
-        if(input == "q") break;
-        addHistory(input);
+        write("> ");
+        auto input = stdin.readln;
+        if(input == "q\n") break;
 
         try {
             writeln("\t", i.doString(input.idup));
@@ -63,7 +62,4 @@ int main(string[] args) {
         GC.collect();   //FIXME Fix memory management.
         GC.minimize();
     }
-
-    clearHistory();
-    return 0;
 }

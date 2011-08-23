@@ -1,6 +1,6 @@
 ## The syntax table:
 
-(var syntax-table '["\(" "\)" "\'" "," "\-\>" "macro"])
+(var syntax-table '["\(" "\)" "\'" "," "\-\>" "macro" ":" ";"])
 (var macro-table '[(test 2)])
 
 ## Syntax dispatchers:
@@ -11,6 +11,9 @@
       (if (empty? list)
           (push! fnord ostream)
           (push! (tupleof (first list)) ostream))))
+
+(function ";" [o i]
+  (error "Missmatched `;'."))
 
 (function "\)" [o i]
   (error "Missmatched `)'."))
@@ -29,6 +32,13 @@
       (if (tuple? left)
           (push! (append! left (tuple right)) ostream)
           (push! (tuple left right) ostream))))
+
+(function ":" [ostream istream]
+  (do (var right (list))
+      (read-delimited-list ";" right istream)
+      (push! (qquote (var (embed (pop! ostream))
+                          (embed (first (first right)))))
+             ostream)))
 
 (function "\-\>" [ostream istream]
   (do (var args (pop! ostream))

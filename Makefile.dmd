@@ -1,18 +1,18 @@
 #DMD makefile.
-#TODO: fix libedit.a references in libasm.a
 
+AR = ar
 DC = dmd
 DFLAGS = -wi -Isrc
 GDB = -unittest -debug -gc
-DLDLIBS = -L-Llib -L-lasm -L-ledit -L-ltermcap
+DLDLIBS = -L-Llib -L-L. -L-lasm
 
 VPATH = src:src/ASM:src/utils
 
-LIBOBJS = readline.o interpreter.o lexer.o parser.o AST.o kit.o lexical.o testing.o exception.o ctfe.o
+LIBOBJS = interpreter.o lexer.o parser.o AST.o kit.o lexical.o testing.o exception.o ctfe.o
 OBJS = main.o
 
-LIB = lib/libasm.a
-TARGET = bin/asm
+LIB = libasm.a
+TARGET = asm
 
 all : $(LIB) $(TARGET)
 

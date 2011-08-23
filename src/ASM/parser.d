@@ -465,7 +465,7 @@ class DefaultParser : Parser {
 
     override Expression[] parse(in string input, in string fileName) {
         this.fileName = fileName;
-        this.lineCount = 0;    //TODO: reset it from outside.
+        this.lineCount = 1;    //TODO: reset it from outside.
         Expression[] output;
         auto tokens = tokenize(preprocess(input));
         while(tokens.length) {

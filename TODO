@@ -71,9 +71,7 @@
 - [X] Immutable
 - [X] Call the first Callable object in them with the rest of the
       tuple as the call arguments upon their evaluation. (by default)
-- [ ] Evaluate to "__tupleeval" function with the elements passed as
-      the arguments.
-*** TODO List:
+*** TEST List:
 - [X] Evaluate to an anonymous function built from the list. (by
       default)
 - [X] Evaluate to "__listeval" function with the elements passed as
@@ -131,13 +129,17 @@
 *** TODO Functions:
 Actually list them here.
 ** THINK Modules:
-- [ ] ! core - containing builtins and a few usefull functions.
-- [ ] ! io - containing I/O routines.
-- [ ] ! math - containing math routines (probably compilled into the
+- [ ] ! Collections - collection manipulation rutines.
+- [ ] ! Core - containing builtins and a few usefull functions.
+- [ ] ! GC - garbage collectior specific functions.
+- [ ] ! IO - containing I/O routines.
+- [ ] ! Math - containing math routines (probably compilled into the
       interpreter).
+- [ ] ? Parser - containing parser rutines for redefining the syntax
+      etc.
 ** TODO Type predicates:
 - [ ] ? Accept multiple args.
-- [X] Evaluate to fnord on false, to their one of their args otherwise.
+- [X] Evaluate to fnord on false, to one of their args otherwise.
 *** TODO Functions:
 - [X] type? - NOT A PREDICATE, returns type tuple of a _single_
       object.
@@ -157,11 +159,11 @@ Actually list them here.
 - [ ] ! Convert in place if passed a settable reference, or create a copy.
 - [ ] ? Return fnord on error.
 *** TODO Functions:
-- [ ] number->string - string representation of a number.
-- [ ] string->number - numerical value of a string.
-- [ ] ? symbol->string - same thing with Syntax.StringDelim all over.
+- [ ] ? string->number - numerical value of a string.
+- [ ] ? string->symbol - returns a symbol version of a string.
+      (both deprecated because of the (read-from-string))
 - [-] tupleof:
-        + [X] Makes an immutable version of a passed arg.
+        + [X] Makes an immutable tuple version of a passed arg.
         + [ ] ? Should work for atoms aswell.
 - [-] listof:
         + [X] Makes a list representation of an arg.
@@ -175,6 +177,7 @@ Actually list them here.
 - [ ] ASMKit functions accept two arguments.
 - [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
       Return (reduce ASMKitFunc args).
+- [ ] ? Do not use the common operators, so they become redefineable.
 *** TODO ASMKit:
 - [ ] * - a * b
 - [ ] + - a + b
@@ -205,20 +208,17 @@ Actually list them here.
 - [X] Working for all the collection types.
 *** TODO Functions:
 **** TODO Collection manipulation:
-- [-] join! - if the second argument is a collection - prepends it the
+- [-] join - if the second argument is a collection - prepends it the
       the first argument, if it's not a collection - joins both
-      arguments into a pair.
-      Creates a new collection if passed an immutable or nonsettable
-      argument.
+      arguments into a pair. Creates a new collection.
       Examples:
       + (join! 1 '[1 2 3]) -> [1 1 2 3]
       + (join! '(a b) '[1 2 3]) -> [(a b) 1 2 3]
       + (join! 'a 'b) -> (a b)
-- [-] append! - if argument types match - appends element or a
+- [-] append - if argument types match - appends element or a
       collection to another collection, if types don't match - appends
       the second argument to the collection.
-      Creates a new collection if the first argument is immutable or
-      nonsettable.
+      Creates a new collection.
       Examples:
       + (append! '[1 2 3] 4) -> [1 2 3 4]
       + (append! '[1 2 3] '[4 5 6]) -> [1 2 3 4 5 6]
@@ -236,37 +236,40 @@ Actually list them here.
 - [X] tuple - returns a tuple consisting of the call args.
 - [X] set - returns a set consisting of the call args.
 ** THINK Input:
-- [ ] Unformatted (string) reads.
-- [ ] Formatted reads (reads into the passed args).
-- [ ] ? Use this for files, sockets, stdin etc.
+- [ ] ? Using one interface for files, sockets, stdin etc.
 *** THINK Functions:
+- [ ] readln - Unformatted (string) reads.
+- [ ] read - Formatted reads.
 - [ ] ? load/open - Loads a file for reading (as a Scope/Stream with read
       defined acordingly).
-- [ ] ! read - performing both formatted and unformatted reads
-      (depending on args).
-- [ ] ? read-char - reads a single character.
-- [ ] ? peek-char - peeks a single character.
-- [ ] ? close - closes a file.
+- [ ] ? close - closes an imput stream.
 - [ ] eof? - returns 'yup/the object if it has reached EOF.
 - ? etc
 ** THINK Output:
 - [ ] ? Functions paired with input ones.
 *** THINK Functions:
-- [ ] write - performs formatted output.
+- [X] write - writes string representation of the args.
+- ? etc
+** THINK Error handling:
+- [ ] Functions returning fnord unit wherever possible.
+*** THINK Functions:
 - [ ] ? error - throws an error caugth by the REPL.
 - [ ] ? warning - adds a warning printed by the REPL.
 - ? etc
 * TODO THINGS TO IMPLEMENT IN THE INTERPRETER:
 ** TODO Lexical:
-*** TEST Formal grammar description:
+*** TODO Formal grammar description:
 - [X] Finish NumberLiteral formal description / split it into several
       numerical values.
 - [X] Finish Symbol formal description.
 - [X] Add escape sequences and embeds to the String formal
       description.
 - [ ] Add all needed keywords.
+- [ ] Remove all not needed keywords.
+- [ ] ? Think about the formal macro description.
 *** TODO Syntax:                                                      :THINK:
-- [ ] ? Change Syntax and Lexical to enum Name : string {}.
+- [ ] ! Remove enum Syntax.
+- [ ] ! Minimise enum Lexical.
 - [X] Split to Lexical and Syntax:
     + [X] CommentStart, EndOfLine etc - Lexical
     + [X] Rest - Syntax
@@ -280,8 +283,9 @@ Actually list them here.
     + ? Rename to something more appropriate.
     + ? Make it evaluate the expression twice.
 - [ ] ? Add __scopecall etc keywords.
-*** TODO Semantic keywords:                                           :THINK:
+*** THINK Semantic keywords:                                          :THINK:
 - [ ] ? Add a list of builtin, recognised keywords.
+- ? Trash this?
 ** TODO AST:                                                          :THINK:
 *** TODO Type:                                                        :THINK:
 - [ ] ? Namechange to Types.
@@ -294,13 +298,10 @@ Actually list them here.
           ifs returning many different expressions.
 - [ ] ? Arg evaluation list building using thunks.
 - [ ] Recursion depth checking.
-- [ ] ? Macro expansion.
 *** TODO Expression:                                                  :THINK:
-- [-] Additional fields:
-    + [ ] Line number.
-    + [ ] Filename.
-    + [ ] ? Expression number.
-    + [ ] ? Doc string.
+- [X] Additional fields:
+    + [X] Line number.
+    + [X] Filename.
     + [X] Semantic keywords.
 - [ ] ? opApply instead of range(), for convinience.
 - [ ] T value(T)() instead of real value().
@@ -316,59 +317,74 @@ Actually list them here.
 - [X] Set.call() calling "__setcall".
 - [X] List.call() calling "__listcall".
 - [X] List evaluating to "__listeval".
-- [X] ? Tuple evaluating to "__tupleeval".
 - [X] Set evaluating to "__seteval".
 - [X] Add "evalKeyword" and "callKeyword" template args to make eval()
       a oneliner.
 - [X] Collection specialisation for String.
 - [ ] ? Collection specialisation for Tuple.
+- [ ] ? Proper implementation of the Tuple - linked list.
+- [ ] ? Proper implementation of the Set - BST.
+- [ ] Rename List to Array/Vector.
 *** TODO Callable:                                                    :THINK:
 - [ ] Depth parameter for the calls.
 - [ ] ? String representation actually showing the callable.
 *** TODO Scope:                                                       :THINK:
 - [X] ? String representation actually being usefull. (A tuple of
-      keys, perhaps.)
-- [X] One lexical scope of the variables, instead of symbol and syntax
-      distinction.
-- [-] Fix define():
-    + [ ] Rename to bind()
-    + [X] Remove/deprecate defineSymbol and defineSyntax aliases.
+      keys or key/value pairs.)
+- [X] One lexical scope of the variables, macros and syntax keywords.
+- [ ] Additional scope for the actual syntax..
+- [X] define()
+- [ ] syntax()
 - [X] Remove set().
-- [ ] ? Add unbind(string).
+- [ ] ? Add undefine(string).
 - [ ] ? Add merge(Scope).
 - [ ] ? Add import(Scope).
 - [X] Add isDefined(string).
 - [X] Scope.call() calling "__scopecall".
 - [X] Fix storing unwanted objects when rebinding symbols.
+- [ ] ? Use outside data table and store only indeces.
 ** TODO Kit:                                                          :THINK:
 - [ ] ? Move pass() to a separate module.
 - [X] Actually write some fooking implementations.
 - [ ] Sort out which implementations are crucial for the language.
-- [X] Move Scope, Set and List calls there:
-    + [X] Set.call()
-    + [X] Scope.call()
-    + [X] List.call()
-- [X] Move Set, List and Tuple evals there:
-    + [X] Set.eval()
-    + [X] List.eval()
-    + [X] Tuple.eval()
+- [ ] Move Scope, Set and List calls there:
+    + [ ] Set.call()
+    + [ ] Scope.call()
+    + [ ] List.call()
+- [ ] Move Set, List and Tuple evals there:
+    + [ ] Set.eval()
+    + [ ] List.eval()
+    + [ ] Tuple.eval()
 - [ ] Fix FNORD comparisions.
 *** TODO Implementations:
 - [ ] Fix EMBED, QUOTE and QQOTE on strings.
 - [ ] ? Force double evaluation in a given scope for EMBED?
-- [ ] Find solution to/report ref parameter delegate bug in FUNCTION.
+- [ ] Find solution to/report ref parameter delegate bug from
+      FUNCTION.
 - [ ] Keyword dispatch for Callables declarators.
 - [ ] Make IMPORT work with default import paths etc.
 - [ ] Fix SETOF, TUPLEOF, LISTOF.
 - [X] GET should evaluate it's args.
 - [X] Rename FUNCTION to LAMBDA/ANONYMOUS.
-- [ ] LAMBDA should accept multiple statements in a body.
+- [ ] ? LAMBDA should accept multiple statements in a body.
 *** TODO Unittests:                                               :IMPORTANT:
 - [X] Actually write those.
 - [ ] Write more of these.
 - [ ] Write even more of these.
 - [ ] Foookin' unittest, man!
 ** TODO Parser:                                                       :THINK:
+*** THINK Transition:
+- [ ] Rename to Lexer.
+- [ ] Move the parsing into the language (A recursive descent parser,
+      probably.)
+- [ ] Figure what recursive functions are actually needed.
+- [ ] Write their default implementations.
+*** THINK Or...
+- [ ] Make the parser minimalistic with no extended syntax, nor
+      code validation.
+- [ ] Rewrite Core to parse on it.
+- [ ] Write a recursive descent parser in ASM.
+*** TODO DefaultParser:
 - [X] Stop ESyntax expansion in symbols. E.g. some$ymbol.
 - [ ] Make parse() pretier!
 - [ ] Fix number parsing and PhobosBug(TM) workarrounds.
@@ -384,13 +400,13 @@ Actually list them here.
 - [X] More tokenize() unittests.
 - [ ] ? parse() unittests.
 *** THINK Metadata:
-- [ ] Add file data.
-- [ ] Add line number data.
-- [ ] ? Add expression number data.
+- [X] Add file data.
+- [X] Add line number data.
 ** TODO Interpreter:                                                  :THINK:
 - [ ] ? Move already implemented ASMKit functions to ASM.kit.
 - [ ] Fix doString() and doFile().
 - [ ] ? InterpretingError for file interepretation.
+- [ ] Fix metadata in error messages.
 *** TODO Unittests:                                               :IMPORTANT:
 - [X] Actually write those.
 - [ ] Write more of these.

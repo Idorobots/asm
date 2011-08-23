@@ -41,20 +41,20 @@ import ASM.kit;
  *********************/
 
 class SemanticError : MyException {
-    public this(string what) {
-        super(what);
+    public this(string what, uint line, string file) {
+        super(file~"("~to!string(line)~"): "~what);
     }
 }
 
 class ObjectNotAppError : SemanticError {
-    public this(string obj) {
-        super("The object '"~obj~"' is not applicable.");
+    public this(string obj, uint line, string file) {
+        super("The object '"~obj~"' is not applicable.", line, file);
     }
 }
 
 class UndefinedSymError : SemanticError {
-    public this(string sym) {
-        super("Undefined symbol '"~sym~"'.");
+    public this(string sym, uint line, string file) {
+        super("Undefined symbol '"~sym~"'.", line, file);
     }
 }
 
@@ -121,7 +121,7 @@ abstract class Expression {
      *********************/
 
     Expression[] range() {
-        throw new ObjectNotAppError(this.toString);
+        throw new ObjectNotAppError(this.toString, line, file);
     }
 
     /***********************************************************************************
@@ -129,12 +129,12 @@ abstract class Expression {
      *********************/
 
     Expression call(ref Scope s, Expression[] args) {
-        throw new ObjectNotAppError(this.toString);
+        throw new ObjectNotAppError(this.toString, line, file);
     }
 
     //TODO: T value(T)();
     real value() {
-        throw new ObjectNotAppError(this.toString);
+        throw new ObjectNotAppError(this.toString, line, file);
     }
 
     /***********************************************************************************
@@ -142,7 +142,7 @@ abstract class Expression {
      *********************/
 
     Expression factory(Expression[] vals) {
-        throw new ObjectNotAppError(this.toString);
+        throw new ObjectNotAppError(this.toString, line, file);
     }
 
     /***********************************************************************************
@@ -269,7 +269,7 @@ class Atom(T, uint atomType) : Expression {
     //TODO: string value() for symbols too.
     override real value() {
         static if(atomType & Type.Number) return this.val;
-        else throw new ObjectNotAppError(this.toString);
+        else throw new ObjectNotAppError(this.toString, line, file);
     }
 }
 
@@ -348,8 +348,8 @@ class Collection(T, uint stringType) : Expression {
 
     override Expression[] range() {
         Expression[] collection;
-        foreach(c; letters)
-            collection ~= new typeof(this)(""~c);
+        foreach(dchar c; letters)
+            collection ~= new typeof(this)(""~to!string(c));
         return collection;
     }
 
@@ -462,13 +462,13 @@ class Scope : Expression {
     Expression get(string sym) {
         if(auto s = sym in symbols)  return defines[*s];
         if(outter)                   return outter.get(sym);
-        else throw new UndefinedSymError(sym);
+        else throw new UndefinedSymError(sym, 0, ":("); //FIXME
     }
 
     Expression* getRef(string sym) {
         if(auto s = sym in symbols) return &defines[*s];
         if(outter)                  return outter.getRef(sym);
-        else throw new UndefinedSymError(sym);
+        else throw new UndefinedSymError(sym, 0, ":("); //FIXME
     }
 
     /***********************************************************************************

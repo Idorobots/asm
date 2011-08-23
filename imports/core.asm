@@ -156,7 +156,7 @@
             l)))
 
 (function assoc [key alist]
-  (if (not (fnord? alist))
+  (if (and alist (first alist))
       (if (equal? key (first (first alist)))
           (first alist)
           (assoc key (rest alist)))))
