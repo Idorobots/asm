@@ -20,4 +20,4 @@
 ((say sayWorld))       # And static variables.
 (say world)
 
-(say say)              # And even globals.
+(say say)              # And even globals. :(

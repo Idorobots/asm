@@ -51,7 +51,6 @@ class Interpreter {
     Parser parser;          //Parsing unit.
     Scope global;           //Global scope.
 
-
     this() {
         this(new DefaultParser());
     }
@@ -62,64 +61,69 @@ class Interpreter {
         global = new Scope();
 
         FNORD = new Symbol(Keywords.Fnord);
-        global.define(Keywords.Fnord, FNORD);
-        global.define(Keywords.Import, new BuiltinKeyword(&IMPORT));
-        global.define(Keywords.Do, new BuiltinKeyword(&DO));
-        global.define(Keywords.If, new BuiltinKeyword(&IF));
-        global.define(Keywords.Set, new BuiltinKeyword(&SET));
-        global.define(Keywords.Get, new BuiltinKeyword(&GET));
-        global.define(Keywords.Quote, new BuiltinKeyword(&QUOTE));
-        global.define(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE));
-        global.define(Keywords.Embed, new BuiltinKeyword(&EMBED));
-        global.define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL));
-        global.define(Keywords.Mult, new PureBuiltin(&MULT));
-        global.define(Keywords.Add, new PureBuiltin(&ADD));
-        global.define(Keywords.Var, new BuiltinKeyword(&VAR));
-        global.define(Keywords.Lambda, new BuiltinKeyword(&LAMBDA));
-        global.define(Keywords.Macro, new BuiltinKeyword(&MACRO));
-        global.define(Keywords.Scope, new BuiltinKeyword(&SCOPE));
-        global.define(Keywords.Cons, new BuiltinKeyword(&CONS));
-        global.define(Keywords.Car, new BuiltinKeyword(&CAR));
-        global.define(Keywords.Cdr, new BuiltinKeyword(&CDR));
-        global.define(Keywords.Map, new PureBuiltin(&MAP));
-        global.define(Keywords.Reduce, new PureBuiltin(&REDUCE));
-        global.define(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF));
-        global.define(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF));
-        global.define("call", new BuiltinKeyword(&CALL));
-        global.define("defined?", new BuiltinKeyword(&DEFINED));
-        global.define("nth", new PureBuiltin(&NTH));
-        global.define("select", new PureBuiltin(&SELECT));
-        global.define("__setcall", global.get("select"));
-        global.define("__listcall", global.get("nth"));
-        global.define("__scopecall", global.get(Keywords.Get));
-        global.define("__listeval", global.get(Keywords.Lambda));
-        global.define("__seteval", global.get(Keywords.Do));
-        global.define("tuple", new PureBuiltin(&MAKETUPLE));
-        global.define("set", new PureBuiltin(&MAKESET));
-        global.define("list", new PureBuiltin(&MAKELIST));
-        global.define("tupleof", new PureBuiltin(&TUPLEOF));
-        global.define("setof", new PureBuiltin(&SETOF));
-        global.define("listof", new PureBuiltin(&LISTOF));
-        global.define("stringof", new PureBuiltin(&STRINGOF));
-        global.define("random", new PureBuiltin(&RANDOM));
-        global.define("range", new PureBuiltin(&RANGE));
-        global.define("write", new Builtin(&WRITE));
-        global.define("append!", new PureBuiltin(&APPEND));
-        global.define("apply", new PureBuiltin(&APPLY));
-        global.define("eval", new BuiltinKeyword(&EVAL));
-        global.define("read", new BuiltinKeyword(&READ));
-        global.define("\\space", new String(" "));
-        global.define("\\tab", new String("\t"));
-        global.define("\\newline", new String("\n"));
+        define(Keywords.Fnord, FNORD);
+        define(Keywords.Import, new BuiltinKeyword(&IMPORT, 1, INF_ARITY));
+        auto DO = new BuiltinKeyword(&DO, 1, INF_ARITY);
+        define(Keywords.Do, DO);
+        define(Keywords.If, new BuiltinKeyword(&IF, 2, 3));
+        define(Keywords.Set, new BuiltinKeyword(&SET, 2));
+        auto GET = new BuiltinKeyword(&GET, 1);
+        define(Keywords.Get, GET);
+        define(Keywords.Quote, new BuiltinKeyword(&QUOTE, 1));
+        define(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE, 1));
+        define(Keywords.Embed, new BuiltinKeyword(&EMBED, 1));
+        define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL, 1, INF_ARITY));
+        define(Keywords.Mult, new PureBuiltin(&MULT, 1, INF_ARITY));
+        define(Keywords.Add, new PureBuiltin(&ADD, 1, INF_ARITY));
+        define(Keywords.Var, new BuiltinKeyword(&VAR, 1, 2));
+        auto LAMBDA = new BuiltinKeyword(&LAMBDA, 2);
+        define(Keywords.Lambda, LAMBDA);
+        define(Keywords.Macro, new BuiltinKeyword(&MACRO, 3));
+        define(Keywords.Scope, new BuiltinKeyword(&SCOPE, 1, INF_ARITY));
+        define(Keywords.Cons, new BuiltinKeyword(&CONS, 2));
+        define(Keywords.Car, new BuiltinKeyword(&CAR, 1));
+        define(Keywords.Cdr, new BuiltinKeyword(&CDR, 1));
+        define(Keywords.Map, new PureBuiltin(&MAP, 2));
+        define(Keywords.Reduce, new PureBuiltin(&REDUCE, 2));
+        define(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF, 1));
+        define(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF, 1));
+        define("call", new BuiltinKeyword(&CALL, 1, INF_ARITY));
+        define("defined?", new BuiltinKeyword(&DEFINED, 1));
+        auto NTH = new PureBuiltin(&NTH, 2);
+        define("nth", NTH);
+        auto SELECT = new PureBuiltin(&SELECT, 2);
+        define("select", SELECT);
+        define("__setcall", SELECT);
+        define("__listcall", NTH);
+        define("__scopecall", GET);
+        define("__listeval", LAMBDA);
+        define("__seteval", DO);
+        define("tuple", new PureBuiltin(&MAKETUPLE, 0, INF_ARITY));
+        define("set", new PureBuiltin(&MAKESET, 0, INF_ARITY));
+        define("list", new PureBuiltin(&MAKELIST, 0, INF_ARITY));
+        define("tupleof", new PureBuiltin(&TUPLEOF, 1));
+        define("setof", new PureBuiltin(&SETOF, 1));
+        define("listof", new PureBuiltin(&LISTOF, 1));
+        define("stringof", new PureBuiltin(&STRINGOF, 1));
+        define("random", new PureBuiltin(&RANDOM, 1, INF_ARITY));
+        define("range", new PureBuiltin(&RANGE, 2, 3));
+        define("write", new Builtin(&WRITE, 1, INF_ARITY));
+        define("append!", new PureBuiltin(&APPEND, 1, INF_ARITY));
+        define("apply", new PureBuiltin(&APPLY, 2));
+        define("eval", new BuiltinKeyword(&EVAL, 1));
+        define("read", new BuiltinKeyword(&READ));
+        define("\\space", new String(" "));
+        define("\\tab", new String("\t"));
+        define("\\newline", new String("\n"));
 
         //New parser/lexer routines:
-        global.define("read-from-string", new BuiltinKeyword(&READSTRING));
-        global.define("readln", new BuiltinKeyword(&READLN));
-        global.define("lex", new BuiltinKeyword(&LEX2));
-        global.define("catch", new BuiltinKeyword(&CATCH));
-        global.define("error", new BuiltinKeyword(&ERROR));
-        global.define("syntax-error", new BuiltinKeyword(&SYNTAXERROR));
-        global.define("quit", new BuiltinKeyword(&QUIT));
+        define("read-from-string", new BuiltinKeyword(&READSTRING, 1));
+        define("readln", new BuiltinKeyword(&READLN));
+        define("lex", new BuiltinKeyword(&LEX2));
+        define("catch", new BuiltinKeyword(&CATCH, 2));
+        define("error", new BuiltinKeyword(&ERROR, 1));
+        define("syntax-error", new BuiltinKeyword(&SYNTAXERROR, 1));
+        define("quit", new BuiltinKeyword(&QUIT));
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
@@ -167,7 +171,9 @@ class Interpreter {
      * Reads and evaluates a string.
      *********************/
 
-    string doString(in string input, Scope s, string filename) {
+    string doString(in string input, Scope s = null, string filename = "__repl") {
+        if(!s) s = global;    //FIXME
+
         string output;
         auto statements = parser.parse(input, filename);
         foreach(statement; statements) {
@@ -176,29 +182,22 @@ class Interpreter {
         return output;
     }
 
-    string doString(in string input, in string filename = "__main") {  //FIXME
-        return doString(input, global, filename);
-    }
-
     /***********************************************************************************
      * Reads and evaluates a file.
-     * TODO: InterpretingError
      *********************/
 
-    string doFile(in string filename, Scope s) {    //FIXME
+    string doFile(in string filename, Scope s = null) {
+        if(!s) s = global;  //FIXME
+
         string input;
         try input = readText(filename);
         catch(FileException e) { //TODO: Change both of these to InterpretingError?
-            throw new SemanticError("Unable to read file '"~filename~"'.", 0, "__main"); //FIXME
+            throw new SemanticError("Unable to read file '"~filename~"'.", 0, "__interpreter"); //FIXME
         }
         catch(UtfException e) {
-            throw new SemanticError("Malformed file '"~filename~"'.", 0, "__main"); //FIXME
+            throw new SemanticError("Malformed file '"~filename~"'.", 0, "__interpreter"); //FIXME
         }
         return doString(input, s, filename);
-    }
-
-    string doFile(in string filename) {
-        return doFile(filename, global);
     }
 
     /***********************************************************************************
@@ -207,6 +206,10 @@ class Interpreter {
 
      void define(string name, proc_t proc) {
          global.define(name, new Builtin(proc));
+     }
+
+     void define(string name, Expression e) {
+         global.define(name, e);
      }
 
     /***********************************************************************************
@@ -224,9 +227,6 @@ class Interpreter {
      *********************/
 
     Expression CALL(ref Scope s, Expression[] args) {
-        if(!args.length)
-            throw new SemanticError("Syntax keyword 'call' requires at least one argument.", 0, ":("); //FIXME
-
         auto op = args[0].eval(s);
         return op.call(s, args[1 .. $]);
     }
@@ -236,9 +236,6 @@ class Interpreter {
      *********************/
 
     Expression NTH(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Function 'nth' requires exactly two arguments.", 0, ":("); //FIXME
-
         int index = to!int(args[1].eval(s).value);           //TODO: Idiotproof
         auto coll = args[0].eval(s).range;
         if((index >= 0) && (index < coll.length)) return coll[index];
@@ -253,9 +250,6 @@ class Interpreter {
      *********************/
 
     Expression SELECT(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Function 'select' requires exactly two arguments.", 0, ":("); //FIXME
-
         Expression predicate = args[1].eval(s);
         Expression coll = args[0].eval(s);
         Expression[] newColl;
@@ -272,8 +266,6 @@ class Interpreter {
      *********************/
 
      Expression DEFINED(ref Scope s, Expression[] args) {
-         if(!args.length)
-             throw new SemanticError("Function 'defined?' requires at least one argument.", 0, ":("); //FIXME
          Expression[] argv;
          foreach(arg; args) argv ~= arg.eval(s);
          foreach(arg; argv) if(!s.isDefined(arg.toString)) return FNORD;
@@ -290,7 +282,7 @@ class Interpreter {
             if(arg.type & Type.String) doFile(arg.toString[1 .. $-1], s);
             else if(arg.type & Type.Symbol) doFile(tr!(".", "/")(arg.toString)~".asm", s);
             else if(arg.type & Type.Scope) assert(0, "Not yet implemented.");
-            else throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
+            else throw new ObjectNotAppError(args[0]);
         }
          return FNORD;
     }
@@ -307,7 +299,7 @@ class Interpreter {
             auto reference = cast(Reference)location;
             reference.set(value);
         }
-        else throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
+        else throw new ObjectNotAppError(args[0]);
         return value;
     }
 
@@ -316,11 +308,9 @@ class Interpreter {
      *********************/
 
     Expression GET(ref Scope s, Expression[] args) {
-        if(args.length != 1)
-            throw new SemanticError("Syntax keyword '"~Keywords.Get~"' requires exactly one argument.", 0, ":("); //FIXME
         auto arg = args[0].eval(s);
-        if(arg.type & Type.Symbol) return new Reference(s.getRef(arg.toString));
-        throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
+        if(arg.type & Type.Symbol) return s.getRef(arg);
+        throw new ObjectNotAppError(args[0]);
     }
 
     /***********************************************************************************
@@ -366,10 +356,8 @@ class Interpreter {
 
     Expression EMBED(ref Scope s, Expression[] args) {
         if(!args.length) return FNORD;
-        if(args[0].type & Type.String) {                           //FIXME: $$"string" != (embed (embed "string"))
-            return new Reference(s.getRef(args[0].toString));      //FIXME: Same thing with quote
-        }
-        return args[0].eval(s);
+        if(args[0].type & Type.String) return s.getRef(args[0]);    //FIXME: $$"string" != (embed (embed "string"))
+        return args[0].eval(s);                                     //FIXME: Same thing with quote
     }
 
     /***********************************************************************************
@@ -377,8 +365,6 @@ class Interpreter {
      *********************/
 
     Expression ISEQUAL(ref Scope s, Expression[] args) {
-        if(args.length < 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.IsEqual~"' requires at least two arguments.", 0, ":("); //FIXME
         auto first = args[0].eval(s);
         foreach(arg; args[1 .. $]) {
             if(arg.eval(s).toString != first.toString) return FNORD;
@@ -392,8 +378,6 @@ class Interpreter {
      *********************/
 
     Expression MULT(ref Scope s, Expression[] args) {
-        if(!args.length)
-            throw new SemanticError("Function '"~Keywords.Mult~"' requires at least one argument.", 0, ":("); //FIXME
         auto accumulator = args[0].eval(s).value;
         foreach(arg; args[1 .. $]) accumulator *= arg.eval(s).value;
         return new Number(accumulator);
@@ -405,8 +389,6 @@ class Interpreter {
      *********************/
 
     Expression ADD(ref Scope s, Expression[] args) {
-        if(!args.length)
-            throw new SemanticError("Function '"~Keywords.Add~"' requires at least one argument.", 0, ":("); //FIXME
         auto accumulator = args[0].eval(s).value;
         foreach(arg; args[1 .. $]) accumulator += arg.eval(s).value;
         return new Number(accumulator);
@@ -417,10 +399,8 @@ class Interpreter {
      *********************/
 
     Expression VAR(ref Scope s, Expression[] args) {
-        if(!args.length || args.length > 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Var~"' requires one or two arguments.", 0, ":("); //FIXME
         if(!(args[0].type & Type.Symbol))
-            throw new ObjectNotAppError(args[0].toString, args[0].line, args[0].file);
+            throw new ObjectNotAppError(args[0]);
         auto value = args.length == 2 ? args[1].eval(s).deref : FNORD;
         s.define(args[0].toString, value);
         return value;
@@ -431,27 +411,21 @@ class Interpreter {
      *********************/
 
     Expression LAMBDA(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Syntax keyword '"~Keywords.Lambda~"' requires exactly two arguments.", 0, ":("); //FIXME
-
         Expression argList = args[0];
         Expression functionBody = args[1];
-        auto tmp = s; //FIXME: OUT
+        uint minArity = argList.range.length;
+        uint maxArity = argList.range.length;
 
+        auto tmp = s; //FIXME: OUT
         Expression foo;
         foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
             auto closureScope = new Scope(tmp);
             closureScope.define(Keywords.Self, foo);
-
-            if(callArgs.length != argList.range.length)
-                throw new SemanticError(format("Expected %s arguments instead of %s.",
-                                               argList.range.length, callArgs.length), 0, ":("); //FIXME
-
             foreach(i, arg; argList.range) {
                 closureScope.define(arg.toString, callArgs[i].eval(callScope));
             }
             return functionBody.eval(closureScope);
-        });
+        }, minArity, maxArity);
         return foo;
     }
 
@@ -460,18 +434,22 @@ class Interpreter {
      *********************/
 
     Expression MACRO(ref Scope s, Expression[] args) {
-        if(args.length != 3)
-            throw new SemanticError("Syntax keyword '"~Keywords.Macro~"' requires exactly three argements.", 0, ":("); //FIXME
-
         Expression macroName = args[0];
         Expression argList   = args[1];
         Expression macroBody = args[2];
 
-        auto foo = new Keyword(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            // if(callArgs.length != argList.range.length)
-            //     throw new SemanticError(format("Expected %s arguments instead of %s.",
-            //                                    argList.range.length, callArgs.length));
+        uint minArity = argList.range.length;
+        uint maxArity = argList.range.length;
 
+        //TODO This shall be outta here.
+        foreach(i, arg; argList.range) {
+            if(contains(arg.keywords, "tuple")) {
+                maxArity = INF_ARITY;
+                break;
+            }
+        }
+
+        auto foo = new Keyword(delegate Expression (ref Scope callScope, Expression[] callArgs) {
             auto macroScope = new Scope(callScope);
             foreach(i, arg; argList.range) {
                 if(contains(arg.keywords, "tuple")) {
@@ -481,7 +459,7 @@ class Interpreter {
                 else macroScope.define(arg.toString, callArgs[i]);
             }
             return macroBody.eval(macroScope).eval(callScope);
-        });
+        }, minArity, maxArity);
 
         s.define(macroName.toString, foo);
         return macroName;
@@ -506,8 +484,6 @@ class Interpreter {
      *********************/
 
     Expression CONS(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Function '"~Keywords.Cons~"' requires exactly two arguments.", 0, ":("); //FIXME
         auto arg0 = args[0].eval(s).deref;
         auto arg1 = args[1].eval(s).deref;
 
@@ -543,8 +519,6 @@ class Interpreter {
      *********************/
 
     Expression MAP(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-           throw new SemanticError("Function 'map' requires exactly two arguments.", 0, ":("); //FIXME
         Expression[] coll;
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
@@ -558,8 +532,6 @@ class Interpreter {
      *********************/
 
     Expression REDUCE(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Function 'reduce' requires exactly two arguments.", 0, ":("); //FIXME
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
         auto result = collection.range[0];
@@ -573,8 +545,6 @@ class Interpreter {
      *********************/
 
     Expression IF(ref Scope s, Expression[] args) {
-        if(args.length != 2 && args.length != 3)
-            throw new SemanticError("Syntax keyword '"~Keywords.If~"' requires two or three arguments.", 0, ":("); //FIXME
         if(args[0].eval(s).toString != Keywords.Fnord) //FIXME: FNORD
             return args[1].eval(s);
         else return args.length == 3 ? args[2].eval(s) : FNORD;
@@ -612,8 +582,6 @@ class Interpreter {
      *********************/
 
     Expression TYPEOF(ref Scope s, Expression[] args) {
-        if(args.length != 1)
-            throw new SemanticError("Function '"~Keywords.TypeOf~"' requires exactly one argument.", 0, ":("); //FIXME
         auto argType = args[0].eval(s).type;
         Expression[] typeTuple;
 
@@ -635,8 +603,6 @@ class Interpreter {
      *********************/
 
     Expression KEYWORDSOF(ref Scope s, Expression[] args) {
-        if(args.length != 1)
-            throw new SemanticError("Function '"~Keywords.KeywordsOf~"' requires exactly one argument.", 0, ":("); //FIXME
         auto keywords = args[0].eval(s).keywords;
         if(!keywords.length) return FNORD;
 
@@ -667,8 +633,6 @@ class Interpreter {
      *********************/
 
     Expression SETOF(ref Scope s, Expression[] args) {
-        if(args.length != 1)
-            throw new SemanticError("Function 'setof' requires exactly one argument.", 0, ":("); //FIXME
         return new Set(args[0].eval(s).range.dup);
     }
 
@@ -677,8 +641,6 @@ class Interpreter {
      *********************/
 
     Expression LISTOF(ref Scope s, Expression[] args) {
-        if(args.length != 1)
-            throw new SemanticError("Function 'listof' requires exactly one argument.", 0, ":("); //FIXME
         return new List(args[0].eval(s).range.dup);
     }
 
@@ -687,8 +649,6 @@ class Interpreter {
      *********************/
 
     Expression TUPLEOF(ref Scope s, Expression[] args) {
-        if(args.length != 1)
-            throw new SemanticError("Function 'tupleof' requires exactly one argument.", 0, ":("); //FIXME
         auto arg = args[0].eval(s);
         if(arg.toString == Keywords.Fnord) return FNORD;        //TODO FNORD, OUT
         auto range = arg.range;
@@ -701,8 +661,6 @@ class Interpreter {
      *********************/
 
     Expression STRINGOF(ref Scope s, Expression [] args) {
-        if(args.length != 1)
-            throw new SemanticError("Function 'stringof' requires exactly one argument.", 0, ":("); //FIXME
         auto arg = args[0].eval(s);
         if(arg.type & Type.Collection) return new String(arg.range);
         return new String(args[0].eval(s).toString);
@@ -713,8 +671,6 @@ class Interpreter {
      *********************/
 
     Expression RANGE(ref Scope s, Expression[] args) {
-        if(args.length != 2 && args.length != 3)
-            throw new SemanticError("Function 'range' requires two or three arguments.", 0, ":("); //FIXME
         Number[] tuple;
         auto left = args[0].eval(s).value;
         auto right = args[1].eval(s).value;
@@ -730,9 +686,6 @@ class Interpreter {
      *********************/
 
     Expression RANDOM(ref Scope s, Expression[] args) {
-        if(!args.length)
-            throw new SemanticError("Function 'random' requires at least one argument.", 0, ":("); //FIXME
-
         auto randomGenerator = MinstdRand(unpredictableSeed);
         Expression randomImpl(Expression arg) {
             auto r = arg.eval(s);
@@ -767,8 +720,6 @@ class Interpreter {
     }
 
     Expression APPLY(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Function 'apply' requires exactly two arguments.", 0, ":("); //FIXME
         auto func = args[0].eval(s);
         Expression[] callArgs;
         foreach(a; args[1].eval(s).range) callArgs ~= pass(a);
@@ -824,8 +775,6 @@ class Interpreter {
     //TODO: Numbers and strings!
 
     Expression LEX(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.", 0, ":("); //FIXME
         auto input = args[0].eval(s).toString[1 .. $-1];
         auto expressionTable = args[1].eval(s).range;
         string[] syntaxTable;
@@ -839,8 +788,6 @@ class Interpreter {
     }
 
     Expression LEX2(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("Syntax keyword 'lex' requires exactly two arguments.", 0, ":("); //FIXME
         auto input = args[0].eval(s).toString[1 .. $-1];
         auto expressionTable = args[1].eval(s).range;
         string[] syntaxTable;
@@ -885,8 +832,6 @@ class Interpreter {
     }
 
     Expression CATCH(ref Scope s, Expression[] args) {
-        if(args.length != 2)
-            throw new SemanticError("SyntaxKeyword 'catch' requires exactly two arguments", 0, ":("); //FIXME
         auto output = FNORD;
 
         try output = args[0].eval(s);
@@ -900,9 +845,8 @@ class Interpreter {
     }
 
     //TODO: ParsingError(Expression) ?
-    //TODO metadata
     Expression SYNTAXERROR(ref Scope s, Expression[] args) {
-        throw new SyntacticError(args[0].eval(s).toString[1 .. $-1], 0, "nope");
+        throw new SyntacticError(args[0].eval(s).toString[1 .. $-1], args[0].line, args[0].file);
     }
 
     Expression ERROR(ref Scope s, Expression[] args) {

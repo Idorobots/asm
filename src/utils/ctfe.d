@@ -80,7 +80,7 @@ unittest {
 }
 
 /************************************************************************************
- * Translates all elements from 'from' to coresponding ones in 'to' in 'here'.
+ * Translates all elements from `from' to coresponding ones in `to' in `here'.
  *********************/
 
 pure Array tr(alias from, alias to, Array)(Array here)
@@ -103,7 +103,7 @@ pure Array tr(alias from, alias to, Array)(Array here)
 }
 
 /************************************************************************************
- * Splits "what" array on elements in "at".
+ * Splits `what' array on elements in `at'.
  *********************/
 
 pure Array[] split(alias at, Array)(Array what)
@@ -127,9 +127,33 @@ unittest {
     assert(split!" \t\n"("\ttest \ntest lol\n") == ["test", "test", "lol"]);
 }
 
+/************************************************************************************
+ * Finds first occurence of an element from `what' array in `where'.
+ * Returns the index of the found element, or length of `where'.
+ *********************/
+
 pure uint find(alias what, Array)(Array where)
     if(is(typeof(what) == Array))
 {
     foreach(i, el; where) if(contains(what, el)) return i;
     return where.length;
+}
+unittest {
+    assert(find!"abc"("bdc") == 0);
+    assert(find!"foo"("bar") == 3);
+    assert(find!([1, 2, 3])([4, 5, 3]) == 2);
+}
+
+/************************************************************************************
+ * Returns max of `a' and `b'.
+ *********************/
+
+pure T max(T)(T a, T b) {
+    return a > b ? a : b;
+}
+unittest {
+    assert(max(1, 2) == 2);
+    assert(max(2.34, 2.33) == 2.34);
+    assert(max(-1, 1) == 1);
+    assert(max(-2, 1) == 1);
 }

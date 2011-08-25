@@ -21,7 +21,8 @@
  *********************/
 
 import std.stdio;
-import core.memory;
+
+import utils.ctfe : split;
 
 import ASM.interpreter;
 
@@ -38,7 +39,8 @@ void main(string[] args) {
         foreach(arg; args[1 .. $]) {
             try i.doFile(arg);
             catch(Exception e) {
-                writeln(e);
+                auto lines = split!"\n"(e.toString);
+                foreach(line; lines) writeln("\t", line);
             }
         }
         return;
@@ -57,9 +59,8 @@ void main(string[] args) {
             writeln("\t", i.doString(input.idup));
         }
         catch(Exception e) {
-            writeln("\t", e);
+            auto lines = split!"\n"(e.toString);
+            foreach(line; lines) writeln("\t", line);
         }
-        GC.collect();   //FIXME Fix memory management.
-        GC.minimize();
     }
 }

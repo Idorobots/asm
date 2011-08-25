@@ -42,19 +42,26 @@ import ASM.kit;
 
 class SemanticError : MyException {
     public this(string what, uint line, string file) {
-        super(file~"("~to!string(line)~"): "~what);
+        super(format("%s(%s): ", file, line, what));
     }
 }
 
 class ObjectNotAppError : SemanticError {
-    public this(string obj, uint line, string file) {
-        super("The object '"~obj~"' is not applicable.", line, file);
+    public this(Expression obj) {
+        super("The object `"~obj.toString~"' is not applicable.", obj.line, obj.file);
     }
 }
 
 class UndefinedSymError : SemanticError {
-    public this(string sym, uint line, string file) {
-        super("Undefined symbol '"~sym~"'.", line, file);
+    public this(Expression sym) {
+        super("Undefined symbol `"~sym.toString~"'.", sym.line, sym.file);
+    }
+}
+
+//TODO Throw this away?
+class CalledHereError : MyException {
+    public this(MyException e, Expression ex) {
+        super(e.toString~format("\n%s(%s): Issued here: %s.", ex.file, ex.line, ex));
     }
 }
 
@@ -100,9 +107,13 @@ abstract class Expression {
      * Meta- and semantic data:
      *********************/
 
-    string file;
-    uint line;
+    private string fileName;
+    private uint lineNumber;
     private string[] keys;
+
+    ~this() {
+        this.keys = null;
+    }
 
     /***********************************************************************************
      * Returns the evaluated S-expression. Defaults to self.
@@ -121,7 +132,7 @@ abstract class Expression {
      *********************/
 
     Expression[] range() {
-        throw new ObjectNotAppError(this.toString, line, file);
+        throw new ObjectNotAppError(this);
     }
 
     /***********************************************************************************
@@ -129,12 +140,12 @@ abstract class Expression {
      *********************/
 
     Expression call(ref Scope s, Expression[] args) {
-        throw new ObjectNotAppError(this.toString, line, file);
+        throw new ObjectNotAppError(this);
     }
 
     //TODO: T value(T)();
     real value() {
-        throw new ObjectNotAppError(this.toString, line, file);
+        throw new ObjectNotAppError(this);
     }
 
     /***********************************************************************************
@@ -142,7 +153,7 @@ abstract class Expression {
      *********************/
 
     Expression factory(Expression[] vals) {
-        throw new ObjectNotAppError(this.toString, line, file);
+        throw new ObjectNotAppError(this);
     }
 
     /***********************************************************************************
@@ -154,15 +165,34 @@ abstract class Expression {
     }
 
     /***********************************************************************************
-     * Returns keywords of this expression.
+     * Metadata:
      *********************/
 
-    @property string[] keywords() {
-        return keys;
-    }
+    @property {
+        string[] keywords() {
+            return keys;
+        }
 
-    @property void keywords(string key) {
-        keys ~= key;
+        //FIXME: Ugly as fuck.
+        string[] keywords(string key) {
+            return keys ~= key;
+        }
+
+        string file() {
+            return fileName;
+        }
+
+        string file(string name) {
+            return fileName = name;
+        }
+
+        uint line() {
+            return lineNumber;
+        }
+
+        uint line(int number) {
+            return lineNumber = number;
+        }
     }
 }
 
@@ -174,10 +204,14 @@ class Reference : Expression {
     Expression* referee;
 
     this(Expression* expr, uint line = 0, string file = "fnord") {
-        this.line = line;
-        this.file = file;
         if(expr.type & Type.Settable) referee = (cast(Reference)*expr).referee;
         else referee = expr;
+        this.line = line;
+        this.file = file;
+    }
+
+    ~this() {
+        this.referee = null;
     }
 
     /***********************************************************************************
@@ -225,12 +259,30 @@ class Reference : Expression {
         return *referee;
     }
 
-    override string[] keywords() {
-        return referee.keywords;
-    }
+    @property {
+        override string[] keywords() {
+            return referee.keywords;
+        }
 
-    override void keywords(string key) {
-        referee.keywords(key);
+        override string[] keywords(string key) {
+            return referee.keywords = key;
+        }
+
+        override string file() {
+            return referee.file;
+        }
+
+        override string file(string name) {
+            return referee.file = name;
+        }
+
+        override uint line() {
+            return referee.line;
+        }
+
+        override uint line(int number) {
+            return referee.line = number;
+        }
     }
 }
 
@@ -254,7 +306,12 @@ class Atom(T, uint atomType) : Expression {
      *********************/
 
     override Expression eval(ref Scope s, uint depth = 0) {
-         static if(atomType & Type.Symbol) return new Reference(s.getRef(val));
+         static if(atomType & Type.Symbol) {
+             auto r = s.getRef(this);
+             r.line = line;     //FIXME: Ugly and sooo many levels of wrong I actually did it.
+             r.file = file;
+             return r;
+         }
          else return this;
     }
 
@@ -269,7 +326,7 @@ class Atom(T, uint atomType) : Expression {
     //TODO: string value() for symbols too.
     override real value() {
         static if(atomType & Type.Number) return this.val;
-        else throw new ObjectNotAppError(this.toString, line, file);
+        else throw new ObjectNotAppError(this);
     }
 }
 
@@ -294,17 +351,30 @@ class Collection(uint collectionType,
         this.coll = coll;
     }
 
+    ~this() {
+        this.coll = null;
+    }
+
     override Expression[] range() {
         return coll;
     }
 
     override Expression call(ref Scope s, Expression[] args) {
-        return s.get(callKeyword).call(s, [pass(this)]~args);
+        return s.get(new Symbol(callKeyword)).call(s, [pass(this)]~args); //FIXME: Loose the 'new Symbol'
     }
 
     override Expression eval(ref Scope s, uint depth = 0) {
-        static if(collectionType & Type.Tuple) return s.get("call").call(s, coll);              //FIXME: Make in unredefineable.
-        else return s.get(evalKeyword).call(s, coll);
+        static if(collectionType & Type.Tuple) {
+            try {
+                if(!coll.length) return this;
+                auto op = coll[0].eval(s);
+                return op.call(s, coll[1 .. $]);
+            }
+            catch(SemanticError e) {
+                throw new CalledHereError(e, this);
+            }
+        }
+        else return s.get(new Symbol(evalKeyword)).call(s, coll); //FIXME: Loose the 'new Symbol'
     }
 
     override Expression factory(Expression[] vals) {
@@ -339,6 +409,10 @@ class Collection(T, uint stringType) : Expression {
         this.letters = letters;
     }
 
+    ~this() {
+        this.letters = null;
+    }
+
     this(Expression[] collection) {
         foreach(el; collection) {
             if(el.type & Type.String) letters ~= el.toString[1 .. $-1]; //TODO: Generic!
@@ -369,7 +443,7 @@ class Collection(T, uint stringType) : Expression {
 alias Collection!(string, Type.Immutable|Type.Symbol|Type.String)       String;         ///WYSIWYG symbol.
 alias Collection!(Type.Tuple|Type.Immutable,
                   Syntax.LTuple, Syntax.RTuple,
-                  "__tupleeval")                                        Tuple;          ///Immutable tuple. //TODO: Clean this up!
+                  "NOPE")                                               Tuple;          ///Immutable tuple. //TODO: Clean this up!
 alias Collection!(Type.Callable|Type.List,
                   Syntax.LList, Syntax.RList,
                   "__listeval", "__listcall")                           List;           ///Mutable list.
@@ -383,21 +457,50 @@ alias Collection!(Type.Callable|Type.Set,
 
 alias Expression delegate(ref Scope s, Expression[] args) proc_t;   //TODO += depth
 
+enum INF_ARITY = uint.max;
+
 /***********************************************************************************
  * Callable object primitive.
  *********************/
 
 class Callable(uint procType) : Expression {
+    uint minArity, maxArity;
+    string argMismatchString;
     proc_t procedure;
 
-    this(proc_t procedure, uint line = 0, string file = "fnord") {
+    this(proc_t procedure, uint minArity = 0, uint maxArity = 0, uint line = 0, string file = "fnord") {
+        this.procedure = procedure;
+        this.minArity = minArity;
+        this.maxArity = max(minArity, maxArity);
+
+        if(this.maxArity == INF_ARITY) {
+            argMismatchString = format("Expected at least %s argument%s instead of %%s.",
+                                       minArity, minArity > 1 ? "s" : "");
+        }
+        else if(this.maxArity != this.minArity) {
+            argMismatchString = format("Expected %s to %s argument%s instead of %%s.",
+                                       minArity, maxArity, maxArity > 1 ? "s" : "");
+        }
+        else argMismatchString = format("Expected exactly %s argument%s instead of %%s.",
+                                        minArity, minArity > 1 ? "s" : "");
+
         this.line = line;
         this.file = file;
-        this.procedure = procedure;
+    }
+
+    ~this() {
+        this.procedure = null;
     }
 
     override Expression call(ref Scope s, Expression[] args) {
-        return procedure(s, args);
+        if(args.length < minArity || args.length > maxArity)
+            throw new SemanticError(format(argMismatchString, args.length), line, file);
+        //TODO: Preconditions.
+        auto result = procedure(s, args);
+        //TODO: Postconditions.
+        result.line = line;
+        result.file = file;
+        return result;
     }
 
     override uint type() {
@@ -405,7 +508,7 @@ class Callable(uint procType) : Expression {
     }
 
     override string toString() {
-        //Make this actually useful.
+        //TODO: Make this actually useful.
         string getName() {
             string output;
             if(procType & Type.Builtin)  output ~= "compiled ";
@@ -441,13 +544,20 @@ class Scope : Expression {
         this.outter = outter;
     }
 
+    ~this() {
+        defines = null;
+        symbols = null;
+    }
+
     /***********************************************************************************
      * Defines sym in a particular namespace.
      * Eg. use: scope.definePure(somePure);
      *********************/
 
     void define(string sym, Expression expression) {
-        if(auto s = sym in symbols) defines[*s] = expression;   //FIXME: throw ShadowingDeclarationError?
+        if(auto s = sym in symbols) {
+            defines[*s] = expression;   //FIXME: throw ShadowingDeclarationError?
+        }
         else {
             symbols[sym] = defines.length;
             defines ~= expression;
@@ -459,16 +569,24 @@ class Scope : Expression {
      * if a symbol isn't found in this or parents scope.
      *********************/
 
-    Expression get(string sym) {
+    Expression get(Expression symbol) {
+        if(!(symbol.type & Type.Symbol))
+            throw new ObjectNotAppError(symbol);
+
+        auto sym = symbol.toString;
         if(auto s = sym in symbols)  return defines[*s];
-        if(outter)                   return outter.get(sym);
-        else throw new UndefinedSymError(sym, 0, ":("); //FIXME
+        if(outter)                   return outter.get(symbol);
+        else throw new UndefinedSymError(symbol);
     }
 
-    Expression* getRef(string sym) {
-        if(auto s = sym in symbols) return &defines[*s];
-        if(outter)                  return outter.getRef(sym);
-        else throw new UndefinedSymError(sym, 0, ":("); //FIXME
+    Reference getRef(Expression symbol) {
+        if(!(symbol.type & Type.Symbol))
+            throw new ObjectNotAppError(symbol);
+
+        auto sym = symbol.toString;
+        if(auto s = sym in symbols) return new Reference(&defines[*s], line, file);
+        if(outter)                  return outter.getRef(symbol);
+        else throw new UndefinedSymError(symbol);
     }
 
     /***********************************************************************************
@@ -484,7 +602,7 @@ class Scope : Expression {
      *********************/
 
     override Expression call(ref Scope s, Expression[] args) {
-        return s.get("__scopecall").call(this, args);  //TODO: Add a keyword?
+        return s.get(new Symbol("__scopecall")).call(this, args);  //FIXME: Loose the 'new Symbol( * )'
     }
 
     override Expression[] range() {

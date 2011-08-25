@@ -46,7 +46,7 @@
       `(var $name
             (scope $(append! '(do fnord) (tupleof statics))
                    (function new []
-                     (scope $(join! '(do fnord) (tupleof locals))))))))
+                     (scope $(append! '(do fnord) (tupleof locals))))))))
 
 # Binds variables allowing for lazy evaluation:
 (macro bind [sym obj]

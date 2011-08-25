@@ -54,7 +54,7 @@ class SyntacticError : MyException {
 
 class MismatchError : SyntacticError {
     public this(string token, uint line, string file) {
-        super("Mismatched '"~token~"'.", line, file);
+        super("Mismatched `"~token~"'.", line, file);
     }
 }
 
@@ -436,7 +436,8 @@ class DefaultParser : Parser {
 
             switch(delimiter) {
                 case Syntax.RTuple:
-                    if(collection.length) return new Tuple(collection, lineNumber, fileName);
+                    if(collection.length)       //TODO fnord = ()
+                        return new Tuple(collection, lineNumber, fileName);
                     return new Symbol(Keywords.Fnord, lineNumber, fileName);
                 case Syntax.RList:
                     return new List(collection, lineNumber, fileName);
