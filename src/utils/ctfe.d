@@ -36,20 +36,18 @@ template ETuple(E ...) {
     alias E ETuple;
 }
 
-
 /***********************************************************************************
  * Capitalizes the first letter in a string.
  *********************/
 
-string capitalize(in string input)
-body {
+auto capitalize(in string input) {
     if(!input.length) return "";
     return ""~toUpper(input[0])~input[1 .. $];
 }
 unittest {
-    assert(capitalize("bar") == "Bar");
-    assert(capitalize("") == "");
-    assert(capitalize("a") == "A");
+    static assert(capitalize("bar") == "Bar");
+    static assert(capitalize("") == "");
+    static assert(capitalize("a") == "A");
 }
 
 /************************************************************************************
@@ -67,14 +65,13 @@ auto toUpper(in char c) {
  * TODO: is for reference parameters.
  *********************/
 
-pure bool contains(R, E)(auto ref R range, auto ref E e)
-body {
+pure bool contains(R, E)(auto ref R range, auto ref E e) {
     foreach(el; range) if(el == e) return true;
     return false;
 }
 unittest {
-    assert(contains([1, 2, 3, 4], 2));
-    assert(contains([[1], [2], [3]], [2]));
+    static assert(contains([1, 2, 3, 4], 2));
+    static assert(contains([[1], [2], [3]], [2]));
     auto aa = ["foo":"bar", "bar":"boo"];
     assert(contains(aa.keys, "bar"));
 }
@@ -103,10 +100,10 @@ pure Array tr(alias from, alias to, Array)(Array here)
 }
 
 /************************************************************************************
- * Splits `what' array on elements in `at'.
+ * Splits `what' on elements in `at'.
  *********************/
 
-pure Array[] split(alias at, Array)(Array what)
+pure Array[] split(alias at = " \r\n\t\v", Array)(Array what)
     if(is(typeof(at) == Array))
 {
      Array[] tokens;
@@ -123,8 +120,31 @@ pure Array[] split(alias at, Array)(Array what)
      return tokens;
 }
 unittest {
-    assert(split!" "("test test lol") == ["test", "test", "lol"]);
-    assert(split!" \t\n"("\ttest \ntest lol\n") == ["test", "test", "lol"]);
+    static assert(split!" "("test test lol") == ["test", "test", "lol"]);
+    static assert(split!" \t\n"("\ttest \ntest lol\n") == ["test", "test", "lol"]);
+    static assert(split("\ttest \ntest lol\n") == ["test", "test", "lol"]);
+}
+
+
+/************************************************************************************
+ * Joins `what' with `_with' string.
+ *********************/
+
+pure Array join(alias _with = "", Array)(Array[] what)
+    if(is(typeof(_with) == Array))
+{
+    if(!what.length) return Array.init;
+
+    Array joined = what[0];
+    foreach(e; what[1..$]) joined ~= _with~e;
+    return joined;
+}
+unittest {
+    static assert(join!" "(cast(string[])[]) == "");
+    static assert(join!" "(["wat"]) == "wat");
+    static assert(join!"|"(["a", "b", "c"]) == "a|b|c");
+    static assert(join!""(["a", "b"]) == "ab");
+    static assert(join(["a", "b"]) == "ab");
 }
 
 /************************************************************************************
@@ -139,9 +159,9 @@ pure uint find(alias what, Array)(Array where)
     return where.length;
 }
 unittest {
-    assert(find!"abc"("bdc") == 0);
-    assert(find!"foo"("bar") == 3);
-    assert(find!([1, 2, 3])([4, 5, 3]) == 2);
+    static assert(find!"abc"("bdc") == 0);
+    static assert(find!"foo"("bar") == 3);
+    static assert(find!([1, 2, 3])([4, 5, 3]) == 2);
 }
 
 /************************************************************************************
@@ -152,8 +172,8 @@ pure T max(T)(T a, T b) {
     return a > b ? a : b;
 }
 unittest {
-    assert(max(1, 2) == 2);
-    assert(max(2.34, 2.33) == 2.34);
-    assert(max(-1, 1) == 1);
-    assert(max(-2, 1) == 1);
+    static assert(max(1, 2) == 2);
+    static assert(max(2.34, 2.33) == 2.34);
+    static assert(max(-1, 1) == 1);
+    static assert(max(-2, 1) == 1);
 }

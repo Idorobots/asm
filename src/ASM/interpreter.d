@@ -30,8 +30,6 @@ import std.stdio;
 import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
-import std.regex : match, regex;
-import std.algorithm : sort;
 
 import utils.ctfe : tr, ETuple;
 import utils.testing : TestCase;
@@ -74,7 +72,9 @@ class Interpreter {
         define(Keywords.Embed, new BuiltinKeyword(&EMBED, 1));
         define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL, 1, INF_ARITY));
         define(Keywords.Mult, new PureBuiltin(&MULT, 1, INF_ARITY));
+        define(Keywords.Div, new PureBuiltin(&DIV, 2, INF_ARITY));
         define(Keywords.Add, new PureBuiltin(&ADD, 1, INF_ARITY));
+        define(Keywords.Sub, new PureBuiltin(&SUB, 1, INF_ARITY));
         define(Keywords.Var, new BuiltinKeyword(&VAR, 1, 2));
         auto LAMBDA = new BuiltinKeyword(&LAMBDA, 2);
         define(Keywords.Lambda, LAMBDA);
@@ -108,7 +108,7 @@ class Interpreter {
         define("random", new PureBuiltin(&RANDOM, 1, INF_ARITY));
         define("range", new PureBuiltin(&RANGE, 2, 3));
         define("write", new Builtin(&WRITE, 1, INF_ARITY));
-        define("append!", new PureBuiltin(&APPEND, 1, INF_ARITY));
+        define("append!", new PureBuiltin(&APPEND, 0, INF_ARITY));
         define("apply", new PureBuiltin(&APPLY, 2));
         define("eval", new BuiltinKeyword(&EVAL, 1));
         define("read", new BuiltinKeyword(&READ));
@@ -119,7 +119,6 @@ class Interpreter {
         //New parser/lexer routines:
         define("read-from-string", new BuiltinKeyword(&READSTRING, 1));
         define("readln", new BuiltinKeyword(&READLN));
-        define("lex", new BuiltinKeyword(&LEX2));
         define("catch", new BuiltinKeyword(&CATCH, 2));
         define("error", new BuiltinKeyword(&ERROR, 1));
         define("syntax-error", new BuiltinKeyword(&SYNTAXERROR, 1));
@@ -204,8 +203,8 @@ class Interpreter {
      * Defines a new native function
      *********************/
 
-     void define(string name, proc_t proc) {
-         global.define(name, new Builtin(proc));
+     void define(string name, proc_t proc, uint minArity = 0, uint maxArity = 0) {
+         global.define(name, new Builtin(proc, minArity, maxArity));
      }
 
      void define(string name, Expression e) {
@@ -394,6 +393,31 @@ class Interpreter {
         return new Number(accumulator);
     }
 
+
+    /***********************************************************************************
+     * Substracts values.
+     * FIXME: Needs only two args.
+     *********************/
+
+    Expression SUB(ref Scope s, Expression[] args) {
+        auto accumulator = args[0].eval(s).value;
+        if(args.length < 2) return new Number(-accumulator);
+
+        foreach(arg; args[1 .. $]) accumulator -= arg.eval(s).value;
+        return new Number(accumulator);
+    }
+
+    /***********************************************************************************
+     * Divides values.
+     * FIXME: Needs only two args.
+     *********************/
+
+    Expression DIV(ref Scope s, Expression[] args) {
+        auto accumulator = args[0].eval(s).value;
+        foreach(arg; args[1 .. $]) accumulator /= arg.eval(s).value;
+        return new Number(accumulator);
+    }
+
     /***********************************************************************************
      * Binds symbols to other objects.
      *********************/
@@ -426,6 +450,7 @@ class Interpreter {
             }
             return functionBody.eval(closureScope);
         }, minArity, maxArity);
+
         return foo;
     }
 
@@ -781,50 +806,6 @@ class Interpreter {
         foreach(e; expressionTable) syntaxTable ~= e.toString[1 .. $-1];
 
         auto tokens = ASM.lexer.lex(input, syntaxTable);
-        Expression[] list;
-
-        foreach(token; tokens) list ~= new Symbol(token);
-        return new List(list);
-    }
-
-    Expression LEX2(ref Scope s, Expression[] args) {
-        auto input = args[0].eval(s).toString[1 .. $-1];
-        auto expressionTable = args[1].eval(s).range;
-        string[] syntaxTable;
-        foreach(e; expressionTable) syntaxTable ~= e.toString[1 .. $-1];
-
-
-        bool lenCompare(string a, string b) {
-            return a.length == b.length ? a > b : a.length > b.length;
-        }
-
-
-        Array[] tokenize(Array)(Array input, Array[] syntax) {
-            if(!input.length) return [];
-            if(!syntax.length) return [input];
-
-            foreach(i, token; syntax) {
-                auto m = match(input, regex(token));
-                if(!m.empty)
-                    return tokenize(m.pre, syntax[i .. $])~
-                           (""~'"'~token~'"')~
-                           tokenize(m.post, syntax[i .. $]);
-            }
-            return [input];
-        }
-
-        string[] lex(string input, string[] syntax) {
-            sort!lenCompare(syntax);
-
-            string[] tokens;
-            foreach(part; split!" \t\n\0"(input)) {
-                tokens ~= tokenize(part, syntax);
-            }
-
-            return tokens;
-        }
-
-        auto tokens = lex(input, syntaxTable);
         Expression[] list;
 
         foreach(token; tokens) list ~= new Symbol(token);

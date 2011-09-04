@@ -1,0 +1,154 @@
+################################################################################
+# ASM Language Specyfication TODO
+#
+# ? - think/rethink/reimplement
+# ! - important
+#
+#+SEQ_TODO:TODO TEST TWEAK DONE
+#
+# TODO - planing and prototyping.
+# TEST - testing phase, decides if the feature stays or goes. Also, implementation.
+# TWEAK - tweaking, fixing stuff to work with the newer features.
+# DONE - the feature is stable and will probably stay forever in the language.
+####################
+
+* TODO THINGS CONCERNING THIS FILE:
+- Move implementation specific stuff back to Interpreter TODO.
+- Add all the needed lang spec stuff.
+
+################################################################################
+
+* TODO Lexical:
+** TEST Comments:
+- [X] Line comments starting with "##" or "# ". E.g. # line comment\n
+- [X] Expression comments - analyzed syntacticly, used for debugging and
+      documenting purposes. E.g. #(sexp comment), #sexp_comment
+** TODO String literals:
+- ?
+** TODO Number literals:
+- ?
+** TODO Symbols:
+- ?
+
+################################################################################
+
+* TODO Semantic metadata:
+** TODO Keywords:
+- [X] Dot prefixed.
+- [X] Stick to other objects.
+- [ ] ? Propagate through the AST.
+
+################################################################################
+
+* TODO Language quirks:
+** TODO Booleans:
+- [X] Only one logical false, anything else is considered true -
+      () = fnord = '() = 'fnord
+- ? 0-Tuple as the only false/unit type? Proper booleans perhaps?
+** TEST Quoting & embedding:
+- [X] Quote - returns the argument untouched. Extended syntax - '.
+- [X] Quasiquote - returns the argument with embedded
+      expressions. Extended syntax - `.
+- [X] Embed - embeds an expression in quasiquote and strings,
+      evaluates strings, binds variables in pattern matching.
+      Extended syntax - $.
+** THINK Pattern matching:
+- [ ] (matches? pattern arg)
+- [ ] Binds embedded/backtracked symbols from pattern to the actual objects,
+      returns a Scope with the symbols defined in it.
+** THINK Backtracking:
+- [ ] Triggered by backtrack expression. Extended syntax - ?.
+** THINK Error handling:
+- [ ] UnitType
+- [ ] ? error/catch functions.
+
+################################################################################
+
+* TODO Atomic types:
+** TEST Numbers:
+- [X] Evaluate to themselves.
+** TEST Symbols:                                                      :THINK:
+- [X] Evaluate to their bound expression.
+- [ ] ? Pass their keywords to their bound expression.
+
+################################################################################
+
+* TODO Collection types:
+** TODO Strings:                                                      :THINK:
+- [X] Immutable
+- [X] Symbol:
+    + [X] Evaluate to themselves unless forced to eval by embed
+          expression.
+    + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
+- [-] Collection:
+    + [ ] ? Consist of one letter symbols - characters.
+    + [ ] ? Consist of numerical representations of the characters.
+    + [X] ? Consist of one letter strings.
+- [ ] ? Special regex literal - /some regex/:
+    + [ ] Creates a special, callable regex string with common regex
+          operations defined. E.g. split, join, replace etc.
+    + [ ] ? Sed-like regexes. E.g. s/from/to/g
+- [ ] ! Recognise escape sequences. E.g. "\n" etc
+- [ ] ! String expansion "$(* 2 2) != 2" -> "4 != 2"
+** TODO Tuples:
+- [X] Immutable
+- [X] Call the first Callable object in them with the rest of the
+      tuple as the call arguments upon their evaluation. (by default)
+- ? 0-Tuple is the unit type.
+** TEST List:
+- [X] Evaluate to an anonymous function built from the list. (by
+      default)
+- [X] Evaluate to "__listeval" function with the elements passed as
+      the arguments.
+- [X] Callable with an index, return a reference to that element. (by
+      default)
+- [X] Call "__listcall" function when called passing call arguments
+      and themselves as its arguments.
+** TEST Sets:
+- [X] Evaluate all the expressions they contain in the source file
+      order, returning the last one. (by default)
+- [X] Evaluate to "__seteval" function with the elements passed as
+      the arguments.
+- [X] Callable with multiple predicates, returns subset satisfying
+      the predicates. (by default)
+- [X] Call "__setcall" function when called passing call arguments
+      and themselves as its arguments.
+** TODO HashTables:
+- ?
+** TODO Scopes:
+- [X] First-class objects.
+- [X] Allow binding symbols to other objects.
+- [ ] ! Allow imorting symbols from their scope to other scopes.
+
+################################################################################
+
+* TODO Callable types:
+** TODO Functions:                                                    :THINK:
+- [X] First-class objects.
+- [ ] Pure functions:
+    + [ ] Can call only other pure functions.
+    + [ ] ? Receive pure+syntax subset of a Scope.
+    + [ ] Parallel higher order functions (like map, reduce etc) for
+          pure functions.
+- [X] Anonymous by default.
+- [X] Closures.
+- [ ] ? Use "__argDispatcher" function for argument dispatching.
+- [ ] Arglist keywords:
+    + [ ] ! .in - passed by value.
+    + [ ] ! .out - passed by reference, but reset it to fnord.
+    + [ ] ! .lazy - toggles lazy evaluation.
+    + [ ] ! .optional - makes an argument optional.
+    + [ ] !? ... - stores any additional call parameters in a
+          collection.
+** TODO Macros:                                                       :THINK:
+- [X] First class objects.
+- [X] Evaluated before regular evaluation.
+- [X] Create new syntax keywords.
+- [X] Named by default.
+- [ ] ? Use "__argDispatcher" function for argument dispatching.
+- [ ] ? Arglist keywords:
+    + [ ] ! .optional - makes an argument optional.
+    + [ ] !? ... - stores any additional call parameters in a
+          collection.
+
+################################################################################

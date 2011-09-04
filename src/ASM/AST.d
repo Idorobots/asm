@@ -475,14 +475,14 @@ class Callable(uint procType) : Expression {
 
         if(this.maxArity == INF_ARITY) {
             argMismatchString = format("Expected at least %s argument%s instead of %%s.",
-                                       minArity, minArity > 1 ? "s" : "");
+                                       minArity, minArity != 1 ? "s" : "");
         }
         else if(this.maxArity != this.minArity) {
             argMismatchString = format("Expected %s to %s argument%s instead of %%s.",
                                        minArity, maxArity, maxArity > 1 ? "s" : "");
         }
         else argMismatchString = format("Expected exactly %s argument%s instead of %%s.",
-                                        minArity, minArity > 1 ? "s" : "");
+                                        minArity, minArity != 1 ? "s" : "");
 
         this.line = line;
         this.file = file;

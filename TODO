@@ -1,3 +1,4 @@
+################################################################################
 # ASM & ASM interpreter TODO file. Use Emacs org-mode to browse!
 #
 # ? - think/rethink/reimplement
@@ -8,206 +9,34 @@
 # THINK - planning and prototyping phase.
 # TODO - proper implementation phase, starting with unittest writing.
 # TEST - testing phase, mainly for hindenbug tracking etc.
-# FIXME - bugfixing.
+# FIXME - bugfixing, unbreaking, etc.
 # DONE - sweet, sweet nothing.
+####################
 
-* TODO THINGS CONCERNING THIS FILE [SIC]:
-- ! Restructure "THINNGS TO IMPLEMENT IN THE LANGUAGE" to map neatly to
-  the modules needed in the language.
-- List ASMKit functions here.
-* TODO THINGS TO IMPLEMENT IN THE LANGUAGE:
-** TEST Lexical:
-*** TEST Comments:
-- [X] Line comments starting with "##" or "# ". E.g. # line comment\n
-- [X] Expression comments - analyzed syntacticly, used for debugging and
-      documenting purposes. E.g. #(sexp comment), #sexp_comment
-*** TODO Keywords:                                                    :THINK:
-- [X] Dot prefixed.
-- [X] Stick to other objects.
-- [ ] ? Propagate through the AST.
-** TODO Language quirks:
-*** TEST Booleans:
-- [X] Only one logical false, anything else is considered true -
-      () = fnord = '() = 'fnord
-*** TEST Quoting & embedding:
-- [X] Quote - returns the argument untouched. Extended syntax - '.
-- [X] Quasiquote - returns the argument with embedded
-      expressions. Extended syntax - `.
-- [X] Embed - embeds an expression in quasiquote and strings,
-      evaluates strings, binds variables in pattern matching.
-      Extended syntax - $.
-*** THINK Pattern matching:
-- [ ] (matches? pattern arg)
-- [ ] Binds embedded/backtracked symbols from pattern to the actual objects,
-      returns a Scope with the symbols defined in it.
-*** THINK Backtracking:
-- [ ] Triggered by backtrack expression. Extended syntax - ?.
-*** THINK Error handling:
-- [ ] ? error/catch functions.
-** TODO Atomic types:
-*** TEST Numbers:
-- [X] Evaluate to themselves.
-*** TEST Symbols:                                                     :THINK:
-- [X] Evaluate to their bound expression.
-- [ ] ? Pass their keywords to their bound expression.
-** TODO Collection types:
-*** TODO Strings:                                                     :THINK:
-- [X] Immutable
-- [X] Symbol:
-    + [X] Evaluate to themselves unless forced to eval by embed
-          expression.
-    + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
-- [-] Collection:
-    + [ ] ? Consist of one letter symbols - characters.
-    + [ ] ? Consist of numerical representations of the characters.
-    + [X] ? Consist of one letter strings.
-- [ ] ? Special regex literal - /some regex/:
-    + [ ] Creates a special, callable regex string with common regex
-          operations defined. E.g. split, join, replace etc.
-    + [ ] ? Sed-like regexes. E.g. s/from/to/g
-- [ ] ! Recognise escape sequences. E.g. "\n" etc
-- [ ] ! String expansion "$(* 2 2) != 2" -> "4 != 2"
-*** TEST Tuples:
-- [X] Immutable
-- [X] Call the first Callable object in them with the rest of the
-      tuple as the call arguments upon their evaluation. (by default)
-*** TEST List:
-- [X] Evaluate to an anonymous function built from the list. (by
-      default)
-- [X] Evaluate to "__listeval" function with the elements passed as
-      the arguments.
-- [X] Callable with an index, return a reference to that element. (by
-      default)
-- [X] Call "__listcall" function when called passing call arguments
-      and themselves as its arguments.
-*** TEST Sets:
-- [X] Evaluate all the expressions they contain in the source file
-      order, returning the last one. (by default)
-- [X] Evaluate to "__seteval" function with the elements passed as
-      the arguments.
-- [X] Callable with multiple predicates, returns subset satisfying
-      the predicates. (by default)
-- [X] Call "__setcall" function when called passing call arguments
-      and themselves as its arguments.
-** TODO Callable types:
-*** TODO Functions:                                                   :THINK:
-- [X] First-class objects.
-- [ ] Pure functions:
-    + [ ] Can call only other pure functions.
-    + [ ] ? Receive pure+syntax subset of a Scope.
-    + [ ] Parallel higher order functions (like map, reduce etc) for
-          pure functions.
-- [X] Anonymous by default.
-- [X] Closures.
-- [ ] ? Use "__argDispatcher" function for argument dispatching.
-- [ ] Arglist keywords:
-    + [ ] ! .in - passed by value.
-    + [ ] ! .out - passed by reference, but reset it to fnord.
-    + [ ] ! .lazy - toggles lazy evaluation.
-    + [ ] ! .optional - makes an argument optional.
-    + [ ] !? ... - stores any additional call parameters in a
-          collection.
-*** TODO Macros:                                                      :THINK:
-- [X] First class objects.
-- [X] Evaluated before regular evaluation.
-- [X] Create new syntax keywords.
-- [X] Named by default.
-- [ ] ? Use "__argDispatcher" function for argument dispatching.
-- [ ] ? Arglist keywords:
-    + [ ] ! .optional - makes an argument optional.
-    + [ ] !? ... - stores any additional call parameters in a
-          collection.
-*** TODO Scopes:
-- [X] First-class objects.
-- [X] Allow binding symbols to other objects.
-- [ ] ! Allow imorting symbols from their scope to other scopes.
-* THINK THINGS TO IMPLEMENT IN THE LIBRARY:
-** TODO ASMKit
-- [ ] ! Contains a minimal set of builtin, precompiled functions needed
-      to implement the language.
-- [ ] ! Uses parallel evaluation where possible.
-*** TODO Functions:
-Actually list them here.
-** THINK Modules:
-- [ ] ! Collections - collection manipulation rutines.
-- [ ] ! Core - containing builtins and a few usefull functions.
-- [ ] ! GC - garbage collectior specific functions.
-- [ ] ! IO - containing I/O routines.
-- [ ] ! Math - containing math routines (probably compilled into the
-      interpreter).
-- [ ] ? Parser - containing parser rutines for redefining the syntax
-      etc.
-** TODO Type predicates:
-- [ ] ? Accept multiple args.
-- [X] Evaluate to fnord on false, to one of their args otherwise.
-*** TODO Functions:
-- [X] type? - NOT A PREDICATE, returns type tuple of a _single_
-      object.
-- [X] fnord? - 'yup if an expression is fnord.
-- [X] symbol? - symbol if an expression is a symbol.
-- [X] number? - number if an expression is a number.
-- [X] string? - string if an expression is a string.
-- [X] scope? - scope if an expression is a scope.
-- [X] function? - function if an expression is a function.
-- [X] pure? - pure if an expression is a pure function.
-- [X] syntax? - syntax if an expression is a syntax keyword.
-- [X] scope? - scope if an expression is repetition, sigh.
-- [X] builtin? - builtin if an expression is a builtin.
-- [X] immutable? - immutable if an expression is immutable.
-- [ ] mutable? - mutable if an expression is not immutable.
-** TODO Type conversions:
-- [ ] ! Convert in place if passed a settable reference, or create a copy.
-- [ ] ? Return fnord on error.
-*** TODO Functions:
-- [ ] ? string->number - numerical value of a string.
-- [ ] ? string->symbol - returns a symbol version of a string.
-      (both deprecated because of the (read-from-string))
-- [-] tupleof:
-        + [X] Makes an immutable tuple version of a passed arg.
-        + [ ] ? Should work for atoms aswell.
-- [-] listof:
-        + [X] Makes a list representation of an arg.
-        + [ ] ? Should work for atoms too.
-- [-] setof:
-        + [X] Makes a set representation of an arg.
-        + [ ] ? Should work for atoms too.
-- [X] ! stringof - Makes a string representation of a passed arg.
-- ? etc
-** THINK Working with numbers:
-- [ ] ASMKit functions accept two arguments.
-- [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
-      Return (reduce ASMKitFunc args).
-- [ ] ? Do not use the common operators, so they become redefineable.
-*** TODO ASMKit:
-- [ ] * - a * b
-- [ ] + - a + b
-- [ ] - - a - b
-- [ ] / - a / b
-- [ ] mod - a modulo b
-*** TODO Generics:
-- [ ] sum - generic +
-- [ ] mult - generic *
-- [ ] sub - generic -
-- [ ] div - generic /
-- [ ] modulo - generic mod
-- ? etc
-** THINK Equality checks:
-- [ ] ASMKit versions taking only two args.
-- [ ] Generic versions returning first arg on true.
-*** THINK ASMKit:
-- [ ] eq? - polimorfic equality check.
-- [ ] leq? - a <= b
-- ? etc
-*** THINK Generics:
-- [ ] ? equal?/=/== - generic equal?
-- [ ] <= - generic leq?
-- [ ] >= - generic ((a eq? b) or (not (a leq? b)))
-- [ ] < - generic ((not (a eq? b)) and (a leq? b))
-- [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
-** TODO Working with collections:
-- [X] Working for all the collection types.
-*** TODO Functions:
-**** TODO Collection manipulation:
+* TODO ATM:
+# Things being done ATM.
+
+** TODO New parser.
+** TODO Metadata and error messages.
+** Refucktorisation:
+- [ ] ASM modulenames to lowercase.
+- [ ] Rename ASM to dasm.
+- [ ] ? ASM.interpreter -> dasm/dasm.state.
+- [ ] ASM.parser -> dasm.lexer.
+- [ ] ASM.AST -> dasm.ast.
+- [ ] ASM.kit -> dasm.kit.
+- [ ] ? ASM.lexical -> dev/null.
+** Optimise function calls and its memory usage.
+** Fix the language specs.
+
+################################################################################
+
+* THINK THINGS TO DO IN THE LIBRARY:
+# Each category will be a single module.
+
+** TODO Collections:
+- [X] Generic for all the collection types.
+*** TODO Collection manipulation:
 - [-] join - if the second argument is a collection - prepends it the
       the first argument, if it's not a collection - joins both
       arguments into a pair. Creates a new collection.
@@ -224,20 +53,94 @@ Actually list them here.
       + (append! '[1 2 3] '[4 5 6]) -> [1 2 3 4 5 6]
       + (append! '(2 3) '[2 3]) -> (2 3 [2 3])
 - [X] first - returns a reference to the first element of a mutable
-      collection, or its value for immutable collection.
+      collection, or its value for an immutable collection.
 - [X] rest - returns a new collection referencing the rest part of
       the old one.
 - [X] second, third, fourth etc.
+- [X] nth - returns nth element of a collection.
 - [X] map - maps an operation to a collection collecting results.
 - [X] reduce - maps an operation to a collection reducing it to a
       single value.
-**** TEST Collection creation:
+- [ ] ? slice - slices a collection creating subcollection.
+- [-] ? push, push-back, pop, pop-back.
+- ? etc
+*** TEST Collection creation:
 - [X] list - returns a list consisting of the call args.
 - [X] tuple - returns a tuple consisting of the call args.
 - [X] set - returns a set consisting of the call args.
-** THINK Input:
+- [X] scope - reuturns a scope with call args defined in it.
+- ? etc.
+** TODO Core:
+*** TODO Type predicates:
+- [ ] ? Accept multiple args.
+- [X] Evaluate to fnord on false, to one of their args otherwise.
+
+- [X] type? - NOT A PREDICATE, returns type tuple of a _single_
+      object.
+- [X] fnord? - 'yup if an expression is fnord.
+- [X] symbol? - symbol if an expression is a symbol.
+- [X] number? - number if an expression is a number.
+- [X] string? - string if an expression is a string.
+- [X] scope? - scope if an expression is a scope.
+- [X] function? - function if an expression is a function.
+- [X] pure? - pure if an expression is a pure function.
+- [X] syntax? - syntax if an expression is a syntax keyword.
+- [X] scope? - scope if an expression is repetition, sigh.
+- [X] builtin? - builtin if an expression is a builtin.
+- [X] immutable? - immutable if an expression is immutable.
+- [ ] mutable? - mutable if an expression is not immutable.
+*** TODO Type conversions:
+- [ ] ! Convert in place if passed a settable reference, or create a copy.
+- [ ] ? Return fnord on error.
+
+- [ ] ? string->number - numerical value of a string.
+- [ ] ? string->symbol - returns a symbol version of a string.
+      (both deprecated because of the (read-from-string))
+- [-] tupleof:
+        + [X] Makes an immutable tuple version of a passed arg.
+        + [ ] ? Should work for atoms aswell.
+- [-] listof:
+        + [X] Makes a list representation of an arg.
+        + [ ] ? Should work for atoms too.
+- [-] setof:
+        + [X] Makes a set representation of an arg.
+        + [ ] ? Should work for atoms too.
+- [X] ! stringof - Makes a string representation of a passed arg.
+- ? etc
+*** THINK Working with numbers:
+- [ ] ASMKit functions accept two arguments.
+- [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
+      Return (reduce ASMKitFunc args).
+- [ ] ? Do not use the common operators, so they become redefineable.
+**** TODO ASMKit:
+- [ ] * - a * b
+- [ ] + - a + b
+- [ ] - - a - b
+- [ ] / - a / b
+- [ ] mod - a modulo b
+**** TODO Generics:
+- [ ] sum - generic +
+- [ ] mult - generic *
+- [ ] sub - generic -
+- [ ] div - generic /
+- [ ] modulo - generic mod
+- ? etc
+*** THINK Equality checks:
+- [ ] ASMKit versions taking only two args.
+- [ ] Generic versions returning first arg on true.
+**** THINK ASMKit:
+- [ ] eq? - polimorfic equality check.
+- [ ] leq? - a <= b
+- ? etc
+**** THINK Generics:
+- [ ] ? equal?/=/== - generic equal?
+- [ ] <= - generic leq?
+- [ ] >= - generic ((a eq? b) or (not (a leq? b)))
+- [ ] < - generic ((not (a eq? b)) and (a leq? b))
+- [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
+** THINK IO:
 - [ ] ? Using one interface for files, sockets, stdin etc.
-*** THINK Functions:
+*** THINK Input:
 - [ ] readln - Unformatted (string) reads.
 - [ ] read - Formatted reads.
 - [ ] ? load/open - Loads a file for reading (as a Scope/Stream with read
@@ -245,19 +148,43 @@ Actually list them here.
 - [ ] ? close - closes an imput stream.
 - [ ] eof? - returns 'yup/the object if it has reached EOF.
 - ? etc
-** THINK Output:
-- [ ] ? Functions paired with input ones.
-*** THINK Functions:
+*** THINK Output:
 - [X] write - writes string representation of the args.
 - ? etc
-** THINK Error handling:
-- [ ] Functions returning fnord unit wherever possible.
-*** THINK Functions:
-- [ ] ? error - throws an error caugth by the REPL.
-- [ ] ? warning - adds a warning printed by the REPL.
+** THINK Error:
+# Merge with Core?
+- [ ] ? error! - throws an error caugth by the REPL.
+- [ ] ? warning! - prints a warning/throws an error if 'serious
+      bussiness' was enabled..
+- [-] ? catch - catches a thrown error. (Name `handle-error'?)
+- [ ] ? assert! - checks a condition and throws an error on failure.
 - ? etc
-* TODO THINGS TO IMPLEMENT IN THE INTERPRETER:
+** THINK GC:
+# Merge with core?
+- [ ] collect! - does a collection.
+- [ ] minimise! - minimises memory use.
+- [ ] stop! - stops GC.
+- [ ] resume! - resumes GCs work.
+** THINK Math:
+- ? Precompiled.
+- [ ] sqrt
+- [ ] pow
+- [ ] exp
+- [ ] min/max/clamp
+- ? etc
+** THINK Parser:
+# Merge with core?
+- [ ] syntax! - defines a new reader syntax macro.
+- [ ] lex - lexes an input string.
+- [ ] ? parse - parses an input string. (Name read-from-string).
+
+################################################################################
+
+* TODO THINGS TO DO IN THE INTERPRETER:
+# Lists things needing attention in the interpreter.
+
 ** TODO Lexical:
+# Move this to lang/lexical?
 *** TODO Formal grammar description:
 - [X] Finish NumberLiteral formal description / split it into several
       numerical values.
@@ -293,7 +220,9 @@ Actually list them here.
 - [ ] ? Type primitive used for semantic analyzis.
 - [ ] version(safe) toggling parts of semantic analyzis.
 - [ ] Type checking, and predictedType field in Expression.
-- [ ] Arg number and type checking in Callables.
+- [-] Arg number and type checking in Callables:
+    + [X] Arg number checking.
+    + [ ] Arg type checking.
     + [ ] AbigiousCall error when types can vary greatly. E.g. Many
           ifs returning many different expressions.
 - [ ] ? Arg evaluation list building using thunks.
@@ -303,8 +232,11 @@ Actually list them here.
     + [X] Line number.
     + [X] Filename.
     + [X] Semantic keywords.
-- [ ] ? opApply instead of range(), for convinience.
+- [ ] ? opApply instead of range(), for convinience. Maby both?
 - [ ] T value(T)() instead of real value().
+- [ ] hash_t toHash();
+- [ ] bool opEquals(Object);
+- [ ] int opCmp(Object);
 *** TODO Atom:                                                        :THINK:
 - [X] Take the string away from there, make it a proper immutable
       collection.
@@ -323,10 +255,10 @@ Actually list them here.
 - [X] Collection specialisation for String.
 - [ ] ? Collection specialisation for Tuple.
 - [ ] ? Proper implementation of the Tuple - linked list.
-- [ ] ? Proper implementation of the Set - BST.
+- [ ] ? Proper implementation of the Set - kind of a BST.
 - [ ] Rename List to Array/Vector.
 *** TODO Callable:                                                    :THINK:
-- [ ] Depth parameter for the calls.
+- [ ] ! Depth parameter for the calls.
 - [ ] ? String representation actually showing the callable.
 *** TODO Scope:                                                       :THINK:
 - [X] ? String representation actually being usefull. (A tuple of
@@ -343,6 +275,12 @@ Actually list them here.
 - [X] Scope.call() calling "__scopecall".
 - [X] Fix storing unwanted objects when rebinding symbols.
 - [ ] ? Use outside data table and store only indeces.
+*** THINK HashTable:
+- [ ] ? New syntax: < >
+- [ ] ? HashTable.call() returning val-ref / (key val-ref) or UnitType.
+    + ? Has to return settable ref at all times (for use with set!).
+- [ ] ? HashTable.eval() returning Scope.
+- [ ] ? Merge this with Scope.
 ** TODO Kit:                                                          :THINK:
 - [ ] ? Move pass() to a separate module.
 - [X] Actually write some fooking implementations.
@@ -355,18 +293,19 @@ Actually list them here.
     + [ ] Set.eval()
     + [ ] List.eval()
     + [ ] Tuple.eval()
-- [ ] Fix FNORD comparisions.
+- [ ] Fix FNORD comparisions:
+    ? 0-Tuple as the unit type and the only false?
 *** TODO Implementations:
-- [ ] Fix EMBED, QUOTE and QQOTE on strings.
+- [-] Fix EMBED, QUOTE and QQOTE on strings.
 - [ ] ? Force double evaluation in a given scope for EMBED?
 - [ ] Find solution to/report ref parameter delegate bug from
-      FUNCTION.
+      LAMBDA.
 - [ ] Keyword dispatch for Callables declarators.
 - [ ] Make IMPORT work with default import paths etc.
 - [ ] Fix SETOF, TUPLEOF, LISTOF.
 - [X] GET should evaluate it's args.
 - [X] Rename FUNCTION to LAMBDA/ANONYMOUS.
-- [ ] ? LAMBDA should accept multiple statements in a body.
+- [ ] ! LAMBDA should accept multiple statements in a body.
 *** TODO Unittests:                                               :IMPORTANT:
 - [X] Actually write those.
 - [ ] Write more of these.
@@ -377,9 +316,9 @@ Actually list them here.
 - [ ] Rename to Lexer.
 - [ ] Move the parsing into the language (A recursive descent parser,
       probably.)
-- [ ] Figure what recursive functions are actually needed.
+- [ ] Figure out what recursive functions are actually needed.
 - [ ] Write their default implementations.
-*** THINK Or...
+# Or...
 - [ ] Make the parser minimalistic with no extended syntax, nor
       code validation.
 - [ ] Rewrite Core to parse on it.
@@ -402,13 +341,109 @@ Actually list them here.
 *** THINK Metadata:
 - [X] Add file data.
 - [X] Add line number data.
+- [ ] ? Add column number data.
 ** TODO Interpreter:                                                  :THINK:
 - [ ] ? Move already implemented ASMKit functions to ASM.kit.
-- [ ] Fix doString() and doFile().
+- [-] Fix doString() and doFile().
 - [ ] ? InterpretingError for file interepretation.
-- [ ] Fix metadata in error messages.
+- [-] Fix metadata in error messages.
 *** TODO Unittests:                                               :IMPORTANT:
 - [X] Actually write those.
 - [ ] Write more of these.
 - [ ] Write even more of these.
 - [ ] Foookin' unittest, man!
+
+################################################################################
+
+* THINK RANDOM IDEAS YET TO BE CLASSIFIED:
+# Lists some ideas yet to be moved to a more apropriate place.
+** Implementation:
+*** Refactorisation:
+**** ast:
+- [ ] Type -> Types
+- [ ] += Type - containing convinience functions, such as .isInteger()
+      etc.
+- [ ] += Location containing source metadata - line+column number,
+      filename etc.
+**** lexer:
+- [ ] += Token containing pointer to a position in the input buffer
+  (location), value (regex string) and data (the actual token).
+**** dasm:
+- [ ] Interpreter -> ASM.State /ASM
+*** Loading symbols from a .so:
+- [ ] Find a way to walk arround D's unfinished stuff. *awesome happy face*
+- [ ] Find a way to precompile libraries.
+- [ ] Find a way to load precompiled files into the ASM.
+*** Collections:
+- [ ] Expression[] range() -> Range range()
+- [ ] += Range:
+      + Containing all required Range methods.
+      + opIndex()
+      + opSlice()
+      + opDollar()
+**** correct Tuple:
+- [ ] Immutable
+- [ ] Made out of ordered pairs for structure sharing.
+- [ ] (elements)
+- ? Think about the append problem.
+**** correct Set:
+- [ ] AVL/Red-Black tree/Heap.
+- [ ] Unordered.
+- [ ] Nonunique, but compares to unique: (equals? '{1 2 3 3} '{1 2 3})
+- [ ] {elements}
+**** correct Vector:
+- [ ] Dynamic array.
+- [ ] That be it yo.
+- [ ] [elements]
+**** HashTable:
+- ? #[key, value key2, value2]
+- ? #[(key value) (key2 value2)]
+- ? #[key:value key2:value2]
+**** Scope:
+- ? $(contents same as HashTable)
+- ? Same as HashTable?
+**** Array/String:
+- ? | atomic elements |
+- ? "special literal for character string"
+*** Callables:
+**** Functions:
+- [ ] Purity checks when defining a lambda.
+- [ ] Pure functions being memoized by default.
+- [ ] Both lexically and dynamicall scoped functions.
+- [ ] ? Simple literals:
+      + [ ] [args -> body] - lexically scoped closure.
+      + [ ] [args ~> body] - dynamically scoped, "fuzzy" function.
+- [ ] ? Arg dispatch:
+      + [ ] (lambda args body) -> 0-INF-ary, args store all the call args.
+      + [ ] (lambda (a . b) body) -> N-INF-ary, b stores the rest of
+            the call args.
+*** Error handling:
+- [ ] (catch e handler) -> (try e handler0 handler1 ...)
+- [ ] handler = (error-object handling-function)
+- [ ] (error error-object/string)
+*** Lazy evaluation:
+- [ ] Native Promise.
+- [ ] Native (lazy e) macro.
+- [ ] Native (force e) macro
+** Language:
+*** Strings:
+- [ ] Usable only with atomic types.
+- [ ] Packed tightly internally.
+- [ ] ? Abstract 'string collection' out of the string:
+      + |s t r \0| - character string. (And additionally "".)
+      + |0 3 1 2 3| - number string.
+*** UnitType:
+- [ ] O-Tuple as the UnitType.
+- [ ] fnord as an alias of ().
+- [ ] () == false, rest == true.
+*** Named function return values:
+- [ ] (lambda [args] [return] body)
+      -> (lambda [args] (do body (listof [return])))
+*** Flow control:
+- [ ] (cond (c1 b1)
+            (c2 b2)
+            ...)
+- [ ] ? (match (e1 p1 b1)
+               (e2 p2 b2)
+               ...)
+################################################################################

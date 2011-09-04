@@ -22,11 +22,12 @@
 
 module ASM.lexer;
 
-import  std.regex : match, regex;
+import std.stdio; //OUT
+import std.regex : match, regex;
 import std.algorithm : sort;
 
-import utils.testing;
-import utils.ctfe : split, find;
+import utils.testing : TestCase;
+import utils.ctfe : join, split, find;
 
 bool lenCompare(string a, string b) {
     return a.length == b.length ? a > b : a.length > b.length;
@@ -35,6 +36,8 @@ bool lenCompare(string a, string b) {
 string noMatch(string arg) {
     return arg;
 }
+
+alias string[] delegate (string) func;
 
 Array[] lex(Array)(Array input, func[Array] syntax) {
     if(!input.length) return [];
@@ -53,14 +56,35 @@ Array[] lex(Array)(Array input, func[Array] syntax) {
     return [noMatch(input)];
 }
 
-alias string[] delegate (string) func;
+Array[] lex2(Array)(Array input, func[Array] syntax) {
+    Array[] tokens;
+
+    auto syntaxKeys = syntax.keys;
+    auto rStr = "("~join!"|"(syntaxKeys)~")";
+    auto m = match(input, regex(rStr, "g"));
+
+    while(!m.empty) {
+        auto token = m.front.hit;
+        m.popFront;
+        // foreach(key; syntaxKeys) {
+        //     auto k = match(token, regex(key));
+        //     if(!k.empty && k.hit == token) {
+        //         tokens ~= syntax[key](token);
+        //         break;
+        //     }
+        // }
+        tokens ~= token;
+    }
+
+    return tokens;
+}
 
 unittest {
     auto t = TestCase("Lexer.lex");
     func[string] syntax;
 
     void test(int line = __LINE__)(string input, string[] expected) {
-        auto got = lex(input, syntax);
+        auto got = lex2(input, syntax);
         t.assertion!"=="(got, expected, line);
     }
 
