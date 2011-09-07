@@ -61,7 +61,7 @@ class UndefinedSymError : SemanticError {
 //TODO Throw this away?
 class CalledHereError : MyException {
     public this(MyException e, Expression ex) {
-        super(e.toString~format("\n%s(%s): Issued here: %s.", ex.file, ex.line, ex));
+        super(e.toString~format("\n%s(%s): Issued here: `%s'.", ex.file, ex.line, ex));
     }
 }
 
@@ -123,8 +123,9 @@ abstract class Expression {
         return this;
     }
 
-    uint type();                    ///Returns the type of the S-expression.
-    override string toString();     ///Returns the string representation of an S-expression.
+    uint type();                         ///Returns the type of the S-expression.
+    override string toString();          ///Returns the string representation of an S-expression.
+    override bool opEquals(Object o);    ///Equality check, du'uh.
 
     /***********************************************************************************
      * Returns the underlying collection. Only for collections.
@@ -203,7 +204,7 @@ abstract class Expression {
 class Reference : Expression {
     Expression* referee;
 
-    this(Expression* expr, uint line = 0, string file = "fnord") {
+    this(Expression* expr, uint line = __LINE__, string file = __FILE__) {
         if(expr.type & Type.Settable) referee = (cast(Reference)*expr).referee;
         else referee = expr;
         this.line = line;
@@ -234,6 +235,9 @@ class Reference : Expression {
         return referee.toString();
     }
 
+    override bool opEquals(Object o) {
+        return referee.opEquals(o);
+    }
     override Expression[] range() {
         return referee.range();
     }
@@ -295,7 +299,7 @@ class Reference : Expression {
 class Atom(T, uint atomType) : Expression {
     private T val;
 
-    this(T val, uint line = 0, string file = "fnord") {
+    this(T val, uint line = __LINE__, string file = __FILE__) {
         this.line = line;
         this.file = file;
         this.val = val;
@@ -308,8 +312,8 @@ class Atom(T, uint atomType) : Expression {
     override Expression eval(ref Scope s, uint depth = 0) {
          static if(atomType & Type.Symbol) {
              auto r = s.getRef(this);
-             r.line = line;     //FIXME: Ugly and sooo many levels of wrong I actually did it.
-             r.file = file;
+             r.line = this.line;        //FIXME: Tis' ugly!
+             r.file = this.file;
              return r;
          }
          else return this;
@@ -321,6 +325,16 @@ class Atom(T, uint atomType) : Expression {
 
     override string toString() {
         return format("%s", val);
+    }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto a = cast(typeof(this)) e.deref;
+        if(!a) return false;
+
+        return this.val == a.val;
     }
 
     //TODO: string value() for symbols too.
@@ -345,7 +359,7 @@ class Collection(uint collectionType,
 
     private Expression[] coll;
 
-    this(Expression[] coll, uint line = 0, string file = "fnord") {
+    this(Expression[] coll, uint line = __LINE__, string file = __FILE__) {
         this.line = line;
         this.file = file;
         this.coll = coll;
@@ -361,6 +375,7 @@ class Collection(uint collectionType,
 
     override Expression call(ref Scope s, Expression[] args) {
         return s.get(new Symbol(callKeyword)).call(s, [pass(this)]~args); //FIXME: Loose the 'new Symbol'
+        //FIXME: (()) kills the interpreter with an infinite self call.
     }
 
     override Expression eval(ref Scope s, uint depth = 0) {
@@ -368,7 +383,7 @@ class Collection(uint collectionType,
             try {
                 if(!coll.length) return this;
                 auto op = coll[0].eval(s);
-                return op.call(s, coll[1 .. $]);
+                return op.call(s, coll[1 .. $]); //TODO Signalize not evaluated OP
             }
             catch(SemanticError e) {
                 throw new CalledHereError(e, this);
@@ -394,6 +409,18 @@ class Collection(uint collectionType,
         }
         return output[0 .. $-1]~RParen;
     }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto c = cast(typeof(this)) e.deref;
+        if(!c || (this.coll.length != c.coll.length)) return false;
+
+        foreach(i, el; this.coll)
+            if(el != c.coll[i]) return false;
+        return true;
+    }
 }
 
 /***********************************************************************************
@@ -403,7 +430,7 @@ class Collection(uint collectionType,
 class Collection(T, uint stringType) : Expression {
     private T letters;
 
-    this(T letters, uint line = 0, string file = "fnord") {
+    this(T letters, uint line = __LINE__, string file = __FILE__) {
         this.line = line;
         this.file = file;
         this.letters = letters;
@@ -438,12 +465,21 @@ class Collection(T, uint stringType) : Expression {
     override string toString() {
         return format("\"%s\"", letters);
     }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto s = cast(typeof(this)) e.deref;
+        if(!s) return false;
+
+        return this.letters == s.letters;
+    }
 }
 
 alias Collection!(string, Type.Immutable|Type.Symbol|Type.String)       String;         ///WYSIWYG symbol.
 alias Collection!(Type.Tuple|Type.Immutable,
-                  Syntax.LTuple, Syntax.RTuple,
-                  "NOPE")                                               Tuple;          ///Immutable tuple. //TODO: Clean this up!
+                  Syntax.LTuple, Syntax.RTuple)                         Tuple;          ///Immutable tuple. //TODO: Clean this up!
 alias Collection!(Type.Callable|Type.List,
                   Syntax.LList, Syntax.RList,
                   "__listeval", "__listcall")                           List;           ///Mutable list.
@@ -468,7 +504,7 @@ class Callable(uint procType) : Expression {
     string argMismatchString;
     proc_t procedure;
 
-    this(proc_t procedure, uint minArity = 0, uint maxArity = 0, uint line = 0, string file = "fnord") {
+    this(proc_t procedure, uint minArity = 0, uint maxArity = 0, uint line = __LINE__, string file = __FILE__) {
         this.procedure = procedure;
         this.minArity = minArity;
         this.maxArity = max(minArity, maxArity);
@@ -520,6 +556,16 @@ class Callable(uint procType) : Expression {
         enum stringof = getName();
         return format(""~Syntax.StringDelim~stringof~"at 0x%d."~Syntax.StringDelim, cast(void*) this);
     }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto c = cast(typeof(this)) e.deref;
+        if(!c) return false;
+
+        return this.procedure == c.procedure;
+    }
 }
 
 alias Callable!(Type.Function)                          Function;       ///Function.
@@ -538,7 +584,7 @@ class Scope : Expression {
     uint[string] symbols;       ///Other symbols.
     Scope outter;               ///Outter scope.
 
-    this(Scope outter = null, uint line = 0, string file = "fnord") {
+    this(Scope outter = null, uint line = __LINE__, string file = __FILE__) {
         this.line = line;
         this.file = file;
         this.outter = outter;
@@ -617,5 +663,19 @@ class Scope : Expression {
 
     override uint type() {
         return Type.Collection|Type.Scope|Type.Callable;
+    }
+
+    //TODO: Think this through.
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto s = cast(typeof(this)) e.deref;
+        if(!s) return false;
+
+        if(this.outter != s.outter) return false;
+        if(this.defines.length != s.defines.length) return false;
+        if(this.symbols.keys.sort != s.symbols.keys.sort) return false;
+        return true;
     }
 }

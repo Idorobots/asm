@@ -16,7 +16,7 @@
 * TODO ATM:
 # Things being done ATM.
 
-** TODO New parser.
+** TODO Fix fnord comparisions.
 ** TODO Metadata and error messages.
 ** Refucktorisation:
 - [ ] ASM modulenames to lowercase.
@@ -28,6 +28,7 @@
 - [ ] ? ASM.lexical -> dev/null.
 ** Optimise function calls and its memory usage.
 ** Fix the language specs.
+** THINK New parser.
 
 ################################################################################
 
@@ -355,58 +356,57 @@
 
 ################################################################################
 
-* THINK RANDOM IDEAS YET TO BE CLASSIFIED:
+* THINK RANDOM IDEAS:
 # Lists some ideas yet to be moved to a more apropriate place.
-** Implementation:
-*** Refactorisation:
-**** ast:
+** Refactorisation:
+*** ast:
 - [ ] Type -> Types
 - [ ] += Type - containing convinience functions, such as .isInteger()
       etc.
 - [ ] += Location containing source metadata - line+column number,
       filename etc.
-**** lexer:
+*** lexer:
 - [ ] += Token containing pointer to a position in the input buffer
   (location), value (regex string) and data (the actual token).
-**** dasm:
+*** dasm:
 - [ ] Interpreter -> ASM.State /ASM
-*** Loading symbols from a .so:
+** Loading symbols from a .so:
 - [ ] Find a way to walk arround D's unfinished stuff. *awesome happy face*
 - [ ] Find a way to precompile libraries.
 - [ ] Find a way to load precompiled files into the ASM.
-*** Collections:
+** Collections:
 - [ ] Expression[] range() -> Range range()
 - [ ] += Range:
       + Containing all required Range methods.
       + opIndex()
       + opSlice()
       + opDollar()
-**** correct Tuple:
+*** correct Tuple:
 - [ ] Immutable
 - [ ] Made out of ordered pairs for structure sharing.
 - [ ] (elements)
 - ? Think about the append problem.
-**** correct Set:
+*** correct Set:
 - [ ] AVL/Red-Black tree/Heap.
 - [ ] Unordered.
 - [ ] Nonunique, but compares to unique: (equals? '{1 2 3 3} '{1 2 3})
 - [ ] {elements}
-**** correct Vector:
+*** correct Vector:
 - [ ] Dynamic array.
 - [ ] That be it yo.
 - [ ] [elements]
-**** HashTable:
+*** HashTable:
 - ? #[key, value key2, value2]
 - ? #[(key value) (key2 value2)]
 - ? #[key:value key2:value2]
-**** Scope:
+*** Scope:
 - ? $(contents same as HashTable)
 - ? Same as HashTable?
-**** Array/String:
+*** Array/String:
 - ? | atomic elements |
 - ? "special literal for character string"
-*** Callables:
-**** Functions:
+** Callables:
+*** Functions:
 - [ ] Purity checks when defining a lambda.
 - [ ] Pure functions being memoized by default.
 - [ ] Both lexically and dynamicall scoped functions.
@@ -417,33 +417,11 @@
       + [ ] (lambda args body) -> 0-INF-ary, args store all the call args.
       + [ ] (lambda (a . b) body) -> N-INF-ary, b stores the rest of
             the call args.
-*** Error handling:
+** Error handling:
 - [ ] (catch e handler) -> (try e handler0 handler1 ...)
 - [ ] handler = (error-object handling-function)
 - [ ] (error error-object/string)
-*** Lazy evaluation:
+** Lazy evaluation:
 - [ ] Native Promise.
 - [ ] Native (lazy e) macro.
 - [ ] Native (force e) macro
-** Language:
-*** Strings:
-- [ ] Usable only with atomic types.
-- [ ] Packed tightly internally.
-- [ ] ? Abstract 'string collection' out of the string:
-      + |s t r \0| - character string. (And additionally "".)
-      + |0 3 1 2 3| - number string.
-*** UnitType:
-- [ ] O-Tuple as the UnitType.
-- [ ] fnord as an alias of ().
-- [ ] () == false, rest == true.
-*** Named function return values:
-- [ ] (lambda [args] [return] body)
-      -> (lambda [args] (do body (listof [return])))
-*** Flow control:
-- [ ] (cond (c1 b1)
-            (c2 b2)
-            ...)
-- [ ] ? (match (e1 p1 b1)
-               (e2 p2 b2)
-               ...)
-################################################################################

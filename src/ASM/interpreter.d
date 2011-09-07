@@ -58,7 +58,7 @@ class Interpreter {
         this.parser = parser;
         global = new Scope();
 
-        FNORD = new Symbol(Keywords.Fnord);
+        FNORD = new Tuple([]);
         define(Keywords.Fnord, FNORD);
         define(Keywords.Import, new BuiltinKeyword(&IMPORT, 1, INF_ARITY));
         auto DO = new BuiltinKeyword(&DO, 1, INF_ARITY);
@@ -75,7 +75,7 @@ class Interpreter {
         define(Keywords.Div, new PureBuiltin(&DIV, 2, INF_ARITY));
         define(Keywords.Add, new PureBuiltin(&ADD, 1, INF_ARITY));
         define(Keywords.Sub, new PureBuiltin(&SUB, 1, INF_ARITY));
-        define(Keywords.Var, new BuiltinKeyword(&VAR, 1, 2));
+        define(Keywords.Var, new BuiltinKeyword(&VAR, 1, INF_ARITY));
         auto LAMBDA = new BuiltinKeyword(&LAMBDA, 2);
         define(Keywords.Lambda, LAMBDA);
         define(Keywords.Macro, new BuiltinKeyword(&MACRO, 3));
@@ -130,14 +130,14 @@ class Interpreter {
 
         void test(int line = __LINE__)(string input, string expected) {
             string actual;
-            try actual = i.doString(input);
+            try actual = i.doString(input, null, "__unittest");
             catch(Exception e) actual = e.toString;
             t.assertion!"=="(actual, expected, line);
         }
 
-        //FIXME: Make these Syntax-independant.
-        //Quote, Quasiquote and embed:
-        test("(tuple () '() fnord 'fnord)", "(fnord fnord fnord fnord)");
+        //Sanity checks:
+        //TODO: Move those to the apropriate context in this file.
+        test("(tuple () '() fnord 'fnord)", "(() () () fnord)");
         test("'(foo bar)","(foo bar)");
         test("''foo", "(quote foo)");
         test("'`foo","(qquote foo)");
@@ -147,9 +147,11 @@ class Interpreter {
         test("`[$(* 2 2)]", "[4]");
         test("(var a 12) (var b 23) (var tmp a) (set! a b) (set! b tmp)", "12");
         test(`(stringof (tupleof "cool"))`, `"cool"`);
-        test("(join! 1 1)", "[1 1]");
-        test("(join! 1 fnord)", "[1]");
-        test("(join! '[1 2 3] fnord)", "[[1 2 3]]");
+        test("(join! 1 1)", "(1 1)");
+        test("(join! 1 fnord)", "(1)");
+        test("(join! 1 '())", "(1)");
+        test("(join! 1 ())", "(1)");
+        test("(join! '[1 2 3] fnord)", "([1 2 3])");
         test(`(join! "foo" "bar")`, `"foobar"`);
         test("(+ 2 2)", "4");
         test("(+ (* 2 100) (* 1 10))", "210");
@@ -158,11 +160,19 @@ class Interpreter {
         test("(var x 3)", "3");
         test("x", "3");
         test("(+ x x)", "6");
+        test("(var x 2 3 4)", "(2 3 4)");
+        test("x", "(2 3 4)");
+        test("(var bar (* 1 1) (* 2 2) (* 3 3))", "(1 4 9)");
+        test("bar", "(1 4 9)");
+        test("(var (x y) '(1 2))", "(1 2)");
+        test("x", "1");
+        test("y", "2");
         test("(do (var x 1) (set! x (+ x 1)) (+ x 1))", "3");
         test("((lambda [x] (+ x x)) 5)", "10");
         test("('[1 2 3] 1)", "2");
         test("('[1 2 3] -1)", "3");
-        test("(equal? fnord 'fnord () '())", "yup");
+        test("(equal? fnord () '())", "yup");
+        test("(equal? 3.14159265 3.141592)", "()");
     }
 
 
@@ -216,7 +226,7 @@ class Interpreter {
      *********************/
 
     /***********************************************************************************
-     * Special fnord keyword - the ony "false" value arround.
+     * UnitType - the ony "false" value arround.
      *********************/
 
     Expression FNORD;
@@ -254,7 +264,7 @@ class Interpreter {
         Expression[] newColl;
 
         foreach(ref el; coll.range) {
-            if(predicate.call(s, [pass(el)]).toString != Keywords.Fnord)        //FIXME: FNORD
+            if(predicate.call(s, [pass(el)]) != FNORD)
                 newColl ~= el;
         }
         return coll.factory(newColl);
@@ -276,14 +286,13 @@ class Interpreter {
      *********************/
 
     Expression IMPORT(ref Scope s, Expression[] args) {
-        foreach(arg; args) {
-            arg = arg.eval(s);
+        foreach(a; args) {
+            auto arg = a.eval(s);
             if(arg.type & Type.String) doFile(arg.toString[1 .. $-1], s);
             else if(arg.type & Type.Symbol) doFile(tr!(".", "/")(arg.toString)~".asm", s);
-            else if(arg.type & Type.Scope) assert(0, "Not yet implemented.");
             else throw new ObjectNotAppError(args[0]);
         }
-         return FNORD;
+         return new Symbol("done");
     }
 
     /***********************************************************************************
@@ -332,8 +341,8 @@ class Interpreter {
             if(arg.type & Type.Collection) {
                 if(arg.type & Type.Tuple) {
                     foreach(e; arg.range) {
-                        if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Quickfix.
-                        if(e.toString == Keywords.Quasiquote) return arg;
+                        if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Can't rely on the toString method.
+                        if(e.toString == Keywords.Quasiquote) return arg;    //FIXME: Use opEquals.
                     }
                 }
                 else if(arg.type & Type.String) {
@@ -366,9 +375,9 @@ class Interpreter {
     Expression ISEQUAL(ref Scope s, Expression[] args) {
         auto first = args[0].eval(s);
         foreach(arg; args[1 .. $]) {
-            if(arg.eval(s).toString != first.toString) return FNORD;
+            if(arg.eval(s) != first) return FNORD;
         }
-        return first.toString != Keywords.Fnord ? first : new Symbol("yup");    //TODO: FNORD
+        return first != FNORD ? first : new Symbol("yup");
     }
 
     /***********************************************************************************
@@ -420,18 +429,40 @@ class Interpreter {
 
     /***********************************************************************************
      * Binds symbols to other objects.
+     * TODO: Tuple packing and unpacking.
      *********************/
 
     Expression VAR(ref Scope s, Expression[] args) {
-        if(!(args[0].type & Type.Symbol))
-            throw new ObjectNotAppError(args[0]);
-        auto value = args.length == 2 ? args[1].eval(s).deref : FNORD;
-        s.define(args[0].toString, value);
+        Expression value;
+
+        if(args[0].type & Type.Symbol) {
+            if(args.length == 1)
+                value =  FNORD;
+            else if(args.length == 2)
+                value = args[1].eval(s).deref;
+            else {
+                Expression[] tuple;
+                foreach(arg; args[1 .. $])
+                    tuple ~= arg.eval(s);
+                value = new Tuple(tuple);
+            }
+
+            s.define(args[0].toString, value);
+        }
+        else if(args[0].type & Type.Tuple) {
+            foreach(arg; args[0].range) {
+
+            }
+            return FNORD;
+        }
+        else throw new ObjectNotAppError(args[0]);
+
         return value;
     }
 
     /***********************************************************************************
      * Returns an anonymous closure.
+     * TODO: Move to a separate AST class.
      *********************/
 
     Expression LAMBDA(ref Scope s, Expression[] args) {
@@ -456,6 +487,7 @@ class Interpreter {
 
     /***********************************************************************************
      * Returns a new syntax keyword.
+     * FIXME: Those fukken toStrings.
      *********************/
 
     Expression MACRO(ref Scope s, Expression[] args) {
@@ -513,8 +545,7 @@ class Interpreter {
         auto arg1 = args[1].eval(s).deref;
 
         if(arg1.type & Type.Collection) return arg1.factory([arg0]~arg1.range);
-        if(arg1.toString == Keywords.Fnord) return new List([arg0]); //FIXME: FNORD
-        return new List([arg0, arg1]);
+        return new Tuple([arg0, arg1]);
     }
 
     /***********************************************************************************
@@ -570,7 +601,7 @@ class Interpreter {
      *********************/
 
     Expression IF(ref Scope s, Expression[] args) {
-        if(args[0].eval(s).toString != Keywords.Fnord) //FIXME: FNORD
+        if(args[0].eval(s) != FNORD)
             return args[1].eval(s);
         else return args.length == 3 ? args[2].eval(s) : FNORD;
     }
@@ -586,18 +617,20 @@ class Interpreter {
          Expression output = FNORD;
 
          if(!keywords.length) {
-             foreach(arg; args) output = arg.eval(s);
+             foreach(arg; args)
+                 output = arg.eval(s);
          }
          else {
              void loop(bool delegate () condition) {
                  while(condition())
-                     foreach(arg; args[1 .. $]) output = arg.eval(s);
+                     foreach(arg; args[1 .. $])
+                         output = arg.eval(s);
              }
 
              if(contains(keywords, "while"))
-                 loop({return args[0].eval(s).toString != Keywords.Fnord;});
+                 loop({return args[0].eval(s) != FNORD;});
              else if(contains(keywords, "until"))
-                 loop({return args[0].eval(s).toString == Keywords.Fnord;});
+                 loop({return args[0].eval(s) == FNORD;});
          }
          return output;
      }
@@ -618,7 +651,9 @@ class Interpreter {
                       "symbol", "string", "function", "keyword", "scope", "set", "tuple", "list")
               typeNames;
 
-        /*static*/ foreach(i, type; types) if(argType & type) typeTuple ~= new Symbol(typeNames[i]);
+        /*static*/ foreach(i, type; types)
+            if(argType & type)
+                typeTuple ~= new Symbol(typeNames[i]);
         return new Tuple(typeTuple);
     }
 
@@ -640,46 +675,28 @@ class Interpreter {
      * Creates a set of its arguments.
      *********************/
 
-    Expression MAKECOLL(T)(ref Scope s, Expression[] args) {
+    Expression MAKE(T)(ref Scope s, Expression[] args) {
         Expression[] coll;
-        foreach(arg; args) coll ~= arg.eval(s).deref;
-        static if(is(T : Tuple)) {
-           if(!coll.length) return FNORD;
-        }
+        foreach(arg; args)
+            coll ~= arg.eval(s).deref;
         return new T(coll);
     }
 
-    alias MAKECOLL!(Set)        MAKESET;
-    alias MAKECOLL!(List)       MAKELIST;
-    alias MAKECOLL!(Tuple)      MAKETUPLE;
+    alias MAKE!Set        MAKESET;
+    alias MAKE!List       MAKELIST;
+    alias MAKE!Tuple      MAKETUPLE;
 
     /***********************************************************************************
-     * Returns a set representation of a collection.
+     * Returns another representation of a collection.
      *********************/
 
-    Expression SETOF(ref Scope s, Expression[] args) {
-        return new Set(args[0].eval(s).range.dup);
+    Expression TO(T)(ref Scope s, Expression[] args) {
+        return new T(args[0].eval(s).range);
     }
 
-    /***********************************************************************************
-     * Returns a list representation of a collection.
-     *********************/
-
-    Expression LISTOF(ref Scope s, Expression[] args) {
-        return new List(args[0].eval(s).range.dup);
-    }
-
-    /***********************************************************************************
-     * Retruns a tuple representation of a collection.
-     *********************/
-
-    Expression TUPLEOF(ref Scope s, Expression[] args) {
-        auto arg = args[0].eval(s);
-        if(arg.toString == Keywords.Fnord) return FNORD;        //TODO FNORD, OUT
-        auto range = arg.range;
-        if(!range.length) return FNORD;
-        return new Tuple(range);
-    }
+    alias TO!Set          SETOF;
+    alias TO!List         LISTOF;
+    alias TO!Tuple        TUPLEOF;
 
     /***********************************************************************************
      * Retruns a string representation of an argument.
@@ -758,7 +775,7 @@ class Interpreter {
         Expression[] newColl = coll.range;
         foreach(arg; args[1 .. $]) {
             auto earg = arg.eval(s);
-            if(earg.toString != Keywords.Fnord) newColl ~= earg.range;        //TODO: Atoms!
+            if(earg != FNORD) newColl ~= earg.range;
         }
 
         return coll.factory(newColl);
@@ -775,7 +792,7 @@ class Interpreter {
         auto input = stdin.readln;
         auto output = parser.parse(input[0 .. $-1], "__stdin");
         if(!output.length) return FNORD;
-        if(output.length != 1) return new List(output);
+        if(output.length != 1) return new Tuple(output);
         return output[0];
     }
 
