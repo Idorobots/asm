@@ -95,6 +95,8 @@ enum Type {
     List        = 32768,
     //Scope       = 4096,
     //String      = 512,
+    //Other types:
+    Lazy        = 65536,
 }
 
 /***********************************************************************************
@@ -676,6 +678,55 @@ class Scope : Expression {
         if(this.outter != s.outter) return false;
         if(this.defines.length != s.defines.length) return false;
         if(this.symbols.keys.sort != s.symbols.keys.sort) return false;
+        return true;
+    }
+}
+
+class Lazy : Expression {
+    Scope s;
+    Expression e;
+    bool forced = false;
+
+    this(Expression e, Scope s, uint line = __LINE__, string file = __FILE__) {
+        this.s = s;
+        this.e = e;
+        this.line = line;
+        this.file = file;
+    }
+
+    ~this() {
+        s = null;
+        e = null;
+        forced = true;
+    }
+
+    override Expression call(ref Scope, Expression[] args) {
+        if(args.length) throw new SemanticError("Expected exactly 0 arguments.", this.line, this.file);
+
+        if(!forced) {
+            forced = true;
+            e = e.eval(s);
+        }
+
+        return e;
+    }
+
+    override uint type() {
+        return Type.Callable|Type.Lazy;
+    }
+
+    override string toString() {
+        return "#lazy";
+    }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto l = cast(Lazy) e.deref;
+        if(!l) return false;
+
+        if((l.s != this.s) || (l.e != this.e)) return false;
         return true;
     }
 }

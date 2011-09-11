@@ -115,6 +115,7 @@ class Interpreter {
         define("\\space", new String(" "));
         define("\\tab", new String("\t"));
         define("\\newline", new String("\n"));
+        define("lazy", new BuiltinKeyword(&LAZY, 1));
 
         //New parser/lexer routines:
         define("read-from-string", new BuiltinKeyword(&READSTRING, 1));
@@ -849,5 +850,9 @@ class Interpreter {
 
     Expression ERROR(ref Scope s, Expression[] args) {
         throw new SemanticError(args[0].eval(s).toString[1 .. $-1], args[0].line, args[0].file);
+    }
+
+    Expression LAZY(ref Scope s, Expression[] args) {
+        return new Lazy(args[0], s);
     }
 }
