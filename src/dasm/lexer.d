@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  *********************/
 
-module ASM.lexer;
+module dasm.lexer;
 
 import std.regex, std.algorithm;
 

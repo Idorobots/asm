@@ -24,7 +24,7 @@
  * Code parsing module.
  *********************/
 
-module ASM.parser;
+module dasm.parser;
 
 import std.conv : to;
 import std.array : front, popFront;
@@ -35,8 +35,8 @@ debug import utils.testing;
 import utils.exception : MyException;
 import utils.ctfe : contains, ETuple;
 
-import ASM.lexical;
-import ASM.AST;
+import dasm.lexical;
+import dasm.ast;
 
 /***********************************************************************************
  * Exception thrown on a syntactic error.

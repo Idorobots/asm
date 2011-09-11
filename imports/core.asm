@@ -31,7 +31,7 @@
 
 # Package declarator.
 (macro package [name .tuple body]
-  `(var $name $(join! 'scope body)))
+  `(var $name $(join 'scope body)))
 
 # Class declarator.
 (macro class [name body]
@@ -44,9 +44,9 @@
                 (push! arg locals))))
       (map dispatch body)
       `(var $name
-            (scope $(append! '(do fnord) (tupleof statics))
+            (scope $(append '(do fnord) (tupleof statics))
                    (function new []
-                     (scope $(append! '(do fnord) (tupleof locals))))))))
+                     (scope $(append '(do fnord) (tupleof locals))))))))
 
 # Binds variables allowing for lazy evaluation:
 (macro bind [sym obj]
@@ -60,23 +60,23 @@
       (do (var 1st `(var $(first aliases) $object))
           (function makeAlias [t]
             `(var $t $(first aliases)))
-          (append! '(do fnord)
-                 (join! 1st (map makeAlias (rest aliases)))))
+          (append '(do fnord)
+                 (join 1st (map makeAlias (rest aliases)))))
   #else `(var $(first aliases) $object)))
 
 # Loops:
 
 # Infinite loop.
 (macro loop [.tuple body]
-  (append! '(do .while 1) body))
+  (append '(do .while 1) body))
 
 # While loop.
 #(macro while [condition .tuple body]
-  (append! `(do $.while condition) body))
+  (append `(do $.while condition) body))
 
 # Until loop.
 #(macro until [condition .tuple body]
-  (append! `(do $.until condition) body))
+  (append `(do $.until condition) body))
 
 # Boolean operations and conditionals:
 (macro not [a]
@@ -94,11 +94,11 @@
 (macro unless [condition .tuple body]
   `(if $condition
        fnord
-       $(append! '(do fnord) body)))
+       $(append '(do fnord) body)))
 
 (macro when [condition .tuple body]
   `(if $condition
-       $(append! '(do fnord) body)))
+       $(append '(do fnord) body)))
 
 # Other macros:
 
@@ -139,8 +139,8 @@
           (member? el (rest coll)))))
 
 (function push! [what where]
-  (set! where (join! what where)))      # Either prepends element to a collection
-                                        # or joins two elements.
+  (set! where (join what where)))      # Either prepends element to a collection
+                                       # or joins two elements.
 
 (function pop! [where]
   (if (collection? where)
@@ -151,7 +151,7 @@
 (function reverse [l]
   (when l
         (if (rest l)
-            (append! (reverse (rest l))
+            (append (reverse (rest l))
                      (list (first l)))
             l)))
 
@@ -172,7 +172,7 @@
 (macro __definePredicates [predicates]
   (do (function makeDecl [arg]
         `(var $(first arg) (typePredicate $(second arg))))
-      (join! 'do (map makeDecl predicates))))
+      (join 'do (map makeDecl predicates))))
 
 (__definePredicates
   ((immutable? immutable)
@@ -202,9 +202,6 @@
       (set! this that)
       (set! that __this)))
 
-(function twice [x]
-  (* 2 x))
-
 (function compose [f g]
   (lambda [x]
     (f (g x))))
@@ -226,12 +223,12 @@
         (f (f (first x) (first y))
            ((combine f) (rest x) (rest y))))))
 
-(var zip (combine join!))
+(var zip (combine join))
 
 (function riff-shuffl [deck]
   (do (function take [n seq]
         (if (> n 0)
-            (join! (first seq)
+            (join (first seq)
                    (take (- n 1) (rest seq)))))
       (function drop [n seq]
         (if (<= n 0)
@@ -242,5 +239,5 @@
       ((combine append) (take (mid deck) deck)
                         (drop (mid deck) deck))))
 
-(function join [strings]
-  (reduce append! strings))
+(function str-join [strings]
+  (reduce append strings))

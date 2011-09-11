@@ -24,10 +24,10 @@
  * ASMKit implementations and global values..
  *********************/
 
-module ASM.kit;
+module dasm.kit;
 
-import ASM.lexical;
-import ASM.AST;
+import dasm.lexical;
+import dasm.ast;
 
 /***********************************************************************************
  * UTILITIES:

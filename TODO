@@ -16,16 +16,21 @@
 * TODO ATM:
 # Things being done ATM.
 
-** TODO Fix fnord comparisions.
 ** TODO Metadata and error messages.
-** Refucktorisation:
-- [ ] ASM modulenames to lowercase.
-- [ ] Rename ASM to dasm.
+** TODO Refucktorisation:
+- [X] ASM modulenames to lowercase.
+- [X] Rename ASM to dasm.
 - [ ] ? ASM.interpreter -> dasm/dasm.state.
-- [ ] ASM.parser -> dasm.lexer.
-- [ ] ASM.AST -> dasm.ast.
-- [ ] ASM.kit -> dasm.kit.
+- [ ] ? ASM.parser -> dasm.lexer.
+- [X] ASM.AST -> dasm.ast.
+- [X] ASM.kit -> dasm.kit.
 - [ ] ? ASM.lexical -> dev/null.
+- [ ] Builtins postfixes:
+      + [ ] ! - changes state.
+      + [ ] ? - predicate.
+      + [ ] ~ - lazy.
+      + [ ] * - ???
+
 ** Optimise function calls and its memory usage.
 ** Fix the language specs.
 ** THINK New parser.

@@ -24,7 +24,7 @@
  * Interpreter
  ****************************************/
 
-module ASM.interpreter;
+module dasm.ASM;
 
 import std.stdio;
 import std.file : readText, FileException;
@@ -34,11 +34,11 @@ import std.random;
 import utils.ctfe : tr, ETuple;
 import utils.testing : TestCase;
 
-import ASM.lexical;
-import ASM.AST;
-import ASM.kit;
-import ASM.lexer;
-import ASM.parser;
+import dasm.lexical;
+import dasm.ast;
+import dasm.kit;
+import dasm.lexer;
+import dasm.parser;
 
 
 /***********************************************************************************
@@ -108,7 +108,7 @@ class Interpreter {
         define("random", new PureBuiltin(&RANDOM, 1, INF_ARITY));
         define("range", new PureBuiltin(&RANGE, 2, 3));
         define("write", new Builtin(&WRITE, 1, INF_ARITY));
-        define("append!", new PureBuiltin(&APPEND, 0, INF_ARITY));
+        define("append", new PureBuiltin(&APPEND, 0, INF_ARITY));
         define("apply", new PureBuiltin(&APPLY, 2));
         define("eval", new BuiltinKeyword(&EVAL, 1));
         define("read", new BuiltinKeyword(&READ));
@@ -137,7 +137,7 @@ class Interpreter {
         }
 
         //Sanity checks:
-        //TODO: Move those to the apropriate context in this file.
+        //TODO: Move those to an apropriate context in this file.
         test("(tuple () '() fnord 'fnord)", "(() () () fnord)");
         test("'(foo bar)","(foo bar)");
         test("''foo", "(quote foo)");
@@ -148,12 +148,12 @@ class Interpreter {
         test("`[$(* 2 2)]", "[4]");
         test("(var a 12) (var b 23) (var tmp a) (set! a b) (set! b tmp)", "12");
         test(`(stringof (tupleof "cool"))`, `"cool"`);
-        test("(join! 1 1)", "(1 1)");
-        test("(join! 1 fnord)", "(1)");
-        test("(join! 1 '())", "(1)");
-        test("(join! 1 ())", "(1)");
-        test("(join! '[1 2 3] fnord)", "([1 2 3])");
-        test(`(join! "foo" "bar")`, `"foobar"`);
+        test("(join 1 1)", "(1 1)");
+        test("(join 1 fnord)", "(1)");
+        test("(join 1 '())", "(1)");
+        test("(join 1 ())", "(1)");
+        test("(join '[1 2 3] fnord)", "([1 2 3])");
+        test(`(join "foo" "bar")`, `"foobar"`);
         test("(+ 2 2)", "4");
         test("(+ (* 2 100) (* 1 10))", "210");
         test("(if (> 6 5) (+ 1 1) (+ 2 2))", "2");
@@ -346,7 +346,7 @@ class Interpreter {
                         if(e.toString == Keywords.Quasiquote) return arg;    //FIXME: Use opEquals.
                     }
                 }
-                else if(arg.type & Type.String) {
+                else if(arg.type & Type.String) { //TODO: hotfix
                     return arg;
                 }
                 //Not embedding:
@@ -823,7 +823,7 @@ class Interpreter {
         string[] syntaxTable;
         foreach(e; expressionTable) syntaxTable ~= e.toString[1 .. $-1];
 
-        auto tokens = ASM.lexer.lex(input, syntaxTable);
+        auto tokens = dasm.lexer.lex(input, syntaxTable);
         Expression[] list;
 
         foreach(token; tokens) list ~= new Symbol(token);

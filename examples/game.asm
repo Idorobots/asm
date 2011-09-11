@@ -34,18 +34,18 @@
   `(There is a $(third edge) going $(second edge) from here.))
 
 (function describe-paths [location edges]
-  (apply append! (map describe-path (rest (assoc location edges)))))
+  (apply append (map describe-path (rest (assoc location edges)))))
 
 (function objects-at [loc objs obj-locs]
   (objs [[obj] (equal? (second (assoc obj obj-locs))
                        loc)]))
 
 (function describe-objects [loc objs obj-locs]
-  (apply append! (map [[obj] `(You see a $obj on the floor.)]
+  (apply append (map [[obj] `(You see a $obj on the floor.)]
                       (objects-at loc objs obj-locs))))
 
 (function look []
-  (append! (describe-location *location* *nodes*)
+  (append (describe-location *location* *nodes*)
            (describe-paths *location* *edges*)
            (describe-objects *location* *objects* *object-locations*)))
 
@@ -67,7 +67,7 @@
       '(You can't get that.)))
 
 (function inventory []
-  (join! 'inventory:
+  (join 'inventory:
          (objects-at 'inventory *objects* *object-locations*)))
 
 ## Game repl:

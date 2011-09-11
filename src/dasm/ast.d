@@ -25,7 +25,7 @@
  * TODO: version(safe), recursion checking etc.
  *********************/
 
-module ASM.AST;
+module dasm.ast;
 
 import std.string : format;
 import std.conv : to;
@@ -33,8 +33,8 @@ import std.conv : to;
 import utils.exception : MyException;
 import utils.ctfe;
 
-import ASM.lexical;
-import ASM.kit;
+import dasm.lexical;
+import dasm.kit;
 
 /***********************************************************************************
  * Exception thrown on a semantic error.

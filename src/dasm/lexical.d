@@ -24,7 +24,7 @@
  * Language grammar definitions.
  *********************/
 
-module ASM.lexical;
+module dasm.lexical;
 
 /***********************************************************************************
  * Lexical tokens:
@@ -48,7 +48,7 @@ enum Syntax : char {
     RList           = ']',          ///Right list paren.
     LSet            = '{',          ///Left set paren.
     RSet            = '}',          ///Right set paren.
-    StringDelim     = '"',         ///String delimiters.
+    StringDelim     = '"',          ///String delimiters.
 }
 
 /***********************************************************************************
@@ -58,7 +58,7 @@ enum Syntax : char {
 enum Keywords : string {
     //Special keywords:
     Fnord       = "fnord",      ///fnord - the only false arround.
-    Self        = "self",       ///self - object self reference         //TODO: out?
+    Self        = "self",       ///self - object self reference.
     Import      = "import",     ///Imports modules.
     //Math:
     Mult        = "*",          ///Multiplication.
@@ -67,19 +67,20 @@ enum Keywords : string {
     Div         = "/",          ///Division.
     Mod         = "mod",        ///Modulus.
     //Comparison:
-    LessOrEqual = "leq",        ///Less or equal.
+    LessOrEqual = "leq?",       ///Less or equal.
+    Gr8erOrEqual= "geq?",       ///Greater or equal.
     IsEqual     = "equal?",     ///Equality check.
     //Collection manipulation:
     Car         = "first",      ///Reference/value of the first element in a mutable/immutable collection.
     Cdr         = "rest",       ///Collection refering the rest of the collection.
-    Cons        = "join!",      ///Joins two objects to form a collection.
+    Cons        = "join",       ///Joins two objects to form a collection.
     Map         = "map",        ///Maps a function to a collection.
     Reduce      = "reduce",     ///Reduces a collection with a function.
     //Quoting and quasiquoting:
     Quasiquote  = "qquote",     ///Quasiquoting.
     Quote       = "quote",      ///Quoting.
-    Embed       = "embed",      ///Embeding. //TODO Namechange to eval?
-    //Declarators:
+    Embed       = "embed",      ///Embeding.
+    //Declarators: //TODO: Add !
     Var         = "var",        ///Binds a variable to an expression (or fnord).
     Lambda      = "lambda",     ///Creates an anonymous closure.
     Function    = "function",   ///Creates a named function.
@@ -92,6 +93,6 @@ enum Keywords : string {
     If          = "if",         ///if condition then else
     Do          = "do",         ///Evaluates arguments and returns value of the last one.
     //Not quite predicates:
-    TypeOf      = "typeof",      ///Returns type touple of an object.
-    KeywordsOf  = "keywordsof",  ///Returns keyword tuple of an object.
+    TypeOf      = "typeof",     ///Returns type touple of an object.
+    KeywordsOf  = "keywordsof", ///Returns keyword tuple of an object.
 }

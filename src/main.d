@@ -24,12 +24,12 @@ import std.stdio;
 
 import utils.ctfe : split;
 
-import ASM.interpreter;
+import dasm.interpreter;
 
 void main(string[] args) {
-    auto i = new Interpreter();
+    auto ASM = new Interpreter();
 
-    i.doString("(import 'imports.core)");
+    ASM.doString("(import 'imports.core)");
 
     /***********************************************************************************
      * Files:
@@ -37,7 +37,7 @@ void main(string[] args) {
 
     if(args.length != 1) {
         foreach(arg; args[1 .. $]) {
-            try i.doFile(arg);
+            try ASM.doFile(arg);
             catch(Exception e) {
                 auto lines = split!"\n"(e.toString);
                 foreach(line; lines) writeln("\t", line);
@@ -56,7 +56,7 @@ void main(string[] args) {
         if(input == "q\n") break;
 
         try {
-            writeln("\t", i.doString(input.idup));
+            writeln("\t", ASM.doString(input.idup));
         }
         catch(Exception e) {
             auto lines = split!"\n"(e.toString);

@@ -8,7 +8,7 @@
     (roll (roll dRANDOM)))
 
 (function d [dice]                              # An additional dice rolling function.
-    (roll (range 1 (dice + 1))))
+    (roll (range 1 (+ dice 1))))
 
 (var d4 (range 1 5))
 (var d6 (range 1 7))
@@ -29,10 +29,9 @@
 (rollRandom)
 (roll d4)
 (* 2 (roll d20))
-(2 * (roll d20))
 (d 4)
 (+ (* 2 (d 4)) 3)
-((2 * (d 4)) + 3)
 
-(function hitTheOrc []                             # Ouch!
+
+(function hitTheOrc []                         # Ouch!
     `(You hit the Orc in the $(roll dHIT) for $((d 8) + 4) damage!))
