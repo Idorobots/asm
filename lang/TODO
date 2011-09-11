@@ -34,17 +34,16 @@
 
 * TODO Semantic metadata:
 ** TODO Keywords:
-- [X] Dot prefixed.
+- [X] ? Dot prefixed.
 - [X] Stick to other objects.
 - [ ] ? Propagate through the AST.
 
 ################################################################################
 
 * TODO Language quirks:
-** TODO Booleans:
+** TEST Booleans:
 - [X] Only one logical false, anything else is considered true -
-      () = fnord = '() = 'fnord
-- ? 0-Tuple as the only false/unit type? Proper booleans perhaps?
+      () = fnord = '() - 0-Tuple
 ** TEST Quoting & embedding:
 - [X] Quote - returns the argument untouched. Extended syntax - '.
 - [X] Quasiquote - returns the argument with embedded
@@ -52,13 +51,13 @@
 - [X] Embed - embeds an expression in quasiquote and strings,
       evaluates strings, binds variables in pattern matching.
       Extended syntax - $.
-** THINK Pattern matching:
+** TODO Pattern matching:
 - [ ] (matches? pattern arg)
 - [ ] Binds embedded/backtracked symbols from pattern to the actual objects,
       returns a Scope with the symbols defined in it.
-** THINK Backtracking:
-- [ ] Triggered by backtrack expression. Extended syntax - ?.
-** THINK Error handling:
+** TODO Backtracking:
+- [ ] ? Triggered by backtrack expression. Extended syntax - ?.
+** TODO Error handling:
 - [ ] UnitType
 - [ ] ? error/catch functions.
 
@@ -81,7 +80,7 @@
           expression.
     + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
 - [-] Collection:
-    + [ ] ? Consist of one letter symbols - characters.
+    + [ ] Consist of one letter symbols - characters.
     + [ ] ? Consist of numerical representations of the characters.
     + [X] ? Consist of one letter strings.
 - [ ] ? Special regex literal - /some regex/:
@@ -90,11 +89,10 @@
     + [ ] ? Sed-like regexes. E.g. s/from/to/g
 - [ ] ! Recognise escape sequences. E.g. "\n" etc
 - [ ] ! String expansion "$(* 2 2) != 2" -> "4 != 2"
-** TODO Tuples:
+** TEST Tuples:
 - [X] Immutable
 - [X] Call the first Callable object in them with the rest of the
       tuple as the call arguments upon their evaluation. (by default)
-- ? 0-Tuple is the unit type.
 ** TEST List:
 - [X] Evaluate to an anonymous function built from the list. (by
       default)
@@ -134,8 +132,9 @@
 - [X] Closures.
 - [ ] ? Use "__argDispatcher" function for argument dispatching.
 - [ ] Arglist keywords:
-    + [ ] ! .in - passed by value.
-    + [ ] ! .out - passed by reference, but reset it to fnord.
+    + [ ] ! .ref - passed by reference.
+    + [ ] ! .in - passed by reference, but const.
+    + [ ] ! .out - passed by reference, but it to fnord.
     + [ ] ! .lazy - toggles lazy evaluation.
     + [ ] ! .optional - makes an argument optional.
     + [ ] !? ... - stores any additional call parameters in a
@@ -158,20 +157,26 @@
 - [ ] Usable only with atomic types.
 - [ ] Packed tightly internally.
 - [ ] ? Abstract 'string collection' out of the string:
-      + |s t r \0| - character string. (And additionally "".)
+      + |s t r \0| - character string. (Same as "str\0".)
       + |0 3 1 2 3| - number string.
+- [ ] ? Expression embedding:
+      + | 1 2 $(+ 1 2) 3 |
+      + "foo $bar"
 ** UnitType:
-- [ ] O-Tuple as the UnitType.
-- [ ] fnord as an alias of ().
-- [ ] () == false, rest == true.
-** Named function return values:
-- [ ] (lambda [args] [return] body)
-      -> (lambda [args] (do body (listof [return])))
+- [X] O-Tuple as the UnitType.
+- [X] fnord as an alias of ().
+- [X] () == false, rest == true.
 ** Flow control:
 - [ ] (cond (c1 b1)
             (c2 b2)
             ...)
-- [ ] ? (match (e1 p1 b1)
-               (e2 p2 b2)
-               ...)
+- [ ] (match e
+             (p1 b1)
+             (p2 b2)
+             ...)
+- [ ] (try e
+           (h1 b1)
+           (h2 b2)
+           ...)
+
 ################################################################################

@@ -289,8 +289,8 @@ class Interpreter {
     Expression IMPORT(ref Scope s, Expression[] args) {
         foreach(a; args) {
             auto arg = a.eval(s);
-            if(arg.type & Type.String) doFile(arg.toString[1 .. $-1], s);
-            else if(arg.type & Type.Symbol) doFile(tr!(".", "/")(arg.toString)~".asm", s);
+            if(isString(arg)) doFile(arg.toString[1 .. $-1], s);
+            else if(isSymbol(arg)) doFile(tr!(".", "/")(arg.toString)~".asm", s);
             else throw new ObjectNotAppError(args[0]);
         }
          return new Symbol("done");
@@ -304,7 +304,7 @@ class Interpreter {
         auto location = args[0].eval(s);
         auto value = args[1].eval(s);
 
-        if(location.type & Type.Settable) {
+        if(isSettable(location)) {
             auto reference = cast(Reference)location;
             reference.set(value);
         }
@@ -318,7 +318,7 @@ class Interpreter {
 
     Expression GET(ref Scope s, Expression[] args) {
         auto arg = args[0].eval(s);
-        if(arg.type & Type.Symbol) return s.getRef(arg);
+        if(isSymbol(arg)) return s.getRef(arg);
         throw new ObjectNotAppError(args[0]);
     }
 
@@ -339,14 +339,14 @@ class Interpreter {
     Expression QQUOTE(ref Scope s, Expression[] args) {
         if(!args.length) return FNORD;
         Expression tryEval(Expression arg) {
-            if(arg.type & Type.Collection) {
-                if(arg.type & Type.Tuple) {
+            if(isCollection(arg)) {
+                if(isTuple(arg)) {
                     foreach(e; arg.range) {
                         if(e.toString == Keywords.Embed) return arg.eval(s); //FIXME: Can't rely on the toString method.
                         if(e.toString == Keywords.Quasiquote) return arg;    //FIXME: Use opEquals.
                     }
                 }
-                else if(arg.type & Type.String) { //TODO: hotfix
+                else if(isString(arg)) { //TODO: hotfix
                     return arg;
                 }
                 //Not embedding:
@@ -365,7 +365,7 @@ class Interpreter {
 
     Expression EMBED(ref Scope s, Expression[] args) {
         if(!args.length) return FNORD;
-        if(args[0].type & Type.String) return s.getRef(args[0]);    //FIXME: $$"string" != (embed (embed "string"))
+        if(isString(args[0])) return s.getRef(args[0]);    //FIXME: $$"string" != (embed (embed "string"))
         return args[0].eval(s);                                     //FIXME: Same thing with quote
     }
 
@@ -436,7 +436,7 @@ class Interpreter {
     Expression VAR(ref Scope s, Expression[] args) {
         Expression value;
 
-        if(args[0].type & Type.Symbol) {
+        if(isSymbol(args[0])) {
             if(args.length == 1)
                 value =  FNORD;
             else if(args.length == 2)
@@ -450,9 +450,9 @@ class Interpreter {
 
             s.define(args[0].toString, value);
         }
-        else if(args[0].type & Type.Tuple) {
+        else if(isTuple(args[0])) {
             foreach(arg; args[0].range) {
-
+                //TODO
             }
             return FNORD;
         }
@@ -463,32 +463,15 @@ class Interpreter {
 
     /***********************************************************************************
      * Returns an anonymous closure.
-     * TODO: Move to a separate AST class.
      *********************/
 
     Expression LAMBDA(ref Scope s, Expression[] args) {
-        Expression argList = args[0];
-        Expression functionBody = args[1];
-        uint minArity = argList.range.length;
-        uint maxArity = argList.range.length;
-
-        auto tmp = s; //FIXME: OUT
-        Expression foo;
-        foo = new Function(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            auto closureScope = new Scope(tmp);
-            closureScope.define(Keywords.Self, foo);
-            foreach(i, arg; argList.range) {
-                closureScope.define(arg.toString, callArgs[i].eval(callScope));
-            }
-            return functionBody.eval(closureScope);
-        }, minArity, maxArity);
-
-        return foo;
+        return new Closure(s, args[0], args[1]);
     }
 
     /***********************************************************************************
      * Returns a new syntax keyword.
-     * FIXME: Those fukken toStrings.
+     * TODO: Move to a separate AST class.
      *********************/
 
     Expression MACRO(ref Scope s, Expression[] args) {
@@ -545,7 +528,7 @@ class Interpreter {
         auto arg0 = args[0].eval(s).deref;
         auto arg1 = args[1].eval(s).deref;
 
-        if(arg1.type & Type.Collection) return arg1.factory([arg0]~arg1.range);
+        if(isCollection(arg1)) return arg1.factory([arg0]~arg1.range);
         return new Tuple([arg0, arg1]);
     }
 
@@ -557,7 +540,7 @@ class Interpreter {
     Expression CAR(ref Scope s, Expression[] args) {
         auto collection = args[0].eval(s);
         if(!collection.range.length) return FNORD;
-        if(collection.type & Type.Immutable) return collection.range[0];
+        if(isImmutable(collection)) return collection.range[0];
         else return new Reference(&(collection.range[0]));
     }
 
@@ -705,7 +688,7 @@ class Interpreter {
 
     Expression STRINGOF(ref Scope s, Expression [] args) {
         auto arg = args[0].eval(s);
-        if(arg.type & Type.Collection) return new String(arg.range);
+        if(isCollection(arg)) return new String(arg.range);
         return new String(args[0].eval(s).toString);
     }
 
@@ -732,7 +715,7 @@ class Interpreter {
         auto randomGenerator = MinstdRand(unpredictableSeed);
         Expression randomImpl(Expression arg) {
             auto r = arg.eval(s);
-            if(r.type & Type.Number) {
+            if(isNumber(r)) {
                 auto v = r.value;
                 return new Number(uniform(0, v));
             }
@@ -756,7 +739,7 @@ class Interpreter {
         auto output = FNORD;
         foreach(arg; args) {
             output = arg.eval(s);
-            if(output.type & Type.String) write(output.toString[1 .. $-1]);
+            if(isString(output)) write(output.toString[1 .. $-1]);
             else write(output);
         }
         return output;

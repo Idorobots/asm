@@ -75,6 +75,7 @@ enum Type {
     Settable    = 2,
     Pure        = 4,
     Builtin     = 8,
+    Lazy        = 65536,
     //Root types:
     Atom        = 16,
     Callable    = 32,
@@ -87,33 +88,59 @@ enum Type {
     Function    = 1024,
     Keyword     = 2048,
     Scope       = 4096,
-    //Set       = 8192 //???
-    //Listn     = 32768,
+    //Set         = 8192 //???
+    //List      = 32768,
     //Collection types:
     Set         = 8192,
     Tuple       = 16384,
-    List        = 32768,
+    List      = 32768,
     //Scope       = 4096,
     //String      = 512,
-    //Other types:
-    Lazy        = 65536,
 }
 
 /***********************************************************************************
+ * Convinience typechecking functions.
+ *********************/
+
+bool isT(uint type)(Expression e) {
+    return (e.type & type) != 0;
+}
+
+alias isT!(Type.Immutable)  isImmutable;
+alias isT!(Type.Settable)   isSettable;
+alias isT!(Type.Pure)       isPure;
+alias isT!(Type.Builtin)    isBuiltin;
+alias isT!(Type.Lazy)       isLazy;
+alias isT!(Type.Atom)       isAtom;
+alias isT!(Type.Callable)   isCallable;
+alias isT!(Type.Collection) isCollection;
+alias isT!(Type.Number)     isNumber;
+alias isT!(Type.Symbol)     isSymbol;
+alias isT!(Type.String)     isString;
+alias isT!(Type.Function)   isFunction;
+alias isT!(Type.Keyword)    isKeyword;
+alias isT!(Type.Scope)      isScope;
+alias isT!(Type.Set)        isSet;
+alias isT!(Type.Tuple)      isTuple;
+alias isT!(Type.List)       isList;
+
+/***********************************************************************************
  * An abstract S-Expression primitive, the root of the hierarchy.
- * TODO doc string?
  *********************/
 
 abstract class Expression {
     /***********************************************************************************
-     * Meta- and semantic data:
+     * Metadata:
      *********************/
 
     private string fileName;
     private uint lineNumber;
     private string[] keys;
 
+
     ~this() {
+        this.fileName = null;
+        this.lineNumber = 0;
         this.keys = null;
     }
 
@@ -207,7 +234,9 @@ class Reference : Expression {
     Expression* referee;
 
     this(Expression* expr, uint line = __LINE__, string file = __FILE__) {
-        if(expr.type & Type.Settable) referee = (cast(Reference)*expr).referee;
+        if(isSettable(*expr)) {
+            referee = (cast(Reference)*expr).referee;
+        }
         else referee = expr;
         this.line = line;
         this.file = file;
@@ -444,7 +473,7 @@ class Collection(T, uint stringType) : Expression {
 
     this(Expression[] collection) {
         foreach(el; collection) {
-            if(el.type & Type.String) letters ~= el.toString[1 .. $-1]; //TODO: Generic!
+            if(isString(el)) letters ~= el.toString[1 .. $-1]; //TODO: Generic!
             else letters ~= el.toString;
         }
     }
@@ -499,6 +528,7 @@ enum INF_ARITY = uint.max;
 
 /***********************************************************************************
  * Callable object primitive.
+ * TODO: Rename to Builtin
  *********************/
 
 class Callable(uint procType) : Expression {
@@ -570,7 +600,76 @@ class Callable(uint procType) : Expression {
     }
 }
 
-alias Callable!(Type.Function)                          Function;       ///Function.
+class Closure : Expression {
+    Scope definitionScope;
+    string[] args;
+    Expression functionBody;
+
+    this(Scope s, Expression argList, Expression functionBody,
+        uint line = __LINE__, string file = __FILE__)
+    {
+        this.definitionScope = s;
+
+        foreach(arg; argList.range) {
+            args ~= arg.toString;
+        }
+
+        this.functionBody = functionBody;
+        this.line = line;
+        this.file = file;
+    }
+
+    ~this() {
+        this.definitionScope = null;
+        this.args = null;
+        this.functionBody = null;
+    }
+
+    override Expression call(ref Scope callScope, Expression[] callArgs) {
+        if(callArgs.length != args.length) {
+            auto arity = args.length;
+            throw new SemanticError(format("Expected exactly %s argument%s instead of %s.",
+                                           arity, arity != 1 ? "s" : "", callArgs.length),
+                                    line, file);
+        }
+
+        auto closureScope = new Scope(definitionScope);
+        closureScope.define(Keywords.Self, this);
+
+        foreach(i, arg; args) {
+            closureScope.define(arg, callArgs[i].eval(callScope));
+        }
+        return functionBody.eval(closureScope);
+    }
+
+    override uint type() {
+        return Type.Callable|Type.Function;
+    }
+
+    override string toString() {
+        //FIXME: Syntax independant.
+        auto output = "("~Keywords.Lambda~" (";
+        foreach(arg; args)
+            output ~= arg~" ";
+        return output[0..$-1]~") "~functionBody.toString~")";
+    }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto c = cast(Closure) e.deref;
+        if(!c) return false;
+
+        if(this.args != c.args) return false;
+        if(this.functionBody != c.functionBody) return false;
+
+        return true;
+    }
+
+}
+
+//alias Callable!(Type.Function)                          Function;       ///Function.
 alias Callable!(Type.Pure|Type.Function)                Pure;           ///Pure function.
 alias Callable!(Type.Builtin|Type.Function)             Builtin;        ///Builtin function.
 alias Callable!(Type.Pure|Type.Builtin|Type.Function)   PureBuiltin;    ///Builtin function.
@@ -599,7 +698,6 @@ class Scope : Expression {
 
     /***********************************************************************************
      * Defines sym in a particular namespace.
-     * Eg. use: scope.definePure(somePure);
      *********************/
 
     void define(string sym, Expression expression) {
@@ -618,7 +716,7 @@ class Scope : Expression {
      *********************/
 
     Expression get(Expression symbol) {
-        if(!(symbol.type & Type.Symbol))
+        if(!isSymbol(symbol))
             throw new ObjectNotAppError(symbol);
 
         auto sym = symbol.toString;
@@ -628,7 +726,7 @@ class Scope : Expression {
     }
 
     Reference getRef(Expression symbol) {
-        if(!(symbol.type & Type.Symbol))
+        if(!isSymbol(symbol))
             throw new ObjectNotAppError(symbol);
 
         auto sym = symbol.toString;
