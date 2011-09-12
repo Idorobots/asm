@@ -62,7 +62,7 @@ unittest {
 
     void test(int line = __LINE__)(string input, string[] expected) {
         auto got = lex(input, syntax);
-        t.assertion!"=="(got, expected, line);
+        t.equals(got, expected, line);
     }
 
     test("()", [`"\("`, `"\)"`]);

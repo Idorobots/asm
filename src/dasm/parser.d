@@ -59,24 +59,12 @@ class MismatchError : SyntacticError {
 }
 
 /***********************************************************************************
- * An abstract class for an easy substitution. If you need a faster-than-default
- * parser - feel free to make one.
- *********************/
-
-abstract class Parser {
-    /***********************************************************************************
-     * Parses a string into an AST.
-     *********************/
-
-    public Expression[] parse(in string input, in string filename);
-}
-
-/***********************************************************************************
  * A class doing the parsing. Lexes a string into a stream of tokens and then parses
  * them into an AST.
  *********************/
 
-class DefaultParser : Parser {
+class Parser {
+    private:
 
     /***********************************************************************************
      * Extended syntax tokens.
@@ -187,7 +175,7 @@ class DefaultParser : Parser {
             string expanded;
             auto s = (input~Lexical.EndOfFile).ptr;
             auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
-                           Syntax.LList,  Syntax.RList,       //List parentesis
+                           Syntax.LVector,Syntax.RVector,     //Vector parentesis
                            Syntax.LSet,   Syntax.RSet,        //Set parentesis
                            Syntax.StringDelim];               //String delimiter.
             while(*s) {
@@ -241,17 +229,17 @@ class DefaultParser : Parser {
         return output;
     }
     unittest {
-        auto t = TestCase("DefaultParser.preprocess");
-        auto i = new DefaultParser();
+        auto t = TestCase("Parser.preprocess");
+        auto i = new Parser();
 
         void test(int line = __LINE__)(string input, string expected) {
             auto actual = i.preprocess(input);
-            t.assertion!"=="(actual, expected, line);
+            t.equals(actual, expected, line);
         }
 
         void test1(int line = __LINE__)(string input, string expected) {
             i.preprocess(input);
-            t.assertion!"=="(i.stringBank[0], expected, line);
+            t.equals(i.stringBank[0], expected, line);
         }
 
         //TODO: FIXME: Unittests should be Syntax-independant.
@@ -335,7 +323,7 @@ class DefaultParser : Parser {
         string[] tokens;
         string token;
         auto parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
-                       Syntax.LList,  Syntax.RList,       //List parentesis
+                       Syntax.LVector,Syntax.RVector,     //Vector parentesis
                        Syntax.LSet,   Syntax.RSet];       //Set parentesis
         auto s = (input~Lexical.EndOfFile).ptr;
         while(*s) {
@@ -353,12 +341,12 @@ class DefaultParser : Parser {
         return tokens;
     }
     unittest {
-        auto t = TestCase("DefaultParser.tokenize");
-        auto i = new DefaultParser();
+        auto t = TestCase("Parser.tokenize");
+        auto i = new Parser();
 
         void test(int line = __LINE__)(string input, string[] expected) {
             auto actual = i.tokenize(input);
-            t.assertion!"=="(actual, expected, line);
+            t.equals(actual, expected, line);
         }
 
         test("A simple string.", ["A", "simple", "string."]);
@@ -380,10 +368,10 @@ class DefaultParser : Parser {
 
         //All kinds of parenthesis.
         auto parens = [cast(immutable(char))Syntax.LTuple : cast(immutable(char))Syntax.RTuple, //FIXME: Pretier!
-                       Syntax.LList :  Syntax.RList,
+                       Syntax.LVector: Syntax.RVector,
                        Syntax.LSet :   Syntax.RSet];
         auto antyparens = [cast(immutable(char))Syntax.RTuple : cast(immutable(char))Syntax.LTuple,
-                           Syntax.RList :  Syntax.LList,
+                           Syntax.RVector :  Syntax.LVector,
                            Syntax.RSet :   Syntax.LSet];
         //Extended syntax.
         auto expandables = [cast(string)ESyntax.Quote : cast(string)Keywords.Quote,
@@ -419,9 +407,10 @@ class DefaultParser : Parser {
             return null;                           //as this is ment solely for debugging.
         }
         if(contains(expandables.keys, token)) {
-           return  new Tuple([new Symbol(expandables[token], lineNumber, fileName),
-                              tokens.length ? parse(tokens) :
-                                              new Symbol(Keywords.Fnord, lineNumber, fileName)]);
+            auto symbol = new Symbol(expandables[token], lineNumber, fileName);
+            auto expr = parse(tokens);
+
+            return new Tuple([symbol, expr ? expr : new Tuple([], lineNumber, fileName)]);
         }
         if(contains(parens.keys, token[0])) {
             auto delimiter = cast(immutable(char))parens[token[0]];
@@ -437,8 +426,8 @@ class DefaultParser : Parser {
             switch(delimiter) {
                 case Syntax.RTuple:
                     return new Tuple(collection, lineNumber, fileName);
-                case Syntax.RList:
-                    return new List(collection, lineNumber, fileName);
+                case Syntax.RVector:
+                    return new Vector(collection, lineNumber, fileName);
                 case Syntax.RSet:
                     return new Set(collection, lineNumber, fileName);
                 default: assert(0);
@@ -462,7 +451,7 @@ class DefaultParser : Parser {
      * Parses a string into an array of ASTs each representing independant statement.
      *********************/
 
-    override Expression[] parse(in string input, in string fileName) {
+    Expression[] parse(in string input, in string fileName) {
         this.fileName = fileName;
         this.lineCount = 1;    //TODO: reset it from outside.
         Expression[] output;

@@ -50,7 +50,7 @@ class Interpreter {
     Scope global;           //Global scope.
 
     this() {
-        this(new DefaultParser());
+        this(new Parser());
     }
 
     this(Parser parser) {
@@ -94,16 +94,16 @@ class Interpreter {
         auto SELECT = new PureBuiltin(&SELECT, 2);
         define("select", SELECT);
         define("__setcall", SELECT);
-        define("__listcall", NTH);
+        define("__vectorcall", NTH);
         define("__scopecall", GET);
-        define("__listeval", LAMBDA);
+        define("__vectoreval", LAMBDA);
         define("__seteval", DO);
         define("tuple", new PureBuiltin(&MAKETUPLE, 0, INF_ARITY));
         define("set", new PureBuiltin(&MAKESET, 0, INF_ARITY));
-        define("list", new PureBuiltin(&MAKELIST, 0, INF_ARITY));
+        define("vector", new PureBuiltin(&MAKEVECTOR, 0, INF_ARITY));
         define("tupleof", new PureBuiltin(&TUPLEOF, 1));
         define("setof", new PureBuiltin(&SETOF, 1));
-        define("listof", new PureBuiltin(&LISTOF, 1));
+        define("vectorof", new PureBuiltin(&VECTOROF, 1));
         define("stringof", new PureBuiltin(&STRINGOF, 1));
         define("random", new PureBuiltin(&RANDOM, 1, INF_ARITY));
         define("range", new PureBuiltin(&RANGE, 2, 3));
@@ -133,7 +133,7 @@ class Interpreter {
             string actual;
             try actual = i.doString(input, null, "__unittest");
             catch(Exception e) actual = e.toString;
-            t.assertion!"=="(actual, expected, line);
+            t.equals(actual, expected, line);
         }
 
         //Sanity checks:
@@ -629,10 +629,10 @@ class Interpreter {
 
         alias ETuple!(Type.Immutable, Type.Settable, Type.Pure, Type.Builtin, Type.Atom, Type.Callable,
                       Type.Collection, Type.Number, Type.Symbol, Type.String, Type.Function, Type.Keyword,
-                      Type.Scope, Type.Set, Type.Tuple, Type.List)
+                      Type.Scope, Type.Set, Type.Tuple, Type.Vector)
               types;
         alias ETuple!("immutable", "settable", "pure", "builtin", "atom", "callable", "collection", "number",
-                      "symbol", "string", "function", "keyword", "scope", "set", "tuple", "list")
+                      "symbol", "string", "function", "keyword", "scope", "set", "tuple", "vector")
               typeNames;
 
         /*static*/ foreach(i, type; types)
@@ -667,7 +667,7 @@ class Interpreter {
     }
 
     alias MAKE!Set        MAKESET;
-    alias MAKE!List       MAKELIST;
+    alias MAKE!Vector     MAKEVECTOR;
     alias MAKE!Tuple      MAKETUPLE;
 
     /***********************************************************************************
@@ -679,7 +679,7 @@ class Interpreter {
     }
 
     alias TO!Set          SETOF;
-    alias TO!List         LISTOF;
+    alias TO!Vector       VECTOROF;
     alias TO!Tuple        TUPLEOF;
 
     /***********************************************************************************
@@ -787,7 +787,7 @@ class Interpreter {
         auto input = args[0].eval(s).toString[1 .. $-1];
         auto output = parser.parse(input, "__string");
         if(!output.length) return FNORD;
-        if(output.length != 1) return new List(output);
+        if(output.length != 1) return new Vector(output);
         return output[0];
     }
 
@@ -807,10 +807,10 @@ class Interpreter {
         foreach(e; expressionTable) syntaxTable ~= e.toString[1 .. $-1];
 
         auto tokens = dasm.lexer.lex(input, syntaxTable);
-        Expression[] list;
+        Expression[] tokenList;
 
-        foreach(token; tokens) list ~= new Symbol(token);
-        return new List(list);
+        foreach(token; tokens) tokenList ~= new Symbol(token);
+        return new Vector(tokenList);
     }
 
     Expression CATCH(ref Scope s, Expression[] args) {

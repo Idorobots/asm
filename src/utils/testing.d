@@ -26,25 +26,19 @@
 
 module utils.testing;
 
-import utils.exception;
+import std.stdio : writeln, writefln;
+import std.conv : to;
 
 /***********************************************************************************
- * Exception thrown in the unittests, it's more convinient than a simple assert.
+ * Error message functions.
  *********************/
 
-class AssertionException : MyException {
-    private string what;
+string errorMsg(string file, string line, string expected, string got) {
+    return file~"("~line~"): Expected `"~expected~"', got `"~got~"'.";
+}
 
-    this(string type, string file, string line, string expected, string got) {
-        what =  "Assertion (\""~type~"\") failure at "~file~"("~line~"):"
-                " got: \'"~got~"\', expected: \'"~expected~"\'.";
-        super(what);
-    }
-
-    this(string file, string line) {
-        what = "Assertion failure at "~file~"("~line~").";
-        super(what);
-    }
+string errorMsg(string file, string line) {
+    return file~"("~line~").";
 }
 
 /***********************************************************************************
@@ -54,76 +48,68 @@ class AssertionException : MyException {
 struct TestCase {
     private string name;
     private uint runs;
-    private Exception[] fails;
+    private string[] fails;
 
-    /***********************************************************************************
-     * Default and string ctor.
-     *********************/
 
     this(string name = "") {
         this.name = name;
     }
 
     /***********************************************************************************
-     * This stores the results in TestStats class for later use.
+     * Stores the results in TestStats class for later use.
      *********************/
 
     ~this() {
-        TestStats.add(new TestResult(name, runs, fails));
+        TestStats.add(TestResult(name, runs, fails));
     }
 
-    /***********************************************************************************
-     * An empty assertion, always to be a failure.
-     *********************/
-
-    public void failure(int line = __LINE__, string file = __FILE__) {
+    void failure(uint line = __LINE__, string file = __FILE__) {
         runs++;
-        fails ~= new AssertionException(file, to!string(line));
+        fails ~= errorMsg(file, to!string(line));
     }
 
-    /***********************************************************************************
-     * An empty assertion, always to be a pass.
-     *********************/
-
-    public void success() {
+    void success() {
         runs++;
     }
 
     /***********************************************************************************
-     * e.g. test.assertion!("!=")(3, 3.1415);
+     * DRY my ass. FIXME
      *********************/
 
-    import std.conv : to;
-    public void assertion(string op, T)(T got, T expected,
-                                        int line = __LINE__, string file = __FILE__)
-    {
+    void equals(T)(T got, T expected, uint line = __LINE__, string file = __FILE__) {
         runs++;
-        if(!mixin("got "~op~" expected"))
-                fails ~= new AssertionException(op, file, to!string(line),
-                                                to!string(expected), to!string(got));
+        if(!(got == expected))
+            fails ~= errorMsg(file, to!string(line), to!string(expected), to!string(got));
     }
 
-    /***********************************************************************************
-     * e. g. test.assertion(2 == 3);
-     *********************/
-
-    public void assertion(T : bool)(T got, int line = __LINE__, string file = __FILE__) {
+    void notEquals(T)(T got, T expected, uint line = __LINE__, string file = __FILE__) {
         runs++;
-        if(!got)
-            fails ~= new AssertionException("boolean", file, to!string(line), "true", "false");
+        if(!(got != expected))
+            fails ~= errorMsg(file, to!string(line), to!string(expected), to!string(got));
+    }
+
+    void same(T)(T got, T expected, uint line = __LINE__, string file = __FILE__) {
+        runs++;
+        if(!(got is expected))
+            fails ~= errorMsg(file, to!string(line), to!string(expected), to!string(got));
+    }
+
+    void truth(bool test, uint line = __LINE__, string file = __FILE__) {
+        runs++;
+        if(!test) fails ~= errorMsg(file, to!string(line));
     }
 }
 
 /***********************************************************************************
- * A class used to store TestCase results for statistics.
+ * A struct used to store TestCase results for statistics.
  *********************/
 
-class TestResult {
+struct TestResult {
     private string name;
     private uint runs;
-    private Exception[] fails;
+    private string[] fails;
 
-    this(string name, uint runs, Exception[] fails) {
+    this(string name, uint runs, string[] fails) {
         this.name = name;
         this.runs = runs;
         this.fails = fails;
@@ -131,18 +117,18 @@ class TestResult {
 }
 
 /***********************************************************************************
- * A class that collects all test results and prints stats for them.
+ * A struct that collects all test results and prints stats for them.
  *********************/
 
-static class TestStats {
-    private static TestResult[] results;
-    private static uint runs, fails;
+struct TestStats {
+    static TestResult[] results;
+    static uint runs, fails;
 
     /***********************************************************************************
      * Adds new test results to results.
      *********************/
 
-    private static void add(TestResult r) {
+    static void add(TestResult r) {
         results ~= r;
     }
 
@@ -150,7 +136,6 @@ static class TestStats {
      * A static Dtor that is called after the main has returned, writes the stats.
      *********************/
 
-    import std.stdio : writeln, writefln;
     static ~this() {
         if(!results.length) return;
 

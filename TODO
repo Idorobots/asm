@@ -42,9 +42,11 @@
       etc.
 - [ ] += Location containing source metadata - line+column number,
       filename etc.
+- [X] List -> Vector
+- [ ] ? String -> CharacterString
 *** Parser:
-- [ ] Parer -> Lexer
-- [ ] DefaultParser -> Parser
+- [ ] ? Parer -> Lexer
+- [X] DefaultParser -> Parser
 - [ ] += Token containing pointer to a position in the input buffer
       (location), value (regex string) and data (the actual token).
 *** Interpreter:

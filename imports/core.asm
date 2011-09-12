@@ -12,10 +12,10 @@
 #(macro __setcall [s .tuple predicates]
   `(select $s $(reduce compose predicates)))
 
-# Convinient List.call():
-(macro __listcall [l .tuple indeces]
+# Convinient Vector.call():
+(macro __vectorcall [l .tuple indeces]
   (if (rest indeces)
-      `(map (lambda [i] (nth $l i)) '$(listof indeces))
+      `(map (lambda [i] (nth $l i)) '$(vectorof indeces))
       `(nth $l $(first indeces))))
 
 ## Convinience macros:
@@ -152,7 +152,7 @@
   (when l
         (if (rest l)
             (append (reverse (rest l))
-                     (list (first l)))
+                     (vector (first l)))
             l)))
 
 (function assoc [key alist]
@@ -189,7 +189,7 @@
   (scope? scope)
   (set? set)
   (tuple? tuple)
-  (list? list)))
+  (vector? vector)))
 
 (macro settable? [arg]
   `(if (member? 'settable (typeof $arg))

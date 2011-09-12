@@ -89,11 +89,11 @@ enum Type {
     Keyword     = 2048,
     Scope       = 4096,
     //Set         = 8192 //???
-    //List      = 32768,
+    //Vector      = 32768,
     //Collection types:
     Set         = 8192,
     Tuple       = 16384,
-    List      = 32768,
+    Vector      = 32768,
     //Scope       = 4096,
     //String      = 512,
 }
@@ -122,7 +122,7 @@ alias isT!(Type.Keyword)    isKeyword;
 alias isT!(Type.Scope)      isScope;
 alias isT!(Type.Set)        isSet;
 alias isT!(Type.Tuple)      isTuple;
-alias isT!(Type.List)       isList;
+alias isT!(Type.Vector)     isVector;
 
 /***********************************************************************************
  * An abstract S-Expression primitive, the root of the hierarchy.
@@ -510,10 +510,10 @@ class Collection(T, uint stringType) : Expression {
 
 alias Collection!(string, Type.Immutable|Type.Symbol|Type.String)       String;         ///WYSIWYG symbol.
 alias Collection!(Type.Tuple|Type.Immutable,
-                  Syntax.LTuple, Syntax.RTuple)                         Tuple;          ///Immutable tuple. //TODO: Clean this up!
-alias Collection!(Type.Callable|Type.List,
-                  Syntax.LList, Syntax.RList,
-                  "__listeval", "__listcall")                           List;           ///Mutable list.
+                  Syntax.LTuple, Syntax.RTuple, "NOPE")                 Tuple;          ///Immutable tuple. //TODO: Clean this up!
+alias Collection!(Type.Callable|Type.Vector,
+                  Syntax.LVector, Syntax.RVector,
+                  "__vectoreval", "__vectorcall")                       Vector;           ///Mutable vector.
 alias Collection!(Type.Callable|Type.Set,
                   Syntax.LSet, Syntax.RSet,
                   "__seteval", "__setcall")                             Set;            ///Mutable set.
@@ -689,6 +689,8 @@ class Scope : Expression {
         this.line = line;
         this.file = file;
         this.outter = outter;
+
+        this.define(Keywords.Self, this);
     }
 
     ~this() {

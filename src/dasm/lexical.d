@@ -44,8 +44,8 @@ enum Lexical : char {
 enum Syntax : char {
     LTuple          = '(',          ///Left tuple paren.
     RTuple          = ')',          ///Right tuple paren.
-    LList           = '[',          ///Left list paren.
-    RList           = ']',          ///Right list paren.
+    LVector         = '[',          ///Left vector paren.
+    RVector         = ']',          ///Right vector paren.
     LSet            = '{',          ///Left set paren.
     RSet            = '}',          ///Right set paren.
     StringDelim     = '"',          ///String delimiters.
