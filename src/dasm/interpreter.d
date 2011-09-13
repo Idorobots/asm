@@ -118,6 +118,7 @@ class Interpreter {
         define("lazy", new BuiltinKeyword(&LAZY, 1));
 
         //New parser/lexer routines:
+        define("lex", new BuiltinKeyword(&LEX, 2));
         define("read-from-string", new BuiltinKeyword(&READSTRING, 1));
         define("readln", new BuiltinKeyword(&READLN));
         define("catch", new BuiltinKeyword(&CATCH, 2));
@@ -574,7 +575,10 @@ class Interpreter {
     Expression REDUCE(ref Scope s, Expression[] args) {
         auto func = args[0].eval(s);
         auto collection = args[1].eval(s);
+        if(!collection.range.length) return FNORD;
+
         auto result = collection.range[0];
+
         foreach(ref value; collection.range[1 .. $])
             result = func.call(s, [pass(result), pass(value)]);
         return result;
@@ -809,7 +813,10 @@ class Interpreter {
         auto tokens = dasm.lexer.lex(input, syntaxTable);
         Expression[] tokenList;
 
-        foreach(token; tokens) tokenList ~= new Symbol(token);
+        foreach(token; tokens) {
+            if(token.length && token[0] == '"') tokenList ~= new String(token[1 .. $-1]);
+            else tokenList ~= new Symbol(token);
+        }
         return new Vector(tokenList);
     }
 

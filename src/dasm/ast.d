@@ -611,7 +611,9 @@ class Closure : Expression {
         this.definitionScope = s;
 
         foreach(arg; argList.range) {
-            args ~= arg.toString;
+            if(isSymbol(arg))
+                args ~= arg.toString;
+            else throw new ObjectNotAppError(arg);
         }
 
         this.functionBody = functionBody;

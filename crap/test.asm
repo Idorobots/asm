@@ -6,7 +6,7 @@
 ## Syntax dispatchers:
 
 (function "\(" [ostream istream]
-  (do (var list (list))
+  (do (var list (vector))
       (read-delimited-list "\)" list istream)
       (if (empty? list)
           (push! fnord ostream)
@@ -19,14 +19,14 @@
   (error "Missmatched `)'."))
 
 (function "\'" [ostream istream]
-  (do (var tmp (list))
+  (do (var tmp (vector))
       (read-expression tmp istream)
       (push! (qquote (quote (embed (first tmp))))
              ostream)))
 
 (function "," [ostream istream]
   (do (var left (pop! ostream))
-      (var tmp (list))
+      (var tmp (vector))
       (read-expression tmp istream)
       (var right (first tmp))
       (if (tuple? left)
@@ -34,25 +34,27 @@
           (push! (tuple left right) ostream))))
 
 (function ":" [ostream istream]
-  (do (var right (list))
+  (do (var right (vector))
       (read-delimited-list ";" right istream)
       (push! (qquote (var (embed (pop! ostream))
-                          (embed (first (first right)))))
+                          (embed (if (equal? (length? (first right)) 1)
+                                     (first (first right))
+                                     (tupleof (first right))))))
              ostream)))
 
 (function "\-\>" [ostream istream]
   (do (var args (pop! ostream))
-      (var body (list))
+      (var body (vector))
       (read-expression body istream)
       (push! (qquote (lambda (embed (if (collection? args)
-                                        (listof args)
-                                        (list args)))
+                                        (vectorof args)
+                                        (vector args)))
                              (embed (first body))))
              ostream)))
 
 (function "macro" [ostream istream]
   (do (var name (pop! istream))
-      (var tmp (list))
+      (var tmp (vector))
       (read-expression tmp istream)
       (var args (first tmp))
       (read-expression tmp istream)
@@ -62,22 +64,22 @@
                             macro-table))
              ostream)
       (push! (qquote (function (embed name)
-                             (embed args)
-                             (embed body)))
+                               (embed args)
+                               (embed body)))
              ostream)))
 
 ## Macros:
 
 (function test [foo bar]
-  (qquote (list (embed bar)
-               (embed foo))))
+  (qquote (vector (embed bar)
+                  (embed foo))))
 
 ## Reader functions:
 
 (function parser-macro-call [token ostream istream]
   (when (callable? (get token))
         (var argnum (second (assoc token macro-table)))
-        (var args (list))
+        (var args (vector))
         (var i 0)
         (do .until (equal? i argnum)
              (read-expression args istream)
@@ -98,7 +100,7 @@
       #else (push! token ostream)))))
 
 (function read-delimited-list [delimiter ostream istream]
-  (do (var list (list))
+  (do (var list (vector))
       (do .until (equal? (first istream) delimiter)
           (unless istream (error "Missmatched `('."))
           (read-expression list istream))
@@ -107,15 +109,16 @@
 
 (function parse [input]
   (do (var istream (lex input syntax-table))
-      (var ostream (list))
-      (do .until (fnord? istream)
+      (var ostream (vector))
+      (do .until (empty? istream)
           (read-expression ostream istream))
       (reverse ostream)))
 
 (function repl [__depth]
   (do (var __prompt " > ")
       (write __depth)
-      (loop (catch (do (var __input (readln __prompt))
+      (loop (catch (do (write __prompt)
+                       (var __input (readln))
                        (var __parsed (eval (first (parse __input))))
                        (write \tab (if __parsed __parsed " ") \newline))
                    (lambda [error]

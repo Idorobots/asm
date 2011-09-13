@@ -18,6 +18,20 @@
       `(map (lambda [i] (nth $l i)) '$(vectorof indeces))
       `(nth $l $(first indeces))))
 
+# Convinient Vector.eval()
+(macro __vectoreval [.tuple elements]
+  (do (var args '[])
+      (var body '[])
+      (function dispatch [had->? arg]
+        (if (equal? arg '->)
+            'yup
+            (do (if had->?
+                    (push! arg body)
+                    (push! arg args))
+                had->?)))
+      (reduce dispatch (join () elements))
+      `(lambda $(reverse args) $(append '(do fnord) (reverse body)))))
+
 ## Convinience macros:
 
 # Function declarator.
