@@ -50,6 +50,7 @@
 - [ ] += Token containing pointer to a position in the input buffer
       (location), value (regex string) and data (the actual token).
 *** Interpreter:
+- [X] Interpreter -> VM
 - [ ] Move MACRO to a new AST class.
 - [ ] Downcase the implementations.
 - [ ] Move implementations to a separate module(s).

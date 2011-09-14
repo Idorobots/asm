@@ -21,10 +21,10 @@
  *********************/
 
 /***********************************************************************************
- * Interpreter
+ * ASM Virtual Machine
  ****************************************/
 
-module dasm.ASM;
+module dasm.vm;
 
 import std.stdio;
 import std.file : readText, FileException;
@@ -45,17 +45,12 @@ import dasm.parser;
  * Interpreter
  *********************/
 
-class Interpreter {
+class VM {
     Parser parser;          //Parsing unit.
     Scope global;           //Global scope.
 
     this() {
-        this(new Parser());
-    }
-
-    this(Parser parser) {
-        assert(parser !is null);
-        this.parser = parser;
+        this.parser = new Parser();
         global = new Scope();
 
         FNORD = new Tuple([]);
@@ -128,7 +123,7 @@ class Interpreter {
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
-        auto i = new Interpreter();
+        auto i = new VM();
 
         void test(int line = __LINE__)(string input, string expected) {
             string actual;

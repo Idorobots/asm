@@ -24,10 +24,10 @@ import std.stdio;
 
 import utils.ctfe : split;
 
-import dasm.interpreter;
+import dasm.vm;
 
 void main(string[] args) {
-    auto ASM = new Interpreter();
+    auto ASM = new VM();
 
     ASM.doString("(import 'imports.core)");
 

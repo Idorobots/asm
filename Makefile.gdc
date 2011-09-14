@@ -8,7 +8,7 @@ DLDLIBS = -Llib -L. -lasm
 
 VPATH = src:src/dasm:src/utils
 
-LIBOBJS = interpreter.o lexer.o parser.o ast.o kit.o lexical.o testing.o exception.o ctfe.o
+LIBOBJS = vm.o lexer.o parser.o ast.o kit.o lexical.o testing.o exception.o ctfe.o
 OBJS = main.o
 
 LIB = libasm.a
