@@ -7,7 +7,7 @@
         world)
 
     (function hello []
-        `("Hello" $sayWorld))
+        `("Hello" $(sayWorld)))
 })
 
 

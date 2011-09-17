@@ -4,6 +4,16 @@
 
 ## Some basics:
 
+# Generalized math operators:
+# TODO
+
+(var * mult)
+(var / div)
+(var modulo mod)
+(var - sub)
+(var + add)
+(var ^ pow)
+
 # Common escape sequences.
 (var (\newline \tab \space \dollar \return \backslash \quote)
      '("\n"    "\t" " "    "\$"    "\r"    "\\"       "\""))
@@ -34,6 +44,8 @@
                     (push! arg args))
                 had->?)))
       (reduce dispatch (join () elements))
+      (if (empty? body)
+          (error "Function body cannot be empty."))
       `(lambda $(reverse args) $(append '(do fnord) (reverse body)))))
 
 ## Convinience macros:

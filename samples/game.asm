@@ -37,12 +37,12 @@
   (apply append (map describe-path (rest (assoc location edges)))))
 
 (function objects-at [loc objs obj-locs]
-  (objs [[obj] (equal? (second (assoc obj obj-locs))
+  (objs [obj -> (equal? (second (assoc obj obj-locs))
                        loc)]))
 
 (function describe-objects [loc objs obj-locs]
-  (apply append (map [[obj] `(You see a $obj on the floor.)]
-                      (objects-at loc objs obj-locs))))
+  (apply append (map [obj -> `(You see a $obj on the floor.)]
+                     (objects-at loc objs obj-locs))))
 
 (function look []
   (append (describe-location *location* *nodes*)
@@ -51,7 +51,7 @@
 
 (function walk [direction] {
   (var next (first (select (rest (assoc *location* *edges*))
-                           [[edge] (equal? (second edge) direction)])))
+                           [edge -> (equal? (second edge) direction)])))
   (if next {
       (set! *location* (first next))
       (look)
@@ -77,7 +77,8 @@
       (tuple command)))
 
 (function game-print [what] {
-  (map [[arg] (write arg \space)] what)
+  (map [arg -> (write arg \space)]
+       what)
   (write \newline)
 })
 

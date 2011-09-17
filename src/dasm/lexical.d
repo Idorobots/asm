@@ -62,10 +62,10 @@ enum Keywords : string {
     Self        = "self",       ///self - object self reference.
     Import      = "import",     ///Imports modules.
     //Math:
-    Mult        = "*",          ///Multiplication.
-    Add         = "+",          ///Addition.
-    Sub         = "-",          ///Substraction.
-    Div         = "/",          ///Division.
+    Mult        = "mult",       ///Multiplication.
+    Add         = "add",        ///Addition.
+    Sub         = "sub",        ///Substraction.
+    Div         = "div",        ///Division.
     Mod         = "mod",        ///Modulus.
     //Comparison:
     LessOrEqual = "leq?",       ///Less or equal.

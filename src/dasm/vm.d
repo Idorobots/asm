@@ -66,10 +66,12 @@ class VM {
         define(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE, 1));
         define(Keywords.Embed, new BuiltinKeyword(&EMBED, 1));
         define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL, 1, INF_ARITY));
-        define(Keywords.Mult, new PureBuiltin(&MULT, 1, INF_ARITY));
-        define(Keywords.Div, new PureBuiltin(&DIV, 2, INF_ARITY));
-        define(Keywords.Add, new PureBuiltin(&ADD, 1, INF_ARITY));
-        define(Keywords.Sub, new PureBuiltin(&SUB, 1, INF_ARITY));
+        define(Keywords.Mult, new PureBuiltin(&MULT, 2));
+        define(Keywords.Div, new PureBuiltin(&DIV, 2));
+        define(Keywords.Add, new PureBuiltin(&ADD, 2));
+        define(Keywords.Sub, new PureBuiltin(&SUB, 2));
+        define(Keywords.Mod, new PureBuiltin(&MOD, 2));
+        define("pow", new PureBuiltin(&POW, 2));
         define(Keywords.Var, new BuiltinKeyword(&VAR, 1, INF_ARITY));
         auto LAMBDA = new BuiltinKeyword(&LAMBDA, 2);
         define(Keywords.Lambda, LAMBDA);
@@ -136,9 +138,9 @@ class VM {
         test("''foo", "(quote foo)");
         test("'`foo","(qquote foo)");
         test("'$wat","(embed wat)");
-        test("`($(* 2 2))", "(4)");
-        test("`{$(* 2 2)}", "{4}");
-        test("`[$(* 2 2)]", "[4]");
+        test("`($(mult 2 2))", "(4)");
+        test("`{$(mult 2 2)}", "{4}");
+        test("`[$(mult 2 2)]", "[4]");
         test("(var a 12) (var b 23) (var tmp a) (set! a b) (set! b tmp)", "12");
         test(`(stringof (tupleof "cool"))`, `"cool"`);
         test("(join 1 1)", "(1 1)");
@@ -147,18 +149,18 @@ class VM {
         test("(join 1 ())", "(1)");
         test("(join '[1 2 3] fnord)", "([1 2 3])");
         test(`(join "foo" "bar")`, `"foobar"`);
-        test("(+ 2 2)", "4");
-        test("(+ (* 2 100) (* 1 10))", "210");
-        test("(if (> 6 5) (+ 1 1) (+ 2 2))", "2");
-        test("(if (< 6 5) (+ 1 1) (+ 2 2))", "4");
+        test("(add 2 2)", "4");
+        test("(add (mult 2 100) (mult 1 10))", "210");
+        test("(if (> 6 5) (add 1 1) (add 2 2))", "2");
+        test("(if (< 6 5) (add 1 1) (add 2 2))", "4");
         test("(var x)", "()");
         test("x", "()");
         test("(var x 3)", "3");
         test("x", "3");
-        test("(+ x x)", "6");
+        test("(add x x)", "6");
         test("(var x 2 3 4)", "(2 3 4)");
         test("x", "(2 3 4)");
-        test("(var bar (* 1 1) (* 2 2) (* 3 3))", "(1 4 9)");
+        test("(var bar (mult 1 1) (mult 2 2) (mult 3 3))", "(1 4 9)");
         test("bar", "(1 4 9)");
         test("(var (x y) '(1 2))", "(1 2)");
         test("x", "1");
@@ -170,23 +172,22 @@ class VM {
         test("bar", "(1 2 3)");
         test("(var (foo bar baz) ((lambda () '(1 2 3))))", "(1 2 3)");
         test("bar", "2");
-        test("(do (var x 1) (set! x (+ x 1)) (+ x 1))", "3");
-        test("((lambda [x] (+ x x)) 5)", "10");
+        test("(do (var x 1) (set! x (add x 1)) (add x 1))", "3");
+        test("((lambda [x] (add x x)) 5)", "10");
         test("('[1 2 3] 1)", "2");
         test("('[1 2 3] -1)", "3");
         test("(equal? fnord () '())", "yup");
         test("(equal? 3.14159265 3.141592)", "()");
-        test("(equal? '(1 2 3) (tuple (+ 1) (+ 1 1) (+ 1 1 1)))", "(1 2 3)");
+        test("(equal? '(1 2 3) (tuple (add 0 1) (add 1 1) (add 2 1)))", "(1 2 3)");
         test(`(equal? "string" (stringof 'string))`, `"string"`);
     }
-
 
     /***********************************************************************************
      * Reads and evaluates a string.
      *********************/
 
     string doString(in string input, Scope s = null, string filename = "__repl") {
-        if(!s) s = global;    //FIXME
+        if(!s) s = global;
 
         string output;
         auto statements = parser.parse(input, filename);
@@ -201,7 +202,7 @@ class VM {
      *********************/
 
     string doFile(in string filename, Scope s = null) {
-        if(!s) s = global;  //FIXME
+        if(!s) s = global;
 
         string input;
         try input = readText(filename);
@@ -256,7 +257,6 @@ class VM {
         if((index < 0) && (coll.length - index >= 0)) return coll[$+index];
         return FNORD;
     }
-
 
     /***********************************************************************************
      * Filters a collection returning a new collection containing elements satisfying
@@ -337,7 +337,6 @@ class VM {
     /***********************************************************************************
      * Quasiquote - quotes an expression embedding any embed expressions in it.
      * Embeds are coupled with the innermost quasiquote.
-     * FIXME: StackOverflow when tryEvaling strings.
      *********************/
 
     Expression QQUOTE(ref Scope s, Expression[] args) {
@@ -386,55 +385,26 @@ class VM {
     }
 
     /***********************************************************************************
-     * Multiplies two values.
-     * FIXME: Needs only two args.
+     * Defines a binary operator rutine.
      *********************/
 
-    Expression MULT(ref Scope s, Expression[] args) {
-        auto accumulator = args[0].eval(s).value;
-        foreach(arg; args[1 .. $]) accumulator *= arg.eval(s).value;
-        return new Number(accumulator);
+    Expression mathOp(string op)(ref Scope s, Expression[] args) {
+        auto a = args[0].eval(s).value;
+        auto b = args[1].eval(s).value;
+        return new Number(mixin("a "~op~" b"));
     }
 
-    /***********************************************************************************
-     * Adds two values.
-     * FIXME: Needs only two args.
-     *********************/
-
-    Expression ADD(ref Scope s, Expression[] args) {
-        auto accumulator = args[0].eval(s).value;
-        foreach(arg; args[1 .. $]) accumulator += arg.eval(s).value;
-        return new Number(accumulator);
-    }
-
-
-    /***********************************************************************************
-     * Substracts values.
-     * FIXME: Needs only two args.
-     *********************/
-
-    Expression SUB(ref Scope s, Expression[] args) {
-        auto accumulator = args[0].eval(s).value;
-        if(args.length < 2) return new Number(-accumulator);
-
-        foreach(arg; args[1 .. $]) accumulator -= arg.eval(s).value;
-        return new Number(accumulator);
-    }
-
-    /***********************************************************************************
-     * Divides values.
-     * FIXME: Needs only two args.
-     *********************/
-
-    Expression DIV(ref Scope s, Expression[] args) {
-        auto accumulator = args[0].eval(s).value;
-        foreach(arg; args[1 .. $]) accumulator /= arg.eval(s).value;
-        return new Number(accumulator);
-    }
+    alias mathOp!"*"  MULT;
+    alias mathOp!"/"  DIV;
+    alias mathOp!"+"  ADD;
+    alias mathOp!"-"  SUB;
+    alias mathOp!"%"  MOD;
+    alias mathOp!"^^" POW;
 
     /***********************************************************************************
      * Binds symbols to other objects.
-     * TODO: Tuple packing and unpacking.
+     * TODO: Tweak its semantics.
+     * TODO: Tidy this up.
      *********************/
 
     Expression VAR(ref Scope s, Expression[] args) {
@@ -473,6 +443,8 @@ class VM {
                 foreach(i, var; vars)
                     s.define(var.toString, value.range[i].deref);
             }
+            else throw new ObjectNotAppError(args[2]); //FIXME: Inconsistent.
+
         }
         else throw new ObjectNotAppError(args[0]);
 
@@ -680,28 +652,32 @@ class VM {
      * Creates a set of its arguments.
      *********************/
 
-    Expression MAKE(T)(ref Scope s, Expression[] args) {
+    Expression make(T)(ref Scope s, Expression[] args)
+        if(is(T : Expression))
+    {
         Expression[] coll;
         foreach(arg; args)
             coll ~= arg.eval(s).deref;
         return new T(coll);
     }
 
-    alias MAKE!Set        MAKESET;
-    alias MAKE!Vector     MAKEVECTOR;
-    alias MAKE!Tuple      MAKETUPLE;
+    alias make!Set       MAKESET;
+    alias make!Vector    MAKEVECTOR;
+    alias make!Tuple     MAKETUPLE;
 
     /***********************************************************************************
      * Returns another representation of a collection.
      *********************/
 
-    Expression TO(T)(ref Scope s, Expression[] args) {
+    Expression convTo(T)(ref Scope s, Expression[] args)
+        if(is(T : Expression))
+    {
         return new T(args[0].eval(s).range);
     }
 
-    alias TO!Set          SETOF;
-    alias TO!Vector       VECTOROF;
-    alias TO!Tuple        TUPLEOF;
+    alias convTo!Set     SETOF;
+    alias convTo!Vector  VECTOROF;
+    alias convTo!Tuple   TUPLEOF;
 
     /***********************************************************************************
      * Retruns a string representation of an argument.

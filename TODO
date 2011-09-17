@@ -33,10 +33,9 @@
       + [X] * - ???
 - [ ] Clean up the interpreter module.
 *** AST:
-- [ ] Divide into several AST classes for readability.
+- [ ] Divide into several AST modules for readability.
 - [X] Add Closure class.
 - [ ] Add Macro class.
-- [ ] ? Add Funcion class.
 - [X] Type -> Types
 - [X] += Type - containing convinience functions, such as .isInteger()
       etc.
@@ -45,7 +44,7 @@
 - [X] List -> Vector
 - [ ] ? String -> CharacterString
 *** Parser:
-- [ ] ? Parer -> Lexer
+- [ ] ? Parser -> Lexer
 - [X] DefaultParser -> Parser
 - [ ] += Token containing pointer to a position in the input buffer
       (location), value (regex string) and data (the actual token).
@@ -422,7 +421,6 @@
 *** Functions:
 - [ ] ? Purity checks when defining a lambda.
 - [ ] Pure functions being memoized by default.
-- [ ] Both lexically and dynamicall scoped functions.
 - [ ] ? Simple literals:
       + [ ] [args -> body] - lexically scoped closure.
 - [ ] ? Arg dispatch:
@@ -436,7 +434,5 @@
 ** Lazy evaluation:
 - [X] Native, first-clas Promise.
 - [X] Native (lazy e) macro.
-- [-] Native (force e) macro
 - [ ] ? Lazyfy builtins.
-** Unittesting:
-- [ ] Get rid of utils.testing bullshit.
+

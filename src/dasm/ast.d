@@ -653,7 +653,9 @@ class Closure : Expression {
         auto output = "("~Keywords.Lambda~" (";
         foreach(arg; args)
             output ~= arg~" ";
-        return output[0..$-1]~") "~functionBody.toString~")";
+
+        if(args.length) output = output[0 .. $-1];
+        return output~") "~functionBody.toString~")";
     }
 
     override bool opEquals(Object o) {
