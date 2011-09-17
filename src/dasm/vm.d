@@ -46,62 +46,89 @@ import dasm.parser;
  *********************/
 
 class VM {
-    Parser parser;          //Parsing unit.
-    Scope global;           //Global scope.
+    enum ASMVersion    = 0;            ///ASM language version supported.
+    enum Vendor        = "DASM";       ///Vendor name.
+    enum MajorRevision = 0;            ///Major revision.
+    enum MinorRevision = 0;            ///Minor revision.
+
+    private Parser parser;          //Parsing unit.
+    private Scope global;           //Global scope.
 
     this() {
         this.parser = new Parser();
         global = new Scope();
 
+        //Some version and vendor info:
+        //TODO: Immutable
+        define("*vendor*", new String(Vendor));
+        define("*major-revision*", new Number(MajorRevision));
+        define("*minor-revision*", new Number(MinorRevision));
+        define("*asm-version*", new Number(ASMVersion));
+
         FNORD = new Tuple([]);
         define(Keywords.Fnord, FNORD);
+
         define(Keywords.Import, new BuiltinKeyword(&IMPORT, 1, INF_ARITY));
+
         auto DO = new BuiltinKeyword(&DO, 1, INF_ARITY);
         define(Keywords.Do, DO);
         define(Keywords.If, new BuiltinKeyword(&IF, 2, 3));
+
         define(Keywords.Set, new BuiltinKeyword(&SET, 2));
         auto GET = new BuiltinKeyword(&GET, 1);
         define(Keywords.Get, GET);
+
         define(Keywords.Quote, new BuiltinKeyword(&QUOTE, 1));
         define(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE, 1));
         define(Keywords.Embed, new BuiltinKeyword(&EMBED, 1));
+
         define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL, 1, INF_ARITY));
+
         define(Keywords.Mult, new PureBuiltin(&MULT, 2));
         define(Keywords.Div, new PureBuiltin(&DIV, 2));
         define(Keywords.Add, new PureBuiltin(&ADD, 2));
         define(Keywords.Sub, new PureBuiltin(&SUB, 2));
         define(Keywords.Mod, new PureBuiltin(&MOD, 2));
         define("pow", new PureBuiltin(&POW, 2));
+
         define(Keywords.Var, new BuiltinKeyword(&VAR, 1, INF_ARITY));
         auto LAMBDA = new BuiltinKeyword(&LAMBDA, 2);
         define(Keywords.Lambda, LAMBDA);
         define(Keywords.Macro, new BuiltinKeyword(&MACRO, 3));
         define(Keywords.Scope, new BuiltinKeyword(&SCOPE, 1, INF_ARITY));
+
         define(Keywords.Cons, new BuiltinKeyword(&CONS, 2));
         define(Keywords.Car, new BuiltinKeyword(&CAR, 1));
         define(Keywords.Cdr, new BuiltinKeyword(&CDR, 1));
+
         define(Keywords.Map, new PureBuiltin(&MAP, 2));
-        define(Keywords.Reduce, new PureBuiltin(&REDUCE, 2));
+        define(Keywords.Reduce, new PureBuiltin(&REDUCE, 2, 3));
+
         define(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF, 1));
         define(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF, 1));
+
         define("call", new BuiltinKeyword(&CALL, 1, INF_ARITY));
         define("defined?", new BuiltinKeyword(&DEFINED, 1));
         auto NTH = new PureBuiltin(&NTH, 2);
         define("nth", NTH);
         auto SELECT = new PureBuiltin(&SELECT, 2);
         define("select", SELECT);
+
         define("__setcall", SELECT);
         define("__vectorcall", NTH);
         define("__scopecall", GET);
         define("__vectoreval", LAMBDA);
         define("__seteval", DO);
+
         define("tuple", new PureBuiltin(&MAKETUPLE, 0, INF_ARITY));
         define("set", new PureBuiltin(&MAKESET, 0, INF_ARITY));
         define("vector", new PureBuiltin(&MAKEVECTOR, 0, INF_ARITY));
+
         define("tupleof", new PureBuiltin(&TUPLEOF, 1));
         define("setof", new PureBuiltin(&SETOF, 1));
         define("vectorof", new PureBuiltin(&VECTOROF, 1));
         define("stringof", new PureBuiltin(&STRINGOF, 1));
+
         define("random", new PureBuiltin(&RANDOM, 1, INF_ARITY));
         define("range", new PureBuiltin(&RANGE, 2, 3));
         define("write", new Builtin(&WRITE, 1, INF_ARITY));
@@ -566,10 +593,21 @@ class VM {
         auto collection = args[1].eval(s);
         if(!collection.range.length) return FNORD;
 
-        auto result = collection.range[0];
+        Expression result;
+        Expression[] range;
 
-        foreach(ref value; collection.range[1 .. $])
+        if(args.length == 3) {
+            result = args[2].eval(s);
+            range = collection.range;
+        }
+        else {
+            result = collection.range[0];
+            range = collection.range[1 .. $];
+        }
+
+        foreach(ref value; range)
             result = func.call(s, [pass(result), pass(value)]);
+
         return result;
     }
 

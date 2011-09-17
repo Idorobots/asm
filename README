@@ -1,4 +1,4 @@
-ASM - Another Syntactic Monstrosity.
+ASM v 0.0 - Another Syntactic Monstrosity.
 
 A sandbox programming language "because I can".
 ASM is my ill attempt to make Lisp even more expressive.
@@ -10,3 +10,14 @@ For language specs see lang directory:
     lang/lexical - ASM language formal description.
 
 Visit its homepage at http://idorobots.org/asm/
+
+
+Building:
+
+ASM requires D version 2.053+. To compile type:
+
+    $ ./make
+
+By default it uses GDC compiler to compile ASM, to use DMD instead type:
+
+    $ ./make dmd
