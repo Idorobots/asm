@@ -63,4 +63,5 @@ void main(string[] args) {
             foreach(line; lines) writeln("\t", line);
         }
     }
+    writeln("Wait! You forgot your parentheses!");
 }

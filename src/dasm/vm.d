@@ -107,9 +107,6 @@ class VM {
         define("apply", new PureBuiltin(&APPLY, 2));
         define("eval", new BuiltinKeyword(&EVAL, 1));
         define("read", new BuiltinKeyword(&READ));
-        define("\\space", new String(" "));
-        define("\\tab", new String("\t"));
-        define("\\newline", new String("\n"));
         define("lazy", new BuiltinKeyword(&LAZY, 1));
 
         //New parser/lexer routines:
@@ -154,6 +151,8 @@ class VM {
         test("(+ (* 2 100) (* 1 10))", "210");
         test("(if (> 6 5) (+ 1 1) (+ 2 2))", "2");
         test("(if (< 6 5) (+ 1 1) (+ 2 2))", "4");
+        test("(var x)", "()");
+        test("x", "()");
         test("(var x 3)", "3");
         test("x", "3");
         test("(+ x x)", "6");
@@ -164,12 +163,21 @@ class VM {
         test("(var (x y) '(1 2))", "(1 2)");
         test("x", "1");
         test("y", "2");
+        test("(var (a b))", "()");
+        test("a", "()");
+        test("b", "()");
+        test("(var bar ((lambda () '(1 2 3))))", "(1 2 3)");
+        test("bar", "(1 2 3)");
+        test("(var (foo bar baz) ((lambda () '(1 2 3))))", "(1 2 3)");
+        test("bar", "2");
         test("(do (var x 1) (set! x (+ x 1)) (+ x 1))", "3");
         test("((lambda [x] (+ x x)) 5)", "10");
         test("('[1 2 3] 1)", "2");
         test("('[1 2 3] -1)", "3");
         test("(equal? fnord () '())", "yup");
         test("(equal? 3.14159265 3.141592)", "()");
+        test("(equal? '(1 2 3) (tuple (+ 1) (+ 1 1) (+ 1 1 1)))", "(1 2 3)");
+        test(`(equal? "string" (stringof 'string))`, `"string"`);
     }
 
 
@@ -430,27 +438,41 @@ class VM {
      *********************/
 
     Expression VAR(ref Scope s, Expression[] args) {
-        Expression value;
+        Expression value = FNORD;
 
         if(isSymbol(args[0])) {
+            //Simple variable declaration.
             if(args.length == 1)
                 value =  FNORD;
+            //Variable declaration with initialisation.
             else if(args.length == 2)
                 value = args[1].eval(s).deref;
+            //Tuple packing.
             else {
                 Expression[] tuple;
                 foreach(arg; args[1 .. $])
                     tuple ~= arg.eval(s);
                 value = new Tuple(tuple);
             }
-
             s.define(args[0].toString, value);
         }
         else if(isTuple(args[0])) {
-            foreach(arg; args[0].range) {
-                //TODO
+            auto vars = args[0].range;
+
+            //Multiple variable declaration.
+            if(args.length == 1)
+                foreach(var; vars)
+                    s.define(var.toString, FNORD);
+            //Tuple unpacking.
+            else if(args.length == 2) {
+                value = args[1].eval(s);
+
+                if(vars.length != value.range.length)
+                    throw new ObjectNotAppError(args[1]);
+
+                foreach(i, var; vars)
+                    s.define(var.toString, value.range[i].deref);
             }
-            return FNORD;
         }
         else throw new ObjectNotAppError(args[0]);
 

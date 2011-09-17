@@ -20,7 +20,7 @@
 ** TODO Refucktorisation:
 - [X] ASM modulenames to lowercase.
 - [X] Rename ASM to dasm.
-- [ ] ? ASM.interpreter -> dasm/dasm.state.
+- [X] ? ASM.interpreter -> dasm/dasm.state.
 - [ ] ? ASM.parser -> dasm.lexer.
 - [X] ASM.AST -> dasm.ast.
 - [X] ASM.kit -> dasm.kit.
@@ -407,9 +407,9 @@
 - [ ] Multiset.
 - [ ] {elements}
 *** correct Vector:
-- [ ] Dynamic array.
-- [ ] That be it yo.
-- [ ] [elements]
+- [X] Dynamic array.
+- [X] That be it yo.
+- [X] [elements]
 *** HashTable:
 - #[(key value) (key2 value2)]
 *** Scope:

@@ -4,6 +4,10 @@
 
 ## Some basics:
 
+# Common escape sequences.
+(var (\newline \tab \space \dollar \return \backslash \quote)
+     '("\n"    "\t" " "    "\$"    "\r"    "\\"       "\""))
+
 # Convinient Scope.call():
 (macro __scopecall [arg]
   `(get '$arg))

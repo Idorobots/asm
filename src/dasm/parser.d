@@ -133,6 +133,9 @@ class Parser {
 
         string stringCollapse(in string input) {
             string output;
+
+            auto escapeSequences = ['\\':'\\', 'n':'\n', 't':'\t', '$':'$', 'v':'\v', 'r':'\r', '"':'"'];
+
             auto s = (input~Lexical.EndOfFile).ptr;
 
             while(*s) {
@@ -140,7 +143,14 @@ class Parser {
                     //TODO: StringParser.
                     string str;
                     s++;
-                    while(*s && *s != Syntax.StringDelim) str ~= *s++;
+                    while(*s && *s != Syntax.StringDelim) {
+                        if(*s == Lexical.EscapeStart) {
+                            s++;
+                            if(*s && *s in escapeSequences)
+                                str ~= escapeSequences[*s++];
+                        }
+                        else str ~= *s++;
+                    }
                     s++;
                     output ~= Syntax.StringDelim~to!string(stringBank.length)~Lexical.Space;
                     stringBank ~= str;
@@ -288,30 +298,32 @@ class Parser {
         test("#Comment_rigth\"next to a string.\"",
              "# LINE 33 # Comment_rigth \" 0");
         ///Expression embedding and escape sequences:
-        test1("\"\\tString with\\nescape sequences.\\r\\n\"", "String with\nescape sequences.\r\n");
-        test1("\"$Strings with simple $embeds in it\"", "$0 with simple $1 in it");
-        test1("\"$String-with? more $(complex 3.14 2.71) embeds.\"", "$0 more $1 embeds.");
-        test1("\"$(Really {complex} embed (with multiple (parens) [and whatnot]))\"", "$0");
-        test1("\"${Same deal (but {with another [set of]} parens.)}\"", "$0");
-        test1("\"$[Same () thing for [ a {list}]]\"", "$0");
+        test1(`"\tString with\nescape sequences.\r\n"`, "\tString with\nescape sequences.\r\n");
+        test1(`"String with an embeded \"string\".`, "String with an embeded \"string\".");
+        test1(`"$Strings with simple $embeds in it"`, "$0 with simple $1 in it");
+        test1(`"$String-with? more $(complex 3.14 2.71) embeds."`, "$0 more $1 embeds.");
+        test1(`"$(Really {complex} embed (with multiple (parens) [and whatnot]))"`, "$0");
+        test1(`"${Same deal (but {with another [set of]} parens.)}"`, "$0");
+        test1(`"$[Same () thing for [ a {list}]]"`, "$0");
         ///Keywords dispatch:
+        //TODO: Shit, those line numbers are a pain in the ass when adding new tests.
         test("String with .keywords in it.",
-             "# LINE 40 String with . keywords in it.");
+             "# LINE 41 String with . keywords in it.");
         test("(Expression with .keywords (and .other expressions).in it.)",
-             "# LINE 41 ( Expression with . keywords ( and . other expressions ) . in it. )");
+             "# LINE 42 ( Expression with . keywords ( and . other expressions ) . in it. )");
         test("(.keyword rigth next to).a paren.",
-             "# LINE 42 ( . keyword rigth next to ) . a paren.");
+             "# LINE 43 ( . keyword rigth next to ) . a paren.");
         ///General fun:
         test("not.a.keyword.",
-             "# LINE 43 not.a.keyword.");
+             "# LINE 44 not.a.keyword.");
         test("not#a#comment#",
-             "# LINE 44 not#a#comment#");
+             "# LINE 45 not#a#comment#");
         test("not$an$embed$",
-             "# LINE 45 not$an$embed$");
+             "# LINE 46 not$an$embed$");
         test("not`a`qquote`",
-             "# LINE 46 not`a`qquote`");
+             "# LINE 47 not`a`qquote`");
         test("not'a'quote'",
-             "# LINE 47 not'a'quote'");
+             "# LINE 48 not'a'quote'");
     }
 
     /***********************************************************************************
