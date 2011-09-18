@@ -14,6 +14,15 @@
 (var + add)
 (var ^ pow)
 
+# Convinient if else clause.
+(var if* if)
+
+(macro if [.tuple args]
+  `(if* ($(first args) $(second args))
+        (else $(third args))))
+
+(var else 'totally-not-fnord)
+
 # Common escape sequences.
 (var (\newline \tab \space \dollar \return \backslash \quote)
      '("\n"    "\t" " "    "\$"    "\r"    "\\"       "\""))
@@ -45,8 +54,8 @@
                 had->?)))
       (reduce dispatch (join () elements))
       (if (empty? body)
-          (error "Function body cannot be empty."))
-      `(lambda $(reverse args) $(append '(do fnord) (reverse body)))))
+          (error "Function body cannot be empty.")
+          `(lambda $(reverse args) $(append '(do fnord) (reverse body))))))
 
 ## Convinience macros:
 
@@ -68,31 +77,16 @@
   (do (var statics '{})
       (var locals '{})
       (function dispatch [arg]
-        (if (tuple? arg)
-            (if (equal? 'static (first arg))
-                (push! (rest arg) statics)
-                (push! arg locals))))
+        (when (tuple? arg)
+              (if* ((equal? 'static (first arg))
+                     (push! (rest arg) statics))
+                  (else
+                     (push! arg locals)))))
       (map dispatch body)
       `(var $name
             (scope $(append '(do fnord) (tupleof statics))
                    (function new []
                      (scope $(append '(do fnord) (tupleof locals))))))))
-
-# Binds variables allowing for lazy evaluation:
-(macro bind [sym obj]
-  (if (member? 'lazy (keywordsof sym))
-      `(var $sym (lambda [] $obj))
-      `(var $sym $obj)))
-
-# Multiple symbol binder:
-(macro alias [object .tuple aliases]
-  (if (rest aliases)
-      (do (var 1st `(var $(first aliases) $object))
-          (function makeAlias [t]
-            `(var $t $(first aliases)))
-          (append '(do fnord)
-                 (join 1st (map makeAlias (rest aliases)))))
-  #else `(var $(first aliases) $object)))
 
 # Loops:
 
@@ -114,7 +108,7 @@
 
 (macro and [a b]
   (do (var __a a)
-      `(if $__a (if $b $__a))))
+  `(if $__a (if $b $__a))))
 
 (macro or [a b]
   (do (var __a a)

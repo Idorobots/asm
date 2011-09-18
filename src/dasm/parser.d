@@ -169,7 +169,7 @@ class Parser {
             auto s = (input~Lexical.EndOfFile).ptr;
             while(*s) {
                 if(*s == Lexical.CommentStart) {
-                    if(s[1] && contains([Lexical.CommentStart, Lexical.Space], s[1]))
+                    if(s[1] && contains([Lexical.CommentStart, Lexical.Space, Lexical.Bang], s[1]))
                         while(*s && *s != Lexical.EndOfLine) s++;
                 }
                 output ~= *s++;

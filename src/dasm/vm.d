@@ -72,7 +72,7 @@ class VM {
 
         auto DO = new BuiltinKeyword(&DO, 1, INF_ARITY);
         define(Keywords.Do, DO);
-        define(Keywords.If, new BuiltinKeyword(&IF, 2, 3));
+        define(Keywords.If, new BuiltinKeyword(&IF, 1, INF_ARITY));
 
         define(Keywords.Set, new BuiltinKeyword(&SET, 2));
         auto GET = new BuiltinKeyword(&GET, 1);
@@ -178,8 +178,8 @@ class VM {
         test(`(join "foo" "bar")`, `"foobar"`);
         test("(add 2 2)", "4");
         test("(add (mult 2 100) (mult 1 10))", "210");
-        test("(if (> 6 5) (add 1 1) (add 2 2))", "2");
-        test("(if (< 6 5) (add 1 1) (add 2 2))", "4");
+        test("(if ((> 6 5) (add 1 1)) ('else (add 2 2)))", "2");
+        test("(if ((< 6 5) (add 1 1)) ('else (add 2 2)))", "4");
         test("(var x)", "()");
         test("x", "()");
         test("(var x 3)", "3");
@@ -207,6 +207,11 @@ class VM {
         test("(equal? 3.14159265 3.141592)", "()");
         test("(equal? '(1 2 3) (tuple (add 0 1) (add 1 1) (add 2 1)))", "(1 2 3)");
         test(`(equal? "string" (stringof 'string))`, `"string"`);
+        test("(if (1 2) (3 4))", "2");
+        test("(if (() 1) (2 3))", "3");
+        test("(if ('foo 'bar))", "bar");
+        test("(if (fnord 'bar))", "()");
+        test("(if (fnord 1 2 3) (() 2 3 4) ('() 3 4 5) ('fnord 4 5 6))", "6");
     }
 
     /***********************************************************************************
@@ -612,13 +617,28 @@ class VM {
     }
 
     /***********************************************************************************
-     * (if condition then else/fnord)
+     * Evaluates every car of its arguments and if it's a non-fnord return evaluated cdr
+     * of that arg.
+     *
+     * (if (c1 e1 ...)
+     *     (c2 e2 ...)
+     *     ...)
+     * TODO: This should be scoped.
      *********************/
 
     Expression IF(ref Scope s, Expression[] args) {
-        if(args[0].eval(s) != FNORD)
-            return args[1].eval(s);
-        else return args.length == 3 ? args[2].eval(s) : FNORD;
+        foreach(arg; args) {
+            if(arg.range.length < 2) throw new ObjectNotAppError(arg);
+            auto condition = arg.range[0];
+            if(condition.eval(s) != FNORD) {
+                Expression result;
+                foreach(expr; arg.range[1 .. $]) {
+                    result = expr.eval(s);
+                }
+                return result;
+            }
+        }
+        return FNORD;
     }
 
     /***********************************************************************************

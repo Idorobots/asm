@@ -27,3 +27,5 @@
 (var begin do)
 (var defun function)
 (var defmacro macro)
+(var cond if*)
+(var t 1)

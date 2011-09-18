@@ -36,6 +36,7 @@ enum Lexical : char {
     EndOfFile       = '\0',         ///EOF
     CommentStart    = '#',          ///Both for line and sexp comments.
     EscapeStart     = '\\',         ///Escape sequence start.
+    Bang            = '!',          ///Bang used for shebang.
 }
 
 /***********************************************************************************
