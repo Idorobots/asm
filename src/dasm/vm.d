@@ -776,7 +776,7 @@ class VM {
             }
             //The other use case has to be a collection.
             auto len = r.range.length;
-            return r.range[randomGenerator.front % len];
+            return len > 0 ? r.range[randomGenerator.front % len] : FNORD;
         }
 
         if(args.length == 1) return randomImpl(args[0]);
