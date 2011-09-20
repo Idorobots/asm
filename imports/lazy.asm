@@ -29,11 +29,11 @@
   (lazy (when lst
               (join (first lst) (make-lazy (rest lst))))))
 
-(function take (n .lazy lst)
+(function take (n lst)
   (unless (or (equal? n 0) (fnord?~ lst))
           (join (first~ lst) (take (- n 1) (rest~ lst)))))
 
-(function take-all (.lazy lst)
+(function take-all (lst)
   (unless (fnord?~ lst)
           (join (first~ lst) (take-all (rest~ lst)))))
 

@@ -71,7 +71,7 @@ class Parser {
      *********************/
 
     enum ESyntax : string {
-        Keyword         = ".",          ///Sticks a keyword to an expression.
+        Keyword         = "@",          ///Sticks a keyword to an expression.
         Quote           = "'",          ///Quoting: '(#whatever)
         Quasiquote      = "`",          ///Quasiquoting.
         Embed           = "$",          ///'(some expression $with_embedded_symbol
@@ -307,15 +307,15 @@ class Parser {
         test1(`"$[Same () thing for [ a {list}]]"`, "$0");
         ///Keywords dispatch:
         //TODO: Shit, those line numbers are a pain in the ass when adding new tests.
-        test("String with .keywords in it.",
-             "# LINE 41 String with . keywords in it.");
-        test("(Expression with .keywords (and .other expressions).in it.)",
-             "# LINE 42 ( Expression with . keywords ( and . other expressions ) . in it. )");
-        test("(.keyword rigth next to).a paren.",
-             "# LINE 43 ( . keyword rigth next to ) . a paren.");
+        test("String with @keywords in it.",
+             "# LINE 41 String with @ keywords in it.");
+        test("(Expression with @keywords (and @other expressions)@in it.)",
+             "# LINE 42 ( Expression with @ keywords ( and @ other expressions ) @ in it. )");
+        test("(@keyword rigth next to)@a paren.",
+             "# LINE 43 ( @ keyword rigth next to ) @ a paren.");
         ///General fun:
-        test("not.a.keyword.",
-             "# LINE 44 not.a.keyword.");
+        test("not@keyword.",
+             "# LINE 44 not@keyword.");
         test("not#a#comment#",
              "# LINE 45 not#a#comment#");
         test("not$an$embed$",

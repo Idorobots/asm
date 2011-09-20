@@ -17,7 +17,7 @@
 # Convinient if else clause.
 (var if* if)
 
-(macro if [.tuple args]
+(macro if [@tuple args]
   `(if* ($(first args) $(second args))
         (else $(third args))))
 
@@ -36,13 +36,13 @@
   `(select $s $(reduce compose predicates)))
 
 # Convinient Vector.call():
-(macro __vectorcall [l .tuple indeces]
+(macro __vectorcall [l @tuple indeces]
   (if (rest indeces)
       `(map (lambda [i] (nth $l i)) '$(vectorof indeces))
       `(nth $l $(first indeces))))
 
 # Convinient Vector.eval()
-(macro __vectoreval [.tuple elements]
+(macro __vectoreval [@tuple elements]
   (do (var args '[])
       (var body '[])
       (function dispatch [had->? arg]
@@ -69,7 +69,7 @@
     (lambda $args $body)))
 
 # Package declarator.
-(macro package [name .tuple body]
+(macro package [name @tuple body]
   `(var $name $(join 'scope body)))
 
 # Class declarator.
@@ -91,16 +91,8 @@
 # Loops:
 
 # Infinite loop.
-(macro loop [.tuple body]
-  (append '(do .while 1) body))
-
-# While loop.
-#(macro while [condition .tuple body]
-  (append `(do $.while condition) body))
-
-# Until loop.
-#(macro until [condition .tuple body]
-  (append `(do $.until condition) body))
+(macro loop [@tuple body]
+  (append '(do @while 1) body))
 
 # Boolean operations and conditionals:
 (macro not [a]
@@ -115,12 +107,12 @@
       (var __b b)
       `(if $__a $__a (if $__b $__b))))
 
-(macro unless [condition .tuple body]
+(macro unless [condition @tuple body]
   `(if $condition
        fnord
        $(append '(do fnord) body)))
 
-(macro when [condition .tuple body]
+(macro when [condition @tuple body]
   `(if $condition
        $(append '(do fnord) body)))
 

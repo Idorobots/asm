@@ -36,7 +36,8 @@
 (function hitTheOrc []                         # Ouch!
  `(You hit the Orc in the $(roll dHIT) for $(+ (d 8) 4) damage!))
 
-(function attack []                           # Ouch^2!
+(function attack []                            # Ouch^2!
   (do (map [arg -> (write arg \space)]
            (hitTheOrc))
       (write \newline)))
+
