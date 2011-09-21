@@ -212,6 +212,12 @@ class VM {
         test("(if ('foo 'bar))", "bar");
         test("(if (fnord 'bar))", "()");
         test("(if (fnord 1 2 3) (() 2 3 4) ('() 3 4 5) ('fnord 4 5 6))", "6");
+        test("(var bar '[1 2 3])", "[1 2 3]");
+        test("(bar -1)", "3");
+        test("(bar 1)", "2");
+        test("(bar 23)", "()");
+        test("(bar -3)", "1");
+        test("(bar -23)", "()");
     }
 
     /***********************************************************************************
@@ -283,10 +289,23 @@ class VM {
      *********************/
 
     Expression NTH(ref Scope s, Expression[] args) {
-        int index = to!int(args[1].eval(s).value);           //TODO: Idiotproof
+        auto indexArg = args[1].eval(s).value;
+        int index;
+        try {
+            index = to!int(indexArg);
+        }
+        catch(Exception e) {
+            return FNORD;
+        }
+
         auto coll = args[0].eval(s).range;
-        if((index >= 0) && (index < coll.length)) return coll[index];
-        if((index < 0) && (coll.length - index >= 0)) return coll[$+index];
+        if(index >= 0) {
+            if(index < coll.length) return coll[index];
+        }
+        else if(index < 0) {
+            index = -index;
+            if(index <= coll.length) return coll[$-index];
+        }
         return FNORD;
     }
 
