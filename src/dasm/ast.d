@@ -137,7 +137,6 @@ abstract class Expression {
     private uint lineNumber;
     private string[] keys;
 
-
     ~this() {
         this.fileName = null;
         this.lineNumber = 0;
@@ -393,7 +392,10 @@ class Collection(uint collectionType,
     this(Expression[] coll, uint line = __LINE__, string file = __FILE__) {
         this.line = line;
         this.file = file;
-        this.coll = coll;
+        static if(!(collectionType & Type.Tuple)) {     //FIXME: Quickfix
+            this.coll = coll.dup;
+        }
+        else this.coll = coll;
     }
 
     ~this() {

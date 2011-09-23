@@ -40,7 +40,6 @@ import dasm.kit;
 import dasm.lexer;
 import dasm.parser;
 
-
 /***********************************************************************************
  * Interpreter
  *********************/
@@ -146,6 +145,9 @@ class VM {
         define("error", new BuiltinKeyword(&ERROR, 1));
         define("syntax-error", new BuiltinKeyword(&SYNTAXERROR, 1));
         define("quit", new BuiltinKeyword(&QUIT));
+
+        //Other:
+        define("is?", new PureBuiltin(&IS, 2));
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
@@ -201,8 +203,6 @@ class VM {
         test("bar", "2");
         test("(do (var x 1) (set! x (add x 1)) (add x 1))", "3");
         test("((lambda [x] (add x x)) 5)", "10");
-        test("('[1 2 3] 1)", "2");
-        test("('[1 2 3] -1)", "3");
         test("(equal? fnord () '())", "yup");
         test("(equal? 3.14159265 3.141592)", "()");
         test("(equal? '(1 2 3) (tuple (add 0 1) (add 1 1) (add 2 1)))", "(1 2 3)");
@@ -212,6 +212,8 @@ class VM {
         test("(if ('foo 'bar))", "bar");
         test("(if (fnord 'bar))", "()");
         test("(if (fnord 1 2 3) (() 2 3 4) ('() 3 4 5) ('fnord 4 5 6))", "6");
+        test("('[1 2 3] 1)", "2");
+        test("('[1 2 3] -1)", "3");
         test("(var bar '[1 2 3])", "[1 2 3]");
         test("(bar -1)", "3");
         test("(bar 1)", "2");
@@ -914,5 +916,13 @@ class VM {
 
     Expression LAZY(ref Scope s, Expression[] args) {
         return new Lazy(args[0], s);
+    }
+
+    Expression IS(ref Scope s, Expression[] args) {
+        auto arg0 = args[0].eval(s).deref;
+        auto arg1 = args[1].eval(s).deref;
+
+        if(arg0 is arg1) return arg0;
+        return FNORD;
     }
 }

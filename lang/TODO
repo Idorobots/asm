@@ -18,6 +18,13 @@
 
 ################################################################################
 
+* TODO ATM
+# Things being done ATM.
+
+
+
+################################################################################
+
 * TODO Lexical:
 ** TEST Comments:
 - [X] Line comments starting with "##" or "# ". E.g. # line comment\n
@@ -157,7 +164,7 @@
 - [ ] Usable only with atomic types.
 - [ ] Packed tightly internally.
 - [ ] ? Abstract 'string collection' out of the string:
-      + |s t r \0| - character string. (Same as "str\0".)
+      + |s t r \n| - character string. (Same as "str\n".)
       + |0 3 1 2 3| - number string.
 - [ ] ? Expression embedding:
       + | 1 2 $(+ 1 2) 3 |

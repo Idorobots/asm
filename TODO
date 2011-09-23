@@ -16,47 +16,15 @@
 * TODO ATM:
 # Things being done ATM.
 
-** TODO Metadata and error messages.
-** TODO Refucktorisation:
-- [X] ASM modulenames to lowercase.
-- [X] Rename ASM to dasm.
-- [X] ? ASM.interpreter -> dasm/dasm.state.
-- [ ] ? ASM.parser -> dasm.lexer.
-- [X] ASM.AST -> dasm.ast.
-- [X] ASM.kit -> dasm.kit.
-- [ ] ? ASM.lexical -> dev/null.
-*** Builtins:
-- [X] Postfixes:
-      + [X] ! - changes state.
-      + [X] ? - predicate.
-      + [X] ~ - lazy.
-      + [X] * - ???
-- [ ] Clean up the interpreter module.
-*** AST:
-- [ ] Divide into several AST modules for readability.
-- [X] Add Closure class.
-- [ ] Add Macro class.
-- [X] Type -> Types
-- [X] += Type - containing convinience functions, such as .isInteger()
-      etc.
-- [ ] += Location containing source metadata - line+column number,
-      filename etc.
-- [X] List -> Vector
-- [ ] ? String -> CharacterString
-*** Parser:
-- [ ] ? Parser -> Lexer
-- [X] DefaultParser -> Parser
-- [ ] += Token containing pointer to a position in the input buffer
-      (location), value (regex string) and data (the actual token).
-*** Interpreter:
-- [X] Interpreter -> VM
-- [ ] Move MACRO to a new AST class.
-- [ ] Downcase the implementations.
-- [ ] Move implementations to a separate module(s).
-
-** TODO Optimise function calls and its memory usage.
-** Fix the language specs.
-** THINK New parser.
+** TODO Fix the language specs:
+- [ ] Write specs frame.
+- [ ] Expand the frame with already implemented things.
+- [ ] Expand the frame even more.
+- [ ] Keep expanding.
+- [ ] ???
+- [ ] PROFIT
+** Optimise function calls and its memory usage.
+** New parser.
 ** Clean up the Core module.
 
 ################################################################################
@@ -398,7 +366,7 @@
 *** correct Tuple:
 - [ ] Immutable
 - [ ] Made out of ordered pairs for structure sharing.
-- [ ] (elements)
+- [ ] (elements) and (elements , a)
 - ? Think about the append problem.
 *** correct Set:
 - [ ] AVL/Red-Black tree/Heap.
@@ -410,13 +378,13 @@
 - [X] That be it yo.
 - [X] [elements]
 *** HashTable:
-- #[(key value) (key2 value2)]
+- [ ] #[(key value) (key2 value2)]
 *** Scope:
 - ? $(contents same as HashTable)
 - ? Same as HashTable?
 *** Array/String:
-- | atomic elements |
-- "special literal for character string"
+- [ ] | atomic elements |
+- [ ] "special literal for character string"
 ** Callables:
 *** Functions:
 - [ ] ? Purity checks when defining a lambda.
@@ -433,6 +401,7 @@
 - [ ] (error error-object/string)
 ** Lazy evaluation:
 - [X] Native, first-clas Promise.
-- [X] Native (lazy e) macro.
+- [X] Builtin (lazy e) macro.
 - [ ] ? Lazyfy builtins.
+- [ ] ? Make it not callable and add builtin (force e) macro.
 
