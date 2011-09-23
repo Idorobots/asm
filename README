@@ -14,10 +14,9 @@ Visit its homepage at http://idorobots.org/asm/
 
 Building:
 
-ASM requires D version 2.053+. To compile type:
+ASM requires D version 2.053+.
+To compile type:
 
-    $ ./make
+    $ make [dmd]
 
-By default it uses GDC compiler to compile ASM, to use DMD instead type:
-
-    $ ./make dmd
+By default it uses GDC compiler to compile ASM, to use DMD add `dmd'.

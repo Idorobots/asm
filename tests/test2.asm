@@ -1,4 +1,7 @@
-(var bar 'lol)
+# Test 2
+# Status: passed
+
+(var foo 'bar)
 
 
-(error "test lol" 'wat?)
+(error "This will fail." 'test2) # Expected an error msg at line 7.

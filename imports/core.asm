@@ -24,8 +24,12 @@
 (var else 'totally-not-fnord)
 
 # Common escape sequences.
+(var (\n    \t   \s  \d   \r   \b   \q)
+     '("\n" "\t" " " "\$" "\r" "\\" "\""))
+
 (var (\newline \tab \space \dollar \return \backslash \quote)
-     '("\n"    "\t" " "    "\$"    "\r"    "\\"       "\""))
+     (tuple \n \t \s \d \r \b \q))
+
 
 # Convinient Scope.call():
 (macro __scopecall [arg]
@@ -88,6 +92,11 @@
                    (function new []
                      (scope $(append '(do fnord) (tupleof locals))))))))
 
+# Unittest macro:
+(macro unittest [name @tuple body]
+  `(catch $(append '(do ()) body)
+          [e -> (write "Unittest `" $name "' failure: `" e "'.\n")
+                (quit)]))
 # Loops:
 
 # Infinite loop.
@@ -168,7 +177,7 @@
   (when l
         (if (rest l)
             (append (reverse (rest l))
-                     (vector (first l)))
+                    (vector (first l)))
             l)))
 
 (function assoc [key alist]
@@ -236,10 +245,13 @@
 (function combine [f]
   (lambda [x y]
     (if (not (fnord? x))
-        (f (f (first x) (first y))
-           ((combine f) (rest x) (rest y))))))
+        (join (f (first x) (first y))
+              ((combine f) (rest x) (rest y))))))
 
 (var zip (combine join))
+
+(function zipWith [f a b]
+  ((combine f) a b))
 
 (function riff-shuffl [deck]
   (do (function take [n seq]
