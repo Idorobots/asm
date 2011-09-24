@@ -14,14 +14,17 @@
 
 * TODO THINGS CONCERNING THIS FILE:
 - Move implementation specific stuff back to Interpreter TODO.
-- Add all the needed lang spec stuff.
 
 ################################################################################
 
 * TODO ATM
-# Things being done ATM.
+# Things getting done ATM.
 
-
+* TODO Write frame of the specs.
+- [X] Types.
+- [ ] Language constructs (pattern matching, error handling etc).
+- [ ] ? User defined types.
+- [ ] ? Special form and builtin lists.
 
 ################################################################################
 
@@ -100,16 +103,16 @@
 - [X] Immutable
 - [X] Call the first Callable object in them with the rest of the
       tuple as the call arguments upon their evaluation. (by default)
-** TEST List:
-- [X] Evaluate to an anonymous function built from the list. (by
+** TEST Vector:
+- [X] Evaluate to an anonymous function built from the elements. (by
       default)
-- [X] Evaluate to "__listeval" function with the elements passed as
+- [X] Evaluate to "__vectoreval" function with the elements passed as
       the arguments.
 - [X] Callable with an index, return a reference to that element. (by
       default)
-- [X] Call "__listcall" function when called passing call arguments
+- [X] Call "__vectorcall" function when called passing call arguments
       and themselves as its arguments.
-** TEST Sets:
+** TEST Set:
 - [X] Evaluate all the expressions they contain in the source file
       order, returning the last one. (by default)
 - [X] Evaluate to "__seteval" function with the elements passed as

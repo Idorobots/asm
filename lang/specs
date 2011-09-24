@@ -1,0 +1,160 @@
+*ASM programming language v0.0*
+
+* Lexical
+** Source code
+*** Character set
+*** Whitespace
+*** End of line
+*** End of file
+** Comments
+*** Line comments
+*** Shebang
+*** Expression comments
+** Tokens
+** Identifiers
+** String literals
+*** Escape sequences
+*** Expression embeding
+** Number literals
+** Reserved keywords
+** Special tokens
+
+* Modes
+** Code mode
+** Data mode
+*** Quoting & Embeding
+*** `quote' special form
+*** `qquote' special form
+*** `embed' special form
+
+* Builtin types
+** Type traits
+*** Collection
+*** Callable
+*** Lazy
+** Atom
+*** Symbol
+**** Binding
+**** WYSIWYG symbols
+**** Symbol handling
+*** Number
+**** Representation
+**** Number handling
+** Collection
+*** Tuple
+**** Tuple literal
+**** Internal structure
+**** Immutability
+**** Unit Type
+**** Evaluation
+**** Representation
+**** Tuple handling
+*** Vector
+**** Vector literal
+**** Internal structure
+**** Evaluation
+**** Call
+**** Representation
+**** Vector handling
+*** Set
+**** Set literal
+**** Internal structure
+**** Equality
+**** Evaluation
+**** Call
+**** Representation
+**** Set handling
+*** Array
+**** Array literals
+**** Internal structure
+**** Strings
+**** Call
+**** Representation
+**** Array handling
+*** Hash
+**** Hash literal
+**** Internal structure
+**** Evaluation
+**** Call
+**** Representation
+**** Hash handling
+*** Scope
+**** Internal structure
+**** Outter scope
+**** Self reference
+**** Call
+**** Representation
+**** Scope handling
+** Callable
+*** Function
+**** Internal structure
+**** `lambda' special form
+**** Evaluation scope
+**** Self reference
+**** Representation
+**** Function handling
+*** Macro
+**** Internal structure
+**** `macro' special form
+**** Evaluation scope
+**** Macro expansion
+**** Representation
+**** Macro handling
+*** Promise
+**** Internal structure
+**** `lazy' special form
+**** `force' special form
+**** Representation
+**** Promise handling
+** Storage classes
+*** Reference
+*** Constant
+*** Lazy
+** `typeof' builtin function
+
+* Booleans
+** Unit Type
+** FNORD!
+** `if' special form
+
+* Variables
+** Lexical name binding
+** `var' special form
+*** Tuple packing
+*** Tuple unpacking
+** Special form redefinition
+
+* Generic setter
+** Settable references
+** `set!' builtin function
+
+* Strings
+** WYSIWYG symbol
+** `stringof' builtin function
+
+* Modules
+** Package directory structure
+** Lazy evaluation
+
+* Pattern matching
+** Patterns
+** `match' special form
+
+* Backtracking
+** Unification
+** `query' special form
+
+* Error handling
+** Conditions
+** Restarts
+** Exception safety
+** `try' special form
+** `error' special form
+
+* Unit testing
+** `assert' special form
+** `unittest' special form
+
+* List of the special forms
+
+* List of the builtin functions
