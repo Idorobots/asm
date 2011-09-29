@@ -1,0 +1,293 @@
+#+TITLE:    ASM programming language 0.0
+#+AUTHOR:   Kajetan Rzepecki
+#+DATE:     2011-09-29
+#+LANGUAGE: en
+
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+
+#+LaTeX_CLASS: report
+#+LaTeX_CLASS_OPTIONS: [a4paper]
+
+* Lexical
+** Source code
+ASM source text can use one of the following formats:
+
+- ASCII
+- UTF-8
+- UTF-16BE
+- UTF-16LE
+- UTF-32BE
+- UTF-32LE
+
+UTF-8 is a superset of traditional 7-bit ASCII. One of the following
+UTF BOMs (Byte Order Marks) can be present at the beginning of the
+source text:
+
+- ASCII - no BOM
+- UTF-8 - EF BB BF
+- UTF-16BE - FE FF
+- UTF-16LE - FF FE
+- UTF-32BE - 00 00 FE FF
+- UTF-32LE - FF FE 00 00
+
+*** Character set
+#+BEGIN_EXAMPLE
+Characters = Character, {Character};
+Character  = ? any Unicode character ?;
+#+END_EXAMPLE
+
+Any valid Unicode character is also a valid ASM sourcecode character.
+
+*** Whitespace
+#+BEGIN_EXAMPLE
+Whitespace = Space, {Space};
+Space      = U0009 | U000B | U000D | " " | EndOfLine;
+#+END_EXAMPLE
+
+Whitespace are a pretty cool guy. Eh separates tokens from eachother
+and doesn't afraid of anything.
+
+*** End of line
+#+BEGIN_EXAMPLE
+EndOfLine = U000A | EndOfFile;
+#+END_EXAMPLE
+
+*** End of file
+#+BEGIN_EXAMPLE
+EndOfFile = U0000 | ? physical end of file ?;
+#+END_EXAMPLE
+
+ASM source text is terminated by whichever comes first.
+
+** Comments
+#+BEGIN_EXAMPLE
+Comment      = LineComment | ExpressionComment;
+CommentStart = "#";
+#+END_EXAMPLE
+
+ASM supports two kinds of comments - line comments and expression
+comments.
+
+*** Line comments
+#+BEGIN_EXAMPLE
+LineComment = CommentStart, CommentOpt, Characters, EndOfLine;
+CommentOpt  = "!" | "#" | " ";
+#+END_EXAMPLE
+
+Line comments start with CommentStart coupled with a comment option
+and span until the EndOfLine:
+
+**** Line comment options
+CommentOpt determines the purpose of a line comment:
+
+- " " - starts a regular comment.
+- "!" - starts a shebang comment.
+- "#" - starts a documentation comment.
+
+**** Shebang
+ASM suports Unix shebang notation. First line starting with "#!" is
+simply discarded.
+
+Example:
+#+BEGIN_EXAMPLE
+#!/bin/asm
+
+(var foo 'bar)
+#+END_EXAMPLE
+
+**** Documentation Comments
+Line comments with a hash option are considered documentation comments
+and can be used to generate code documentation automatically.
+
+Examples:
+#+BEGIN_SRC javascript
+## This is a documentation comment.
+(var of-this-variable)
+
+########################################
+## This too is a documentation comment.
+###############
+
+(var of-this-other-variable)      ##So is this.
+#+END_SRC
+
+#TODO LINK
+See more here.
+
+*** Expression comments
+#+BEGIN_EXAMPLE
+ExpressionComment = CommentStart, ? any syntactically valid ASM
+expression ?;
+#+END_EXAMPLE
+
+Expression comments in ASM are useful to comment out entire
+S-expressions and are an equivalent of block comments in imperative
+languages.
+There are no different kinds of expression comments and their sole
+purpose is aiding the programmer in debugging and writting
+selfexplanatory code.
+
+Examples:
+#+BEGIN_SRC javascript
+(if (some-condition)
+    #(some buggy-piece-of-code)                (ref:1)
+    (a-quick-fix)
+ #else                                         (ref:2)
+     (else-clause))
+#+END_SRC
+
+In  [[(1)]] the programmer commented out some buggy piece of code
+and supplied a quick fix.
+[[(2)]] demonstrates the use of expression comments as means of
+clarifying the code.
+** Tokens                                                          :noexport:
+** Identifiers                                                     :noexport:
+** String literals                                                 :noexport:
+*** Escape sequences
+*** Expression embeding
+** Number literals                                                 :noexport:
+** Reserved keywords                                               :noexport:
+** Special tokens                                                  :noexport:
+
+* Modes                                                            :noexport:
+** Code mode
+** Data mode
+*** Quoting & Embeding
+*** `quote' special form
+*** `qquote' special form
+*** `embed' special form
+
+* Builtin types                                                    :noexport:
+** Type traits
+*** Collection
+*** Callable
+*** Lazy
+** Atom
+*** Symbol
+**** Binding
+**** WYSIWYG symbols
+**** Symbol handling
+*** Number
+**** Representation
+**** Number handling
+** Collection
+*** Tuple
+**** Tuple literal
+**** Internal structure
+**** Immutability
+**** Unit Type
+**** Evaluation
+**** Representation
+**** Tuple handling
+*** Vector
+**** Vector literal
+**** Internal structure
+**** Evaluation
+**** Call
+**** Representation
+**** Vector handling
+*** Set
+**** Set literal
+**** Internal structure
+**** Equality
+**** Evaluation
+**** Call
+**** Representation
+**** Set handling
+*** Array
+**** Array literals
+**** Internal structure
+**** Strings
+**** Call
+**** Representation
+**** Array handling
+*** Hash
+**** Hash literal
+**** Internal structure
+**** Evaluation
+**** Call
+**** Representation
+**** Hash handling
+*** Scope
+**** Internal structure
+**** Outter scope
+**** Self reference
+**** Call
+**** Representation
+**** Scope handling
+** Callable
+*** Function
+**** Internal structure
+**** `lambda' special form
+**** Evaluation scope
+**** Self reference
+**** Representation
+**** Function handling
+*** Macro
+**** Internal structure
+**** `macro' special form
+**** Evaluation scope
+**** Macro expansion
+**** Representation
+**** Macro handling
+*** Promise
+**** Internal structure
+**** `lazy' special form
+**** `force' special form
+**** Representation
+**** Promise handling
+** Storage classes
+*** Reference
+*** Constant
+*** Lazy
+** `typeof' builtin function
+
+* Booleans                                                         :noexport:
+** Unit Type
+** FNORD!
+** `if' special form
+
+* Variables                                                        :noexport:
+** Lexical name binding
+** `var' special form
+*** Tuple packing
+*** Tuple unpacking
+** Special form redefinition
+
+* Generic setter                                                   :noexport:
+** Settable references
+** `set!' builtin function
+
+* Strings                                                          :noexport:
+** WYSIWYG symbol
+** `stringof' builtin function
+
+* Modules                                                          :noexport:
+** Package directory structure
+** Lazy evaluation
+
+* Pattern matching                                                 :noexport:
+** Patterns
+** `match' special form
+
+* Backtracking                                                     :noexport:
+** Unification
+** `query' special form
+
+* Error handling                                                   :noexport:
+** Conditions
+** Restarts
+** Exception safety
+** `try' special form
+** `error' special form
+
+* Unit testing                                                     :noexport:
+** `assert' special form
+** `unittest' special form
+
+* Documenting code                                                 :noexport:
+
+* List of the special forms                                        :noexport:
+
+* List of the builtin functions                                    :noexport:
