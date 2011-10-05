@@ -199,11 +199,11 @@ class Parser {
 
             string output;
             s = (expanded~Lexical.EndOfFile).ptr;
-            auto prefix = [Lexical.CommentStart,              //Sexp comment.
-                           ESyntax.Keyword[0],                //. -> nothing. //TODO
-                           ESyntax.Quote[0],                  //' -> (quote )
-                           ESyntax.Quasiquote[0],             //` -> (qquote )
-                           ESyntax.Embed[0]];                 //$ -> (embed )
+            string prefix = [Lexical.CommentStart,              //Sexp comment.
+                             ESyntax.Keyword[0],                //. -> nothing. //TODO
+                             ESyntax.Quote[0],                  //' -> (quote )
+                             ESyntax.Quasiquote[0],             //` -> (qquote )
+                             ESyntax.Embed[0]];                 //$ -> (embed )
             bool jollyRogger = true;
             while(*s) {
                 if(*s <= Lexical.Space) {
@@ -382,16 +382,16 @@ class Parser {
         tokens.popFront;
 
         //All kinds of parenthesis.
-        auto parens = [cast(immutable(char))Syntax.LTuple : cast(immutable(char))Syntax.RTuple, //FIXME: Pretier!
-                       Syntax.LVector: Syntax.RVector,
-                       Syntax.LSet :   Syntax.RSet];
-        auto antyparens = [cast(immutable(char))Syntax.RTuple : cast(immutable(char))Syntax.LTuple,
-                           Syntax.RVector :  Syntax.LVector,
-                           Syntax.RSet :   Syntax.LSet];
+        immutable(char)[immutable(char)] parens = [Syntax.LTuple : Syntax.RTuple,
+                             Syntax.LVector: Syntax.RVector,
+                             Syntax.LSet :   Syntax.RSet];
+        immutable(char)[immutable(char)] antyparens = [Syntax.RTuple : Syntax.LTuple,
+                                 Syntax.RVector :Syntax.LVector,
+                                 Syntax.RSet :   Syntax.LSet];
         //Extended syntax.
-        auto expandables = [cast(string)ESyntax.Quote : cast(string)Keywords.Quote,
-                            ESyntax.Quasiquote : Keywords.Quasiquote,
-                            ESyntax.Embed :      Keywords.Embed];
+        string[string] expandables = [ESyntax.Quote :      Keywords.Quote,
+                                      ESyntax.Quasiquote : Keywords.Quasiquote,
+                                      ESyntax.Embed :      Keywords.Embed];
 
         if(token == ""~Syntax.StringDelim) {
             auto index = tokens.front;             //The next token is _always_ the offset in string bank.
@@ -452,7 +452,8 @@ class Parser {
 
         //The last possible case - a symbol or a number.
         try { //BUG FIXME with a rake or something. Seriously?
-            if(token == "-" || token == "in" || token == "I" || token == "i")
+            auto badShit = ["-", "in", "In", "IN", "iN", "I", "i"]; //Or shall I say "bat-shit".
+            if(contains(badShit, token))
                 throw new Exception("A Phobos bug workarround.");
             auto value = to!real(token);
             return new Number(value, lineNumber, fileName);

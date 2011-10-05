@@ -415,8 +415,7 @@ class Collection(uint collectionType,
         static if(collectionType & Type.Tuple) {
             try {
                 if(!coll.length) return this;
-                auto op = coll[0].eval(s);
-                return op.call(s, coll[1 .. $]); //TODO Signalize not evaluated OP
+                return coll[0].eval(s).call(s, coll[1 .. $]); //TODO Signalize not evaluated OP
             }
             catch(SemanticError e) {
                 throw new CalledHereError(e, this);
@@ -604,20 +603,14 @@ class Callable(uint procType) : Expression {
 
 class Closure : Expression {
     Scope definitionScope;
-    string[] args;
+    Expression argList;
     Expression functionBody;
 
     this(Scope s, Expression argList, Expression functionBody,
         uint line = __LINE__, string file = __FILE__)
     {
         this.definitionScope = s;
-
-        foreach(arg; argList.range) {
-            if(isSymbol(arg))
-                args ~= arg.toString;
-            else throw new ObjectNotAppError(arg);
-        }
-
+        this.argList = argList;
         this.functionBody = functionBody;
         this.line = line;
         this.file = file;
@@ -625,13 +618,15 @@ class Closure : Expression {
 
     ~this() {
         this.definitionScope = null;
-        this.args = null;
+        this.argList = null;
         this.functionBody = null;
     }
 
     override Expression call(ref Scope callScope, Expression[] callArgs) {
-        if(callArgs.length != args.length) {
-            auto arity = args.length;
+        auto len = argList.range.length;
+
+        if(callArgs.length != len) {
+            auto arity = len;
             throw new SemanticError(format("Expected exactly %s argument%s instead of %s.",
                                            arity, arity != 1 ? "s" : "", callArgs.length),
                                     line, file);
@@ -640,8 +635,8 @@ class Closure : Expression {
         auto closureScope = new Scope(definitionScope);
         closureScope.define(Keywords.Self, this);
 
-        foreach(i, arg; args) {
-            closureScope.define(arg, callArgs[i].eval(callScope));
+        foreach(i, arg; argList.range) {
+            closureScope.define(arg.toString, callArgs[i].eval(callScope));
         }
         return functionBody.eval(closureScope);
     }
@@ -652,12 +647,7 @@ class Closure : Expression {
 
     override string toString() {
         //FIXME: Syntax independant.
-        auto output = "("~Keywords.Lambda~" (";
-        foreach(arg; args)
-            output ~= arg~" ";
-
-        if(args.length) output = output[0 .. $-1];
-        return output~") "~functionBody.toString~")";
+        return "("~Keywords.Lambda~" "~argList.toString~" "~functionBody.toString~")";
     }
 
     override bool opEquals(Object o) {
@@ -667,15 +657,64 @@ class Closure : Expression {
         auto c = cast(Closure) e.deref;
         if(!c) return false;
 
-        if(this.args != c.args) return false;
+        if(this.argList != c.argList) return false;
         if(this.functionBody != c.functionBody) return false;
 
         return true;
     }
-
 }
 
-//alias Callable!(Type.Function)                          Function;       ///Function.
+class Macro : Expression {
+    Expression argList;
+    Expression macroBody;
+
+    this(Expression argList, Expression macroBody, uint line = __LINE__, string file = __FILE__) {
+        this.argList = argList;
+        this.macroBody = macroBody;
+        this.line = line;
+        this.file = file;
+    }
+
+    ~this() {
+        this.argList = null;
+        this.macroBody = null;
+    }
+
+    override Expression call(ref Scope callScope, Expression[] callArgs) {
+        auto macroScope = new Scope(callScope);
+
+        foreach(i, arg; argList.range) {
+            if(contains(arg.keywords, "tuple")) {
+                macroScope.define(arg.toString, new Tuple(callArgs[i .. $]));
+                break;
+            }
+            else macroScope.define(arg.toString, callArgs[i]);
+        }
+        return macroBody.eval(macroScope).eval(callScope);
+    }
+
+    override uint type() {
+        return Type.Callable|Type.Keyword;
+    }
+
+    override string toString() {
+        return "("~Keywords.Macro~" #gensymed-name "~argList.toString~" "~macroBody.toString~")";
+    }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto m = cast(Macro) e.deref;
+        if(!m) return false;
+
+        if(this.argList != m.argList) return false;
+        if(this.macroBody != m.macroBody) return false;
+
+        return true;
+    }
+}
+
 alias Callable!(Type.Pure|Type.Function)                Pure;           ///Pure function.
 alias Callable!(Type.Builtin|Type.Function)             Builtin;        ///Builtin function.
 alias Callable!(Type.Pure|Type.Builtin|Type.Function)   PureBuiltin;    ///Builtin function.

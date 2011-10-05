@@ -2,8 +2,6 @@
 # A short game in ASM.
 ####################
 
-(import 'imports.core)
-
 # Places to go.
 (var *nodes* '{(living-room (You are in the living-room. A wizard is snoring loudly on the couch.))
                (garden (You are in a beautiful garden. There is a well in front of you.))
@@ -46,8 +44,8 @@
 
 (function look []
   (append (describe-location *location* *nodes*)
-           (describe-paths *location* *edges*)
-           (describe-objects *location* *objects* *object-locations*)))
+          (describe-paths *location* *edges*)
+          (describe-objects *location* *objects* *object-locations*)))
 
 (function walk [direction] {
   (var next (first (select (rest (assoc *location* *edges*))

@@ -524,39 +524,11 @@ class VM {
 
     /***********************************************************************************
      * Returns a new syntax keyword.
-     * TODO: Move to a separate AST class.
      *********************/
 
     Expression MACRO(ref Scope s, Expression[] args) {
-        Expression macroName = args[0];
-        Expression argList   = args[1];
-        Expression macroBody = args[2];
-
-        uint minArity = argList.range.length;
-        uint maxArity = argList.range.length;
-
-        //TODO This shall be outta here.
-        foreach(i, arg; argList.range) {
-            if(contains(arg.keywords, "tuple")) {
-                maxArity = INF_ARITY;
-                break;
-            }
-        }
-
-        auto foo = new Keyword(delegate Expression (ref Scope callScope, Expression[] callArgs) {
-            auto macroScope = new Scope(callScope);
-            foreach(i, arg; argList.range) {
-                if(contains(arg.keywords, "tuple")) {
-                    macroScope.define(arg.toString, new Tuple(callArgs[i .. $])); //TODO: Keyword.Dots?
-                    break;
-                }
-                else macroScope.define(arg.toString, callArgs[i]);
-            }
-            return macroBody.eval(macroScope).eval(callScope);
-        }, minArity, maxArity);
-
-        s.define(macroName.toString, foo);
-        return macroName;
+        s.define(args[0].toString, new Macro(args[1], args[2]));
+        return args[0];
     }
 
     /***********************************************************************************
