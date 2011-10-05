@@ -169,7 +169,10 @@ class Parser {
             auto s = (input~Lexical.EndOfFile).ptr;
             while(*s) {
                 if(*s == Lexical.CommentStart) {
-                    if(s[1] && contains([Lexical.CommentStart, Lexical.Space, Lexical.Bang], s[1]))
+                    if(s[1] && contains(cast(string) [Lexical.CommentStart,
+                                                      Lexical.Space,
+                                                      Lexical.Bang],
+                                        s[1]))
                         while(*s && *s != Lexical.EndOfLine) s++;
                 }
                 output ~= *s++;
@@ -184,10 +187,10 @@ class Parser {
         pure string syntaxExpand(in string input) {
             string expanded;
             auto s = (input~Lexical.EndOfFile).ptr;
-            auto syntax = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
-                           Syntax.LVector,Syntax.RVector,     //Vector parentesis
-                           Syntax.LSet,   Syntax.RSet,        //Set parentesis
-                           Syntax.StringDelim];               //String delimiter.
+            string syntax =  [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
+                              Syntax.LVector,Syntax.RVector,     //Vector parentesis
+                              Syntax.LSet,   Syntax.RSet,        //Set parentesis
+                              Syntax.StringDelim];               //String delimiter.
             while(*s) {
                 if(contains(syntax, *s)) expanded ~= ""~Lexical.Space~s[0 .. 1]~Lexical.Space;
                 else expanded ~= s[0 .. 1];
@@ -334,9 +337,9 @@ class Parser {
     body {
         string[] tokens;
         string token;
-        auto parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
-                       Syntax.LVector,Syntax.RVector,     //Vector parentesis
-                       Syntax.LSet,   Syntax.RSet];       //Set parentesis
+        string parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
+                         Syntax.LVector,Syntax.RVector,     //Vector parentesis
+                         Syntax.LSet,   Syntax.RSet];       //Set parentesis
         auto s = (input~Lexical.EndOfFile).ptr;
         while(*s) {
             if(*s == ' ') {

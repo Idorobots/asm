@@ -134,16 +134,16 @@
 
 # Collection manipulation:
 (function second [c]
-  (first (rest c)))
+  (nth c 1))
 
 (function third [c]
-  (first (rest (rest c))))
+  (nth c 2))
 
 (function fourth [c]
-  (first (rest (rest (rest c)))))
+  (nth c 3))
 
 (function fifth [c]
-  (first (rest (rest (rest (rest c))))))
+  (nth c 4))
 
 (function empty? [coll]
   (if coll

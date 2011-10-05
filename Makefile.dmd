@@ -2,7 +2,7 @@
 
 AR = ar
 DC = dmd
-DFLAGS = -wi -Isrc
+DFLAGS = -Isrc
 GDB = -unittest -debug -gc
 DLDLIBS = -L-Llib -L-L. -L-lasm
 

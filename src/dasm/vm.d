@@ -299,14 +299,24 @@ class VM {
         catch(Exception e) {
             return FNORD;
         }
-
-        auto coll = args[0].eval(s).range;
+        auto collection = args[0].eval(s);
+        auto coll = collection.range;
         if(index >= 0) {
-            if(index < coll.length) return coll[index];
+            if(index < coll.length) {
+                if(isImmutable(collection)) {
+                    return coll[index];
+                }
+                else return new Reference(&coll[index]);
+            }
         }
         else if(index < 0) {
             index = -index;
-            if(index <= coll.length) return coll[$-index];
+            if(index <= coll.length) {
+                if(isImmutable(collection)) {
+                    return coll[$-index];
+                }
+                else return new Reference(&coll[$-index]);
+            }
         }
         return FNORD;
     }

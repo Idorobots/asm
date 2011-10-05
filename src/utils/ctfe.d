@@ -65,7 +65,9 @@ auto toUpper(in char c) {
  * TODO: is for reference parameters.
  *********************/
 
-pure bool contains(R, E)(auto ref R range, auto ref E e) {
+pure bool contains(R, E)(auto ref R range, E e)
+    if(is(E[] : R))
+{
     foreach(el; range) if(el == e) return true;
     return false;
 }
@@ -102,7 +104,7 @@ pure Array tr(alias from, alias to, Array)(Array here)
 /************************************************************************************
  * Splits `what' on elements in `at'.
  *********************/
-
+import std.stdio;
 pure Array[] split(alias at = " \r\n\t\v", Array)(Array what)
     if(is(typeof(at) == Array))
 {
@@ -110,9 +112,9 @@ pure Array[] split(alias at = " \r\n\t\v", Array)(Array what)
      Array token;
 
      foreach(c; what) {
-        if(contains(at, c)) {
+        if (contains(at, c)) {
             if(token.length) tokens ~= token;
-            token.length = 0;
+            token = null;
         }
         else token ~= c;
      }
@@ -124,7 +126,6 @@ unittest {
     static assert(split!" \t\n"("\ttest \ntest lol\n") == ["test", "test", "lol"]);
     static assert(split("\ttest \ntest lol\n") == ["test", "test", "lol"]);
 }
-
 
 /************************************************************************************
  * Joins `what' with `_with' string.
