@@ -496,6 +496,7 @@ class VM {
             if(args.length == 1)
                 foreach(var; vars)
                     s.define(var.toString, FNORD);
+
             //Tuple unpacking.
             else if(args.length == 2) {
                 value = args[1].eval(s);

@@ -1,109 +1,88 @@
 ################################################################################
-# ASM Language Specyfication TODO
+# ASM Language Specification TODO
 #
 # ? - think/rethink/reimplement
 # ! - important
 #
-#+SEQ_TODO:TODO TEST TWEAK DONE
+#+SEQ_TODO: NEXT STARTED TWEAK WRITE DONE
 #
-# TODO - planing and prototyping.
-# TEST - testing phase, decides if the feature stays or goes. Also, implementation.
-# TWEAK - tweaking, fixing stuff to work with the newer features.
+# nothing - planing.
+# NEXT - scheduled for starting.
+# STARTED - implementing and testing.
+# TWEAK - tweaking phase making a feature work with the rest of the
+#         language, decides if the feature stays or goes.
+# WRITE - scheduled to be written down in the specs.
 # DONE - the feature is stable and will probably stay forever in the language.
 ####################
 
-* TODO THINGS CONCERNING THIS FILE:
-- Move implementation specific stuff back to Interpreter TODO.
+* Lexical:
+** NEXT Phases of compilation
+** DONE Source code
+- Text formatting
+- Character sets
+- Named character entities & character sequences
+** DONE Comments
+- Start with a "#"
+*** DONE Line comments
+- Comment opt ( "#"/"!"/" ")
+- E.g #! shebang\n
+*** DONE Expression comments
+- Analyzed syntactically.
+- Used for debugging and documentation.
+- E.g. #(sexp comment), #sexp_comment
+** WRITE Identifiers
+- Reserved identifiers
+** STARTED Number literals
+*** Integer
+*** STARTED Real
+*** Complex
+*** Fractions
+*** ? Named number entities
+** String literals
+*** STARTED Escape sequences
+*** Expression embedding
 
-################################################################################
+** Metadata:
+- [X] @-prefixed (annotation much).
+- ? Allow only for symbols.
+- ? Propagate through the AST.
 
-* TODO ATM
-# Things getting done ATM.
-
-* TODO Write frame of the specs.
-- [X] Types.
-- [ ] Language constructs (pattern matching, error handling etc).
-- [ ] ? User defined types.
-- [ ] ? Special form and builtin lists.
-
-################################################################################
-
-* TODO Lexical:
-** TEST Comments:
-- [X] Line comments starting with "##" or "# ". E.g. # line comment\n
-- [X] Expression comments - analyzed syntacticly, used for debugging and
-      documenting purposes. E.g. #(sexp comment), #sexp_comment
-** TODO String literals:
-- ?
-** TODO Number literals:
-- ?
-** TODO Symbols:
-- ?
-
-################################################################################
-
-* TODO Semantic metadata:
-** TODO Keywords:
-- [X] ? Dot prefixed.
-- [X] Stick to other objects.
-- [ ] ? Propagate through the AST.
-
-################################################################################
-
-* TODO Language quirks:
-** TEST Booleans:
-- [X] Only one logical false, anything else is considered true -
-      () = fnord = '() - 0-Tuple
-** TEST Quoting & embedding:
-- [X] Quote - returns the argument untouched. Extended syntax - '.
-- [X] Quasiquote - returns the argument with embedded
-      expressions. Extended syntax - `.
-- [X] Embed - embeds an expression in quasiquote and strings,
-      evaluates strings, binds variables in pattern matching.
-      Extended syntax - $.
-** TODO Pattern matching:
-- [ ] (matches? pattern arg)
-- [ ] Binds embedded/backtracked symbols from pattern to the actual objects,
-      returns a Scope with the symbols defined in it.
-** TODO Backtracking:
-- [ ] ? Triggered by backtrack expression. Extended syntax - ?.
-** TODO Error handling:
-- [ ] UnitType
-- [ ] ? error/catch functions.
-
-################################################################################
-
-* TODO Atomic types:
-** TEST Numbers:
+* Types:
+** Atomic types:
+*** Numbers:
 - [X] Evaluate to themselves.
-** TEST Symbols:                                                      :THINK:
+*** Symbols:
 - [X] Evaluate to their bound expression.
-- [ ] ? Pass their keywords to their bound expression.
+- ? Pass their metadata to their bound expression.
 
-################################################################################
-
-* TODO Collection types:
-** TODO Strings:                                                      :THINK:
+** Collection types:
+*** Arrays:
+- [ ] Usable only with atomic types.
+- [ ] Packed tightly internally.
+- [ ] ? Abstract 'string collection' out of the string:
+  + |'s 't 'r \n| - character string. (Same as "str\n".)
+  + |0 3 1 2 3| - number string.
+- [ ] ! Expression embedding:
+  + |1 2 $(+ 1 2) 3|
+  + "foo $bar"
+**** Strings:
 - [X] Immutable
 - [X] Symbol:
-    + [X] Evaluate to themselves unless forced to eval by embed
-          expression.
-    + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
+  + [X] Evaluate to themselves unless forced to eval by embed
+        expression.
+  + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
 - [-] Collection:
-    + [ ] Consist of one letter symbols - characters.
-    + [ ] ? Consist of numerical representations of the characters.
-    + [X] ? Consist of one letter strings.
-- [ ] ? Special regex literal - /some regex/:
-    + [ ] Creates a special, callable regex string with common regex
-          operations defined. E.g. split, join, replace etc.
-    + [ ] ? Sed-like regexes. E.g. s/from/to/g
-- [ ] ! Recognise escape sequences. E.g. "\n" etc
-- [ ] ! String expansion "$(* 2 2) != 2" -> "4 != 2"
-** TEST Tuples:
+  + [ ] Consist of one letter symbols - characters.
+- ? Special regex literal - /some regex/:
+  + ? Creates a special, callable regex string with common regex
+      operations defined. E.g. split, join, replace etc.
+  + ? Sed-like regexes. E.g. s/from/to/g
+- [X] ! Recognise escape sequences. E.g. "\n" etc
+*** Tuples:
 - [X] Immutable
 - [X] Call the first Callable object in them with the rest of the
       tuple as the call arguments upon their evaluation. (by default)
-** TEST Vector:
+*** Vector:
 - [X] Evaluate to an anonymous function built from the elements. (by
       default)
 - [X] Evaluate to "__vectoreval" function with the elements passed as
@@ -112,7 +91,7 @@
       default)
 - [X] Call "__vectorcall" function when called passing call arguments
       and themselves as its arguments.
-** TEST Set:
+*** Set:
 - [X] Evaluate all the expressions they contain in the source file
       order, returning the last one. (by default)
 - [X] Evaluate to "__seteval" function with the elements passed as
@@ -121,17 +100,15 @@
       the predicates. (by default)
 - [X] Call "__setcall" function when called passing call arguments
       and themselves as its arguments.
-** TODO HashTables:
+*** HashTables:
 - ?
-** TODO Scopes:
+*** Scopes:
 - [X] First-class objects.
 - [X] Allow binding symbols to other objects.
 - [ ] ! Allow imorting symbols from their scope to other scopes.
 
-################################################################################
-
-* TODO Callable types:
-** TODO Functions:                                                    :THINK:
+** Callable types:
+*** Functions:
 - [X] First-class objects.
 - [ ] Pure functions:
     + [ ] Can call only other pure functions.
@@ -149,7 +126,7 @@
     + [ ] ! .optional - makes an argument optional.
     + [ ] !? ... - stores any additional call parameters in a
           collection.
-** TODO Macros:                                                       :THINK:
+*** Macros:
 - [X] First class objects.
 - [X] Evaluated before regular evaluation.
 - [X] Create new syntax keywords.
@@ -160,33 +137,44 @@
     + [ ] !? ... - stores any additional call parameters in a
           collection.
 
-################################################################################
-
-* TODO RANDOM IDEAS:
-** Strings:
-- [ ] Usable only with atomic types.
-- [ ] Packed tightly internally.
-- [ ] ? Abstract 'string collection' out of the string:
-      + |s t r \n| - character string. (Same as "str\n".)
-      + |0 3 1 2 3| - number string.
-- [ ] ? Expression embedding:
-      + | 1 2 $(+ 1 2) 3 |
-      + "foo $bar"
-** UnitType:
-- [X] O-Tuple as the UnitType.
-- [X] fnord as an alias of ().
-- [X] () == false, rest == true.
+* Language quirks:
+** Quoting & embedding:
+- [X] Quote - returns the argument untouched. Extended syntax - '.
+- [X] Quasiquote - returns the argument with embedded
+      expressions. Extended syntax - `.
+- [X] Embed - embeds an expression in quasiquote and strings,
+      evaluates strings, binds variables in pattern matching.
+      Extended syntax - $.
+** Unit Type:
+- [X] 0-Tuple
+- [X] `fnord' as alias to the Unit Type.
+** Booleans:
+- [X] Only one logical false, anything else is considered true.
+- [X] Unit Type as the only false.
+- [X] () = '() = fnord
 ** Flow control:
-- [ ] (cond (c1 b1)
-            (c2 b2)
-            ...)
+- [X] (if (c1 b1 ...)
+          (c2 b2 ...)
+          ...)
+** Pattern matching:
 - [ ] (match e
-             (p1 b1)
-             (p2 b2)
+             (p1 b1 ...)
+             (p2 b2 ...)
              ...)
+- [ ] Binds escaped symbols from pattern to the actual objects.
+- ? Escaped symbols = embeded symbols.
+- ? Returns a Scope with the symbols defined in it.
+** Backtracking:
+- ? Triggered by backtrack expression.
+- ? Extended syntax - ?.
+** Error handling:
 - [ ] (try e
            (h1 b1)
            (h2 b2)
-           ...)
+  ...)
 
-################################################################################
+- [ ] UnitType for signalising an error?
+- [ ] Returning "more than needed" on non-error.
+     E.g (member? () '(1 () 3)) -> (() 3)
+- [ ] ? error/catch functions.
+

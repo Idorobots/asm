@@ -1,15 +1,22 @@
+################################################################################
 #+TITLE:    ASM programming language 0.0
 #+AUTHOR:   Kajetan Rzepecki
-#+DATE:     2011-09-29
+#+DATE:     2011-10-08
 #+LANGUAGE: en
-
-#+EXPORT_SELECT_TAGS: export
+#
 #+EXPORT_EXCLUDE_TAGS: noexport
-
+#
 #+LaTeX_CLASS: report
 #+LaTeX_CLASS_OPTIONS: [a4paper]
+####################
 
 * Lexical
+** Phases of compilation                                           :noexport:
+*** Lexical analysis
+*** Syntactic analysis
+*** Semantic analysis
+*** Optimisation
+*** Interpretation/Code generatian
 ** Source code
 ASM source text can use one of the following formats:
 
@@ -33,7 +40,7 @@ source text:
 
 *** Character set
 #+BEGIN_EXAMPLE
-Characters = Character, {Character};
+Characters = {Character};
 Character  = ? any Unicode character ?;
 #+END_EXAMPLE
 
@@ -42,7 +49,7 @@ Any valid Unicode character is also a valid ASM sourcecode character.
 *** Whitespace
 #+BEGIN_EXAMPLE
 Whitespace = Space, {Space};
-Space      = U0009 | U000B | U000D | " " | EndOfLine;
+Space      = \U0009 | \U000B | \U000D | " " | EndOfLine;
 #+END_EXAMPLE
 
 Whitespace are a pretty cool guy. Eh separates tokens from eachother
@@ -50,12 +57,12 @@ and doesn't afraid of anything.
 
 *** End of line
 #+BEGIN_EXAMPLE
-EndOfLine = U000A | EndOfFile;
+EndOfLine = \U000A | EndOfFile;
 #+END_EXAMPLE
 
 *** End of file
 #+BEGIN_EXAMPLE
-EndOfFile = U0000 | ? physical end of file ?;
+EndOfFile = \U0000 | ? physical end of file ?;
 #+END_EXAMPLE
 
 ASM source text is terminated by whichever comes first.
@@ -141,23 +148,14 @@ In  [[(1)]] the programmer commented out some buggy piece of code
 and supplied a quick fix.
 [[(2)]] demonstrates the use of expression comments as means of
 clarifying the code.
-** Tokens                                                          :noexport:
 ** Identifiers                                                     :noexport:
-** String literals                                                 :noexport:
+** Character string literals                                       :noexport:
 *** Escape sequences
 *** Expression embeding
 ** Number literals                                                 :noexport:
 ** Reserved keywords                                               :noexport:
 ** Special tokens                                                  :noexport:
-
-* Modes                                                            :noexport:
-** Code mode
-** Data mode
-*** Quoting & Embeding
-*** `quote' special form
-*** `qquote' special form
-*** `embed' special form
-
+** Metadata                                                        :noexport:
 * Builtin types                                                    :noexport:
 ** Type traits
 *** Collection
@@ -243,51 +241,62 @@ clarifying the code.
 *** Lazy
 ** `typeof' builtin function
 
-* Booleans                                                         :noexport:
-** Unit Type
-** FNORD!
-** `if' special form
+* The language                                                     :noexport:
+** Modes
+*** Code mode
+*** Data mode
+**** Quoting & Embeding
+**** `quote' special form
+**** `qquote' special form
+**** `embed' special form
 
-* Variables                                                        :noexport:
-** Lexical name binding
-** `var' special form
-*** Tuple packing
-*** Tuple unpacking
-** Special form redefinition
+** Booleans
+*** Unit Type
+*** FNORD!
 
-* Generic setter                                                   :noexport:
-** Settable references
-** `set!' builtin function
+** Variables
+*** Lexical name binding
+*** `var' special form
+**** Tuple packing
+**** Tuple unpacking
+*** Special form redefinition
 
-* Strings                                                          :noexport:
-** WYSIWYG symbol
-** `stringof' builtin function
+** Generic setter
+*** Settable references
+*** `set!' builtin function
 
-* Modules                                                          :noexport:
-** Package directory structure
-** Lazy evaluation
+** Strings
+*** WYSIWYG symbol
+*** `stringof' builtin function
 
-* Pattern matching                                                 :noexport:
-** Patterns
-** `match' special form
+** Modules
+*** Package directory structure
+*** Lazy evaluation
+** Flow controll
+*** Conditions
+*** `if' special form
 
-* Backtracking                                                     :noexport:
-** Unification
-** `query' special form
+** Pattern matching
+*** Patterns
+*** `match' special form
 
-* Error handling                                                   :noexport:
-** Conditions
-** Restarts
-** Exception safety
-** `try' special form
-** `error' special form
+** Backtracking
+*** Unification
+*** `query' special form
 
-* Unit testing                                                     :noexport:
-** `assert' special form
-** `unittest' special form
+** Error handling
+*** Conditions
+*** Restarts
+*** Exception safety
+*** `try' special form
+*** `error' special form
 
-* Documenting code                                                 :noexport:
+** Unit testing
+*** `assert' special form
+*** `unittest' special form
 
-* List of the special forms                                        :noexport:
+** Documenting code
+* Appendices:                                                      :noexport:
+** List of the special forms
 
-* List of the builtin functions                                    :noexport:
+** List of the builtin functions

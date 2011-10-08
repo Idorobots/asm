@@ -4,52 +4,37 @@
 # ? - think/rethink/reimplement
 # ! - important
 #
-#+SEQ_TODO: THINK TODO TEST FIXME DONE
+#+SEQ_TODO: NEXT STARTED TEST FIXME DONE
 #
-# THINK - planning and prototyping phase.
-# TODO - proper implementation phase, starting with unittest writing.
-# TEST - testing phase, mainly for hindenbug tracking etc.
-# FIXME - bugfixing, unbreaking, etc.
+# nothing - plannig and designing.
+# NEXT - scheduled for implementation.
+# STARTED - proper implementation phase.
+# TEST - testing phase.
+# FIXME - scheduled for bugfixing, unbreaking, etc.
 # DONE - sweet, sweet nothing.
 ####################
 
-* TODO ATM:
-# Things being done ATM.
-
-** TODO Fix the language specs:
-- [ ] Write specs frame.
-- [ ] Expand the frame with already implemented things.
-- [ ] Expand the frame even more.
-- [ ] Keep expanding.
-- [ ] ???
-- [ ] PROFIT
-** Optimise function calls and its memory usage.
-** New parser.
-** Clean up the Core module.
-
-################################################################################
-
-* THINK THINGS TO DO IN THE LIBRARY:
+* THINGS TO DO IN THE LIBRARY:
 # Each category will be a single module.
 
-** TODO Collections:
+** Collections:
 - [X] Generic for all the collection types.
-*** TODO Collection manipulation:
+*** Collection manipulation:
 - [-] join - if the second argument is a collection - prepends it the
       the first argument, if it's not a collection - joins both
       arguments into a pair. Creates a new collection.
       Examples:
-      + (join! 1 '[1 2 3]) -> [1 1 2 3]
-      + (join! '(a b) '[1 2 3]) -> [(a b) 1 2 3]
-      + (join! 'a 'b) -> (a b)
-- [-] append - if argument types match - appends element or a
+      + (join 1 '[1 2 3]) -> [1 1 2 3]
+      + (join '(a b) '[1 2 3]) -> [(a b) 1 2 3]
+      + (join 'a 'b) -> (a b)
+- [-] append  if argument types match - appends element or a
       collection to another collection, if types don't match - appends
       the second argument to the collection.
       Creates a new collection.
       Examples:
-      + (append! '[1 2 3] 4) -> [1 2 3 4]
-      + (append! '[1 2 3] '[4 5 6]) -> [1 2 3 4 5 6]
-      + (append! '(2 3) '[2 3]) -> (2 3 [2 3])
+      + (append '[1 2 3] 4) -> [1 2 3 4]
+      + (append '[1 2 3] '[4 5 6]) -> [1 2 3 4 5 6]
+      + (append '(2 3) '[2 3]) -> (2 3 [2 3])
 - [X] first - returns a reference to the first element of a mutable
       collection, or its value for an immutable collection.
 - [X] rest - returns a new collection referencing the rest part of
@@ -62,14 +47,14 @@
 - [ ] ? slice - slices a collection creating subcollection.
 - [-] ? push, push-back, pop, pop-back.
 - ? etc
-*** TEST Collection creation:
+*** Collection creation:
 - [X] list - returns a list consisting of the call args.
 - [X] tuple - returns a tuple consisting of the call args.
 - [X] set - returns a set consisting of the call args.
 - [X] scope - reuturns a scope with call args defined in it.
 - ? etc.
-** TODO Core:
-*** TODO Type predicates:
+** Core:
+*** Type predicates:
 - [ ] ? Accept multiple args.
 - [X] Evaluate to fnord on false, to one of their args otherwise.
 
@@ -87,7 +72,7 @@
 - [X] builtin? - builtin if an expression is a builtin.
 - [X] immutable? - immutable if an expression is immutable.
 - [ ] mutable? - mutable if an expression is not immutable.
-*** TODO Type conversions:
+*** Type conversions:
 - [ ] ! Convert in place if passed a settable reference, or create a copy.
 - [ ] ? Return fnord on error.
 
@@ -105,7 +90,7 @@
         + [ ] ? Should work for atoms too.
 - [X] ! stringof - Makes a string representation of a passed arg.
 - ? etc
-*** THINK Working with numbers:
+*** Working with numbers:
 - [ ] ASMKit functions accept two arguments.
 - [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
       Return (reduce ASMKitFunc args).
@@ -123,22 +108,22 @@
 - [ ] div - generic /
 - [ ] modulo - generic mod
 - ? etc
-*** THINK Equality checks:
+*** Equality checks:
 - [ ] ASMKit versions taking only two args.
 - [ ] Generic versions returning first arg on true.
-**** THINK ASMKit:
+**** TODO ASMKit:
 - [ ] eq? - polimorfic equality check.
 - [ ] leq? - a <= b
 - ? etc
-**** THINK Generics:
+**** TODO Generics:
 - [ ] ? equal?/=/== - generic equal?
 - [ ] <= - generic leq?
 - [ ] >= - generic ((a eq? b) or (not (a leq? b)))
 - [ ] < - generic ((not (a eq? b)) and (a leq? b))
 - [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
-** THINK IO:
+** IO:
 - [ ] ? Using one interface for files, sockets, stdin etc.
-*** THINK Input:
+*** Input:
 - [ ] readln - Unformatted (string) reads.
 - [ ] read - Formatted reads.
 - [ ] ? load/open - Loads a file for reading (as a Scope/Stream with read
@@ -146,10 +131,10 @@
 - [ ] ? close - closes an imput stream.
 - [ ] eof? - returns 'yup/the object if it has reached EOF.
 - ? etc
-*** THINK Output:
+*** Output:
 - [X] write - writes string representation of the args.
 - ? etc
-** THINK Error:
+** Error:
 # Merge with Core?
 - [ ] ? error! - throws an error caugth by the REPL.
 - [ ] ? warning! - prints a warning/throws an error if 'serious
@@ -157,20 +142,20 @@
 - [-] ? catch - catches a thrown error. (Name `handle-error'?)
 - [ ] ? assert! - checks a condition and throws an error on failure.
 - ? etc
-** THINK GC:
+** GC:
 # Merge with core?
 - [ ] collect! - does a collection.
 - [ ] minimise! - minimises memory use.
 - [ ] stop! - stops GC.
 - [ ] resume! - resumes GCs work.
-** THINK Math:
+** Math:
 - ? Precompiled.
 - [ ] sqrt
 - [ ] pow
 - [ ] exp
 - [ ] min/max/clamp
 - ? etc
-** THINK Parser:
+** Parser:
 # Merge with core?
 - [ ] syntax! - defines a new reader syntax macro.
 - [ ] lex - lexes an input string.
@@ -178,12 +163,12 @@
 
 ################################################################################
 
-* TODO THINGS TO DO IN THE INTERPRETER:
+* THINGS TO DO IN THE INTERPRETER:
 # Lists things needing attention in the interpreter.
 
-** TODO Lexical:
+** Lexical:
 # Move this to lang/lexical?
-*** TODO Formal grammar description:
+*** Formal grammar description:
 - [X] Finish NumberLiteral formal description / split it into several
       numerical values.
 - [X] Finish Symbol formal description.
@@ -192,13 +177,13 @@
 - [ ] Add all needed keywords.
 - [ ] Remove all not needed keywords.
 - [ ] ? Think about the formal macro description.
-*** TODO Syntax:                                                      :THINK:
+*** Syntax:
 - [ ] ! Remove enum Syntax.
 - [ ] ! Minimise enum Lexical.
 - [X] Split to Lexical and Syntax:
     + [X] CommentStart, EndOfLine etc - Lexical
     + [X] Rest - Syntax
-*** TODO Syntax keywords:                                             :THINK:
+*** Syntax keywords:
 - [ ] Sort out which keywords are crucial and leave only those.
 - [ ] Sort the list and write proper descriptions.
 - [ ] ? Self:
@@ -208,12 +193,12 @@
     + ? Rename to something more appropriate.
     + ? Make it evaluate the expression twice.
 - [ ] ? Add __scopecall etc keywords.
-*** THINK Semantic keywords:                                          :THINK:
+*** Semantic keywords:
 - [ ] ? Add a list of builtin, recognised keywords.
 - ? Trash this?
-** TODO AST:                                                          :THINK:
-*** TODO Type:                                                        :THINK:
-*** THINK Semantic analyzis:                                      :IMPORTANT:
+** AST:
+*** Type:
+*** Semantic analyzis:
 - [ ] ? Type primitive used for semantic analyzis.
 - [ ] version(safe) toggling parts of semantic analyzis.
 - [ ] Type checking, and predictedType field in Expression.
@@ -224,7 +209,7 @@
           ifs returning many different expressions.
 - [ ] ? Arg evaluation list building using thunks.
 - [ ] Recursion depth checking.
-*** TODO Expression:                                                  :THINK:
+*** Expression:
 - [X] Additional fields:
     + [X] Line number.
     + [X] Filename.
@@ -234,12 +219,12 @@
 - [ ] hash_t toHash();
 - [X] bool opEquals(Object);
 - [ ] int opCmp(Object);
-*** TODO Atom:                                                        :THINK:
+*** Atom:
 - [X] Take the string away from there, make it a proper immutable
       collection.
 - [ ] Add more numerical types.
 - [ ] ? Add common atomic operations (like math for numbers, etc).
-*** TODO Collection:                                                  :THINK:
+*** Collection:
 - [-] call() for Set and List with no implementation for Tuple:
     + [X] call() for Set and List.
     + [ ] No compiled implementation for Tuple.
@@ -253,10 +238,10 @@
 - [ ] Proper implementation of the Tuple - linked list.
 - [ ] Proper implementation of the Set - kind of a BST.
 - [ ] Rename List to Vector.
-*** TODO Callable:                                                    :THINK:
+*** Callable:
 - [ ] ! Depth parameter for the calls.
 - [-] String representation actually showing the callable.
-*** TODO Scope:                                                       :THINK:
+*** Scope:
 - [X] ? String representation actually being usefull. (A tuple of
       keys or key/value pairs.)
 - [X] One lexical scope of the variables, macros and syntax keywords.
@@ -271,13 +256,13 @@
 - [X] Scope.call() calling "__scopecall".
 - [X] Fix storing unwanted objects when rebinding symbols.
 - [ ] ? Use outside data table and store only indeces.
-*** THINK HashTable:
+*** HashTable:
 - [ ] ? New syntax: #[(key value)]
 - [ ] ? HashTable.call() returning val-ref / (key val-ref) or UnitType.
     + ? Has to return settable ref at all times (for use with set!).
 - [ ] ? HashTable.eval() returning Scope.
 - [ ] ? Merge this with Scope.
-** TODO Kit:                                                          :THINK:
+** Kit:
 - [ ] ? Move pass() to a separate module.
 - [X] Actually write some fooking implementations.
 - [ ] Sort out which implementations are crucial for the language.
@@ -290,7 +275,7 @@
     + [X] List.eval()
     + [X] Tuple.eval()
 - [X] Fix FNORD comparisions:
-*** TODO Implementations:
+*** Implementations:
 - [-] Fix EMBED, QUOTE and QQOTE on strings.
 - [-] Find solution to/report ref parameter delegate bug from
       LAMBDA.
@@ -300,13 +285,13 @@
 - [X] GET should evaluate it's args.
 - [X] Rename FUNCTION to LAMBDA/ANONYMOUS.
 - [ ] ! LAMBDA should accept multiple expressions in a body.
-*** TODO Unittests:                                               :IMPORTANT:
+*** Unittests:
 - [X] Actually write those.
 - [X] Write more of these.
 - [ ] Write even more of these.
 - [ ] Foookin' unittest, man!
-** TODO Parser:                                                       :THINK:
-*** THINK Transition:
+** Parser:
+*** Transition:
 - [ ] ? Rename to Lexer.
 - [ ] Move the parsing into the language (A recursive descent parser,
       probably.)
@@ -317,31 +302,31 @@
       code validation.
 - [ ] Rewrite Core to parse on it.
 - [ ] Write a recursive descent parser in ASM.
-*** TODO DefaultParser:
+*** DefaultParser:
 - [X] Stop ESyntax expansion in symbols. E.g. some$ymbol.
 - [ ] Make parse() pretier!
 - [ ] Fix number parsing and PhobosBug(TM) workarrounds.
 - [ ] ? NumberParser
-*** THINK StringParser:
+*** StringParser:
 - [ ] ? Plan embedding representation.
 - [ ] Actually parsing strings.
 - [ ] Recognize escape sequences.
 - [ ] Recognize expression embeds.
-*** TODO Unittests:                                         :IMPORTANT:THINK:
+*** Unittests:
 - [ ] Make unittests Syntax independant.
 - [X] More preprocess() unittests.
 - [X] More tokenize() unittests.
 - [ ] ? parse() unittests.
-*** THINK Metadata:
+*** Metadata:
 - [X] Add file data.
 - [X] Add line number data.
 - [ ] ? Add column number data.
-** TODO Interpreter:                                                  :THINK:
+** Interpreter:
 - [ ] ? Move already implemented ASMKit functions to ASM.kit.
 - [X] Fix doString() and doFile().
 - [ ] ? InterpretingError for file interepretation.
 - [-] Fix metadata in error messages.
-*** TODO Unittests:                                               :IMPORTANT:
+*** Unittests:
 - [X] Actually write those.
 - [ ] Write more of these.
 - [ ] Write even more of these.
@@ -349,7 +334,7 @@
 
 ################################################################################
 
-* THINK RANDOM IDEAS:
+* RANDOM IDEAS:
 # Lists some ideas yet to be moved to a more apropriate place.
 
 ** Loading symbols from a .so:
