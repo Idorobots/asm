@@ -1,22 +1,29 @@
-ASM v 0.0 - Another Syntactic Monstrosity.
+--------------------------------------------------------------------------------
+ASM v 0.01 - Another Syntactic Monstrosity.
+--------------------
 
-A sandbox programming language "because I can".
-ASM is my ill attempt to make Lisp even more expressive.
+This is the source release of ASM programming language, its standard library
+CodeCube and its interpreter DASM.
 
 For licensing info see LICENSE file.
-For things needing attention see TODO file.
+For things needing attention see TODO files.
 For language specs see lang directory:
-    lang/TODO    - ASM spec TODO.
-    lang/lexical - ASM language formal description.
+    lang/TODO      - ASM spec TODO.
+    lang/specs.org - ASM language specification.
+    lang/specs.pdf - PDF version of the spec.
 
-Visit its homepage at http://idorobots.org/asm/
+Visit the homepage at http://idorobots.org/asm/
 
-
+--------------------------------------------------------------------------------
 Building:
+--------------------
 
-ASM requires D version 2.053+.
-To compile type:
+To compile DASM type:
 
     $ make [dmd]
 
-By default it uses GDC compiler to compile ASM, to use DMD add `dmd'.
+By default the GDC compiler (https://bitbucket.org/goshawk/gdc/wiki/Home) is
+used to compile DASM, to use DMD instead type `make dmd'.
+
+This build was tested under DMD2.056 and GDC 4.6.2+DMD2.055 on Ubuntu 10.04.
+
