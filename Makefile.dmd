@@ -4,6 +4,7 @@ AR = ar
 DC = dmd
 DFLAGS = -Isrc
 GDB = -unittest -debug -gc
+#GDB = -O -inline -release
 DLDLIBS = -L-Llib -L-L. -L-lasm
 
 VPATH = src:src/dasm:src/utils

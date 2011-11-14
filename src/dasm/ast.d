@@ -514,7 +514,7 @@ alias Collection!(Type.Tuple|Type.Immutable,
                   Syntax.LTuple, Syntax.RTuple, "NOPE")                 Tuple;          ///Immutable tuple. //TODO: Clean this up!
 alias Collection!(Type.Callable|Type.Vector,
                   Syntax.LVector, Syntax.RVector,
-                  "__vectoreval", "__vectorcall")                       Vector;           ///Mutable vector.
+                  "__vectoreval", "__vectorcall")                       Vector;         ///Mutable vector.
 alias Collection!(Type.Callable|Type.Set,
                   Syntax.LSet, Syntax.RSet,
                   "__seteval", "__setcall")                             Set;            ///Mutable set.
