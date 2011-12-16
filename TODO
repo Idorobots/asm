@@ -16,27 +16,19 @@
 ####################
 
 
-* THINGS TO DO IN THE INTERPRETER:
+* THINGS TO DO IN THE INTERPRETER
 # Lists things needing attention in the interpreter.
+- Decouple VM code from DASM code - making DSM only use VM as the
+  run-time environment.
 
-** Lexical:
-# Move this to lang/lexical?
-*** Formal grammar description:
-- [X] Finish NumberLiteral formal description / split it into several
-      numerical values.
-- [X] Finish Symbol formal description.
-- [X] Add escape sequences and embeds to the String formal
-      description.
-- [ ] Add all needed keywords.
-- [ ] Remove all not needed keywords.
-- [ ] ? Think about the formal macro description.
-*** Syntax:
+** dasm.lexical
+*** Syntax
 - [ ] ! Remove enum Syntax.
 - [ ] ! Minimise enum Lexical.
 - [X] Split to Lexical and Syntax:
     + [X] CommentStart, EndOfLine etc - Lexical
     + [X] Rest - Syntax
-*** Syntax keywords:
+*** Syntax keywords
 - [ ] Sort out which keywords are crucial and leave only those.
 - [ ] Sort the list and write proper descriptions.
 - [ ] ? Self:
@@ -46,12 +38,12 @@
     + ? Rename to something more appropriate.
     + ? Make it evaluate the expression twice.
 - [ ] ? Add __scopecall etc keywords.
-*** Semantic keywords:
+*** Semantic keywords
 - [ ] ? Add a list of builtin, recognised keywords.
-- ? Trash this?
-** AST:
-*** Type:
-*** Semantic analyzis:
+- ? Merge with Comments and their opts?
+** dasm.ast
+*** Type
+*** Semantic analyzis
 - [ ] ? Type primitive used for semantic analyzis.
 - [ ] version(safe) toggling parts of semantic analyzis.
 - [ ] Type checking, and predictedType field in Expression.
@@ -62,7 +54,7 @@
           ifs returning many different expressions.
 - [ ] ? Arg evaluation list building using thunks.
 - [ ] Recursion depth checking.
-*** Expression:
+*** Expression
 - [X] Additional fields:
     + [X] Line number.
     + [X] Filename.
@@ -72,15 +64,15 @@
 - [ ] hash_t toHash();
 - [X] bool opEquals(Object);
 - [ ] int opCmp(Object);
-*** Atom:
+*** Atom
 - [X] Take the string away from there, make it a proper immutable
       collection.
 - [ ] Add more numerical types.
 - [ ] ? Add common atomic operations (like math for numbers, etc).
-*** Collection:
+*** Collection
 - [-] call() for Set and List with no implementation for Tuple:
-    + [X] call() for Set and List.
-    + [ ] No compiled implementation for Tuple.
+  + [X] call() for Set and List.
+  + [ ] No compiled implementation for Tuple.
 - [X] Set.call() calling "__setcall".
 - [X] List.call() calling "__listcall".
 - [X] List evaluating to "__listeval".
@@ -90,11 +82,11 @@
 - [X] Collection specialisation for String.
 - [ ] Proper implementation of the Tuple - linked list.
 - [ ] Proper implementation of the Set - kind of a BST.
-- [ ] Rename List to Vector.
-*** Callable:
+- [X] Rename List to Vector.
+*** Callable
 - [ ] ! Depth parameter for the calls.
-- [-] String representation actually showing the callable.
-*** Scope:
+- [X] String representation actually showing the callable.
+*** Scope
 - [X] ? String representation actually being usefull. (A tuple of
       keys or key/value pairs.)
 - [X] One lexical scope of the variables, macros and syntax keywords.
@@ -108,14 +100,13 @@
 - [X] Add isDefined(string).
 - [X] Scope.call() calling "__scopecall".
 - [X] Fix storing unwanted objects when rebinding symbols.
-- [ ] ? Use outside data table and store only indeces.
-*** HashTable:
+*** HashTable
 - [ ] ? New syntax: #[(key value)]
 - [ ] ? HashTable.call() returning val-ref / (key val-ref) or UnitType.
     + ? Has to return settable ref at all times (for use with set!).
 - [ ] ? HashTable.eval() returning Scope.
 - [ ] ? Merge this with Scope.
-** Kit:
+** dasm.kit
 - [ ] ? Move pass() to a separate module.
 - [X] Actually write some fooking implementations.
 - [ ] Sort out which implementations are crucial for the language.
@@ -128,7 +119,7 @@
     + [X] List.eval()
     + [X] Tuple.eval()
 - [X] Fix FNORD comparisions:
-*** Implementations:
+*** Implementations
 - [-] Fix EMBED, QUOTE and QQOTE on strings.
 - [-] Find solution to/report ref parameter delegate bug from
       LAMBDA.
@@ -138,93 +129,96 @@
 - [X] GET should evaluate it's args.
 - [X] Rename FUNCTION to LAMBDA/ANONYMOUS.
 - [ ] ! LAMBDA should accept multiple expressions in a body.
-*** Unittests:
+*** Unittests
 - [X] Actually write those.
 - [X] Write more of these.
 - [ ] Write even more of these.
 - [ ] Foookin' unittest, man!
-** Parser:
-*** Transition:
-- [ ] ? Rename to Lexer.
-- [ ] Move the parsing into the language (A recursive descent parser,
-      probably.)
-- [ ] Figure out what recursive functions are actually needed.
-- [ ] Write their default implementations.
-# Or...
+** dasm.parser
+*** Transition
 - [ ] Make the parser minimalistic with no extended syntax, nor
       code validation.
 - [ ] Rewrite Core to parse on it.
 - [ ] Write a recursive descent parser in ASM.
-*** DefaultParser:
+*** DefaultParser
 - [X] Stop ESyntax expansion in symbols. E.g. some$ymbol.
 - [ ] Make parse() pretier!
 - [ ] Fix number parsing and PhobosBug(TM) workarrounds.
 - [ ] ? NumberParser
-*** StringParser:
+*** StringParser
 - [ ] ? Plan embedding representation.
 - [ ] Actually parsing strings.
 - [ ] Recognize escape sequences.
 - [ ] Recognize expression embeds.
-*** Unittests:
+*** Unittests
 - [ ] Make unittests Syntax independant.
 - [X] More preprocess() unittests.
 - [X] More tokenize() unittests.
 - [ ] ? parse() unittests.
-*** Metadata:
+*** Metadata
 - [X] Add file data.
 - [X] Add line number data.
 - [ ] ? Add column number data.
-** Interpreter:
-- [ ] ? Move already implemented ASMKit functions to ASM.kit.
+** dasm.vm
+- [ ] ? Move already implemented ASMKit functions to dasm.kit.
 - [X] Fix doString() and doFile().
 - [ ] ? InterpretingError for file interepretation.
 - [-] Fix metadata in error messages.
-*** Unittests:
+*** Unittests
 - [X] Actually write those.
 - [ ] Write more of these.
 - [ ] Write even more of these.
 - [ ] Foookin' unittest, man!
+** dasm.main
+*** Interpreter switches
+- --barebones | --bb - won't load anything. Will try interpreting only
+  BareBonesASM code.
+- --path - sets a search path for imports.
+- --help | -h - lists all the switches.
+- --version | -v - prints out the version number.
+- --license - prints out the licensing info.
 
 ################################################################################
 
-* RANDOM IDEAS:
+* RANDOM IDEAS
 # Lists some ideas yet to be moved to a more apropriate place.
 
-** Loading symbols from a .so:
+** Loading symbols from a .so
 - [ ] Find a way to walk arround D's unfinished stuff. *awesome happy face*
 - [ ] Find a way to precompile libraries.
 - [ ] Find a way to load precompiled files into the ASM.
-** Collections:
+- [ ] Find a way to call C code directly (a low level proc perhaps?).
+** Collections
 - [ ] Expression[] range() -> Range range()
 - [ ] += Range:
       + Containing all required Range methods.
       + opIndex()
       + opSlice()
       + opDollar()
-*** correct Tuple:
-- [ ] Immutable
-- [ ] Made out of ordered pairs for structure sharing.
+*** correct Tuple
+- [ ] Made out of immutable conses for structure sharing.
 - [ ] (elements) and (elements , a)
-- ? Think about the append problem.
-*** correct Set:
+*** correct Set
+- Figure out if it's actually needed.
 - [ ] AVL/Red-Black tree/Heap.
 - [ ] Unordered.
 - [ ] Multiset.
 - [ ] {elements}
-*** correct Vector:
+*** correct Vector
 - [X] Dynamic array.
 - [X] That be it yo.
 - [X] [elements]
-*** HashTable:
-- [ ] #[(key value) (key2 value2)]
-*** Scope:
-- ? $(contents same as HashTable)
+*** HashTable
+- [ ] #[(k v) (k v)] or #!HashTable [(k v) (k v)]
+*** Scope
+- ? $(contents same as HashTable) or #!Scope [(k v) (k v)]
 - ? Same as HashTable?
-*** Array/String:
+*** Array/String
 - [ ] | atomic elements |
 - [ ] "special literal for character string"
-** Callables:
-*** Functions:
+- Think about element evaluation problem.
+** Callables
+*** Functions
 - [ ] ? Purity checks when defining a lambda.
 - [ ] Pure functions being memoized by default.
 - [ ] ? Simple literals:
@@ -233,12 +227,20 @@
       + [ ] (lambda args body) -> 0-INF-ary, args store all the call args.
       + [ ] (lambda (a . b) body) -> N-INF-ary, b stores the rest of
             the call args.
-** Error handling:
+** Error handling
 - [ ] (catch e handler) -> (try e handler0 handler1 ...)
 - [ ] handler = (error-object handling-function)
 - [ ] (error error-object/string)
-** Lazy evaluation:
+** Lazy evaluation
 - [X] Native, first-clas Promise.
 - [X] Builtin (lazy e) macro.
+- [ ] ? Builtin (force e) macro for disambiguation.
 - [ ] ? Lazyfy builtins.
-- [ ] ? Make it not callable and add builtin (force e) macro.
+** Reader architecture
+1. BareBonesASM - a subset of the language consisting of the most low
+   level functions. Possibly the bytecode calls for the VM.
+2. Hardcoded parser that parses _only_ BareBonesASM.
+3. The language implementation
+- Core modules written directly in BareBonesASM.
+- Reader implemented in BareBonesASM.
+** Move CodeCube stuff to CodeCube TODO.

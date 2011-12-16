@@ -172,3 +172,7 @@
 - [ ] syntax! - defines a new reader syntax macro.
 - [ ] lex - lexes an input string.
 - [ ] ? parse - parses an input string. (Name read-from-string).
+* Random ideas
+** ASM macro that takes a function and returns a latex string of its pseudocode.
+[2011-12-01 czw 20:42]
+[[file:~/studia/notes/numerical/numerical.org::*Examples%20of%20changing%20numbering%20systems][Examples of changing numbering systems]]

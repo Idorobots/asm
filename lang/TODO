@@ -5,14 +5,13 @@
 # ! - important
 #
 #+STARTUP: content
-#+SEQ_TODO: NEXT STARTED TWEAK WRITE DONE
+#+SEQ_TODO: NEXT WRITE | TWEAK DONE
 #
 # nothing - planing.
 # NEXT - scheduled for starting.
-# STARTED - implementing and testing.
+# WRITE - scheduled to be written down in the specs.
 # TWEAK - tweaking phase making a feature work with the rest of the
 #         language, decides if the feature stays or goes.
-# WRITE - scheduled to be written down in the specs.
 # DONE - the feature is stable and will probably stay forever in the language.
 ####################
 
@@ -23,11 +22,11 @@
 - Named character entities & character sequences
 ** DONE Comments
 - Start with a "#"
-*** DONE Line comments
+*** TWEAK Line comments
 - Comment opt ( "#"/"!"/" ") - Eg #!/bin/asm
 - ? N-line comments - comment out several following lines at
   once - #+2 line 0\nline 1\nline 2
-*** DONE Expression comments
+*** TWEAK Expression comments
 - Analyzed syntactically.
 - Used for debugging and documentation.
 - E.g. #(sexp comment), #sexp_comment
@@ -42,13 +41,14 @@
 
 - procedure? - predicates
 - procedure! - [significant] side effects
-- procedure* - slight variation of procedure
+- ? procedure* - slight variation of `procedure'
+- procedure+ - variation of `procedure' with extended functionality
 - procedure% - low level built-in
 
 - foo->bar - conversions (from foo to bar)
-- fooof - generic conversions (to foo)
+- barof - generic conversions (to bar)
 
-- *variable* - global, mutable state
+- *variable* - a global, mutable state
 - ? CONSTANT - constant
 - ? +constant+ - constant (swap with the next one?)
 - _name_ - reserved for internal purposes
@@ -204,3 +204,11 @@
 - [ ] Returning "more than needed" on non-error.
      E.g (member? () '(1 () 3)) -> (() 3)
 - [ ] ? error/catch functions.
+* RANDOM IDEAS
+** Move CodeCube stuff to the apropriate TODO list.
+** Think about the comments some more.
+- Metadata
+- Opts
+- Expression comments
+- Shebang parameters problem
+- Multiline comments
