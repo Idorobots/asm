@@ -27,7 +27,7 @@
 module dasm.parser;
 
 import std.conv : to;
-import std.array : front, popFront;
+import std.array : front, popFront, appender;
 
 debug import std.stdio;
 debug import utils.testing;
@@ -101,15 +101,17 @@ class Parser {
             auto spc = Lexical.Space;
             auto c = Lexical.CommentStart;
 
-            string output = ""~c~"LINE"~spc~to!string(lineCount++)~spc;
+            auto output = appender!string(""~c~"LINE"~spc~to!string(lineCount++)~spc);
+            output.reserve(input.length);
 
             auto s = (input~Lexical.EndOfFile).ptr;
-            bool inAString = false, addCount = false;
+            bool inAString = false;
+            bool addCount = false;
 
             while(*s) {
-                output ~= *s;
+                output.put(*s);
                 if(*s == Lexical.EndOfLine) {
-                    if(!inAString) output ~= ""~spc~c~"LINE"~spc~to!string(lineCount++)~spc;
+                    if(!inAString) output.put(""~spc~c~"LINE"~spc~to!string(lineCount++)~spc);
                     else {
                         addCount = true;
                         lineCount++;
@@ -119,12 +121,12 @@ class Parser {
                     inAString = !inAString;
                     if(!inAString && addCount) {
                          addCount = false;
-                         output ~= ""~spc~c~"LINE"~spc~to!string(lineCount-1)~spc;
+                         output.put(""~spc~c~"LINE"~spc~to!string(lineCount-1)~spc);
                     }
                 }
                 s++;
             }
-            return output;
+            return output.data;
         }
 
         /***********************************************************************************
@@ -132,7 +134,8 @@ class Parser {
          *********************/
 
         string stringCollapse(in string input) {
-            string output;
+            auto output = appender!string();
+            output.reserve(input.length);
 
             auto escapeSequences = ['\\':'\\', 'n':'\n', 't':'\t', '$':'$', 'v':'\v', 'r':'\r', '"':'"'];
 
@@ -141,31 +144,33 @@ class Parser {
             while(*s) {
                 if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
-                    string str;
+                    auto str = appender!string();
                     s++;
                     while(*s && *s != Syntax.StringDelim) {
                         if(*s == Lexical.EscapeStart) {
                             s++;
                             if(*s && *s in escapeSequences)
-                                str ~= escapeSequences[*s++];
+                                str.put(escapeSequences[*s++]);
                         }
-                        else str ~= *s++;
+                        else str.put(*s++);
                     }
                     s++;
-                    output ~= Syntax.StringDelim~to!string(stringBank.length)~Lexical.Space;
-                    stringBank ~= str;
+                    output.put(Syntax.StringDelim~to!string(stringBank.length)~Lexical.Space);
+                    stringBank ~= str.data;
                 }
-                else output ~= *s++;
+                else output.put(*s++);
             }
-            return output;
+            return output.data;
         }
 
         /***********************************************************************************
          * Removes comments.
          *********************/
 
-        pure string commentCollapse(in string input) {
-            string output;
+        string commentCollapse(in string input) {
+            auto output = appender!string();
+            output.reserve(input.length);
+
             auto s = (input~Lexical.EndOfFile).ptr;
             while(*s) {
                 if(*s == Lexical.CommentStart) {
@@ -175,30 +180,34 @@ class Parser {
                                         s[1]))
                         while(*s && *s != Lexical.EndOfLine) s++;
                 }
-                output ~= *s++;
+                output.put(*s++);
             }
-            return output;
+            return output.data;
         }
 
         /***********************************************************************************
          * Adds spaces and expands scope brackets into regular ones.
          *********************/
 
-        pure string syntaxExpand(in string input) {
-            string expanded;
+        string syntaxExpand(in string input) {
+            auto expanded = appender!string();
+            expanded.reserve(input.length);
+
             auto s = (input~Lexical.EndOfFile).ptr;
             string syntax =  [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                               Syntax.LVector,Syntax.RVector,     //Vector parentesis
                               Syntax.LSet,   Syntax.RSet,        //Set parentesis
                               Syntax.StringDelim];               //String delimiter.
             while(*s) {
-                if(contains(syntax, *s)) expanded ~= ""~Lexical.Space~s[0 .. 1]~Lexical.Space;
-                else expanded ~= s[0 .. 1];
+                if(contains(syntax, *s)) expanded.put(""~Lexical.Space~s[0 .. 1]~Lexical.Space);
+                else expanded.put(s[0 .. 1]);
                 s++;
             }
 
-            string output;
-            s = (expanded~Lexical.EndOfFile).ptr;
+            auto output = appender!string();
+            output.reserve(expanded.data.length);
+
+            s = (expanded.data~Lexical.EndOfFile).ptr;
             string prefix = [Lexical.CommentStart,              //Sexp comment.
                              ESyntax.Keyword[0],                //. -> nothing. //TODO
                              ESyntax.Quote[0],                  //' -> (quote )
@@ -207,28 +216,28 @@ class Parser {
             bool jollyRogger = true;
             while(*s) {
                 if(*s <= Lexical.Space) {
-                    output ~= s[0 .. 1];
+                    output.put(s[0 .. 1]);
                     jollyRogger = true;
                 }
                 else if(jollyRogger && contains(prefix, *s))
-                    output ~= ""~Lexical.Space~s[0 .. 1]~Lexical.Space;
+                    output.put(""~Lexical.Space~s[0 .. 1]~Lexical.Space);
                 else {
-                    output ~= s[0 .. 1];
+                    output.put(s[0 .. 1]);
                     jollyRogger = false;
                 }
                 s++;
             }
-            return output;
+            return output.data;
         }
 
-        string output;
+        auto output = appender!string();
         auto s = (syntaxExpand(commentCollapse(stringCollapse(addMetadata(input))))~Lexical.EndOfFile).ptr;
 
         while(*s && *s < 0x21) s++;                                     //Spaces, spaces everywhere.
         while(*s) {
             switch(*s) {
                 case Lexical.Space:                                     //Spaces.
-                    output ~= *s++;
+                    output.put(*s++);
                     while(*s && *s <= Lexical.Space) s++;
                     continue;
                 case 0x0: .. case 0x1F:                                 //Whitespaces
@@ -236,10 +245,10 @@ class Parser {
                     continue;
                 default: break;
             }
-            output ~= *s++;
+            output.put(*s++);
         }
-        if(output.length && output[$-1] == Lexical.Space) return output[0 .. $-1];
-        return output;
+        if(output.data.length && output.data[$-1] == Lexical.Space) return output.data[0 .. $-1];
+        return output.data;
     }
     unittest {
         auto t = TestCase("Parser.preprocess");
@@ -333,9 +342,9 @@ class Parser {
      * Turns a single statement into several tokens.
      *********************/
 
-    pure string[] tokenize(in string input)
+    string[] tokenize(in string input)
     body {
-        string[] tokens;
+        auto tokens = appender!(string[]);
         string token;
         string parens = [Syntax.LTuple, Syntax.RTuple,      //Tuple parentesis
                          Syntax.LVector,Syntax.RVector,     //Vector parentesis
@@ -344,16 +353,16 @@ class Parser {
         while(*s) {
             if(*s == ' ') {
                 if(token != "") {
-                    tokens ~= token;
+                    tokens.put(token);
                     token = "";
                 }
             }
-            else if(contains(parens, *s)) tokens ~= s[0 .. 1];
+            else if(contains(parens, *s)) tokens.put(s[0 .. 1]);
             else token ~= *s;
             s++;
         }
-        if(token != "") tokens ~= token;
-        return tokens;
+        if(token != "") tokens.put(token);
+        return tokens.data;
     }
     unittest {
         auto t = TestCase("Parser.tokenize");
@@ -470,11 +479,11 @@ class Parser {
     Expression[] parse(in string input, in string fileName) {
         this.fileName = fileName;
         this.lineCount = 1;    //TODO: reset it from outside.
-        Expression[] output;
+        auto output = appender!(Expression[]);
         auto tokens = tokenize(preprocess(input));
         while(tokens.length) {
-            if(auto e = parse(tokens)) output ~= e;
+            if(auto e = parse(tokens)) output.put(e);
         }
-        return output;
+        return output.data;
     }
 }
