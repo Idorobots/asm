@@ -24,7 +24,6 @@
 (var dRANDOM (tuple d4 d6 d8 d10 d% d20 d30))
 
 ## Roll some dice:
-
 (roll 2)                                        # Fnord!
 (rollRandom)
 (roll d4)
@@ -32,12 +31,10 @@
 (d 4)
 (+ (* 2 (d 4)) 3)
 
-
 (function hitTheOrc []                         # Ouch!
- `(You hit the Orc in the $(roll dHIT) for $(+ (d 8) 4) damage!))
+  `(You hit the Orc in the $(roll dHIT) for $(+ (d 8) 4) damage!))
 
 (function attack []                            # Ouch^2!
-  (do (map [arg -> (write arg \space)]
-           (hitTheOrc))
-      (write \newline)))
+  (map (lambda (arg) (write arg \s))
+          (append (hitTheOrc) \n)))
 

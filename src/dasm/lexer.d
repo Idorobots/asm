@@ -31,7 +31,6 @@ bool lenCompare(string a, string b) {
     return a.length == b.length ? a > b : a.length > b.length;
 }
 
-
 Array[] tokenize(Array)(Array input, Array[] syntax) {
     if(!input.length) return [];
     if(!syntax.length) return [input];

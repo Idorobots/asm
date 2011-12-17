@@ -3,11 +3,15 @@
 # The class:
 (class HelloWorld! {
     (static var world " world!")
-    (static function sayWorld []
+    (static function getWorld ()
         world)
 
-    (function hello []
-        `("Hello" $(sayWorld)))
+    (function hello (guy)
+        (reduce join
+                (tuple "Hello, "
+                       guy
+                       ". It's a beautiful"
+                       (getWorld))))
 })
 
 
@@ -15,9 +19,9 @@
 (var say ((HelloWorld! new)))
 
 # The use:
-((say hello))          # Can access class variables.
+((say hello) "Bob")    # Can access class variables.
 
-((say sayWorld))       # And static variables.
+((say getWorld))       # And static variables.
 (say world)
 
 (say say)              # And even globals. :(

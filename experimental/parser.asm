@@ -1,13 +1,13 @@
 ## The syntax table:
 
-(var syntax-table '["\(" "\)" "\'" "," "\-\>" "macro" ":" ";"])
+(var syntax-table '["\\(" "\\)" "'" "," "\\-\\>" "macro" ":" ";"])
 (var macro-table '[(test 2)])
 
 ## Syntax dispatchers:
 
-(function "\(" [ostream istream]
+(function "\\(" [ostream istream]
   (do (var list (vector))
-      (read-delimited-list "\)" list istream)
+      (read-delimited-list "\\)" list istream)
       (if (empty? list)
           (push! fnord ostream)
           (push! (tupleof (first list)) ostream))))
@@ -15,10 +15,10 @@
 (function ";" [o i]
   (error "Missmatched `;'."))
 
-(function "\)" [o i]
+(function "\\)" [o i]
   (error "Missmatched `)'."))
 
-(function "\'" [ostream istream]
+(function "'" [ostream istream]
   (do (var tmp (vector))
       (read-expression tmp istream)
       (push! (qquote (quote (embed (first tmp))))
@@ -42,7 +42,7 @@
                                      (tupleof (first right))))))
              ostream)))
 
-(function "\-\>" [ostream istream]
+(function "\\-\\>" [ostream istream]
   (do (var args (pop! ostream))
       (var body (vector))
       (read-expression body istream)
@@ -81,7 +81,7 @@
         (var argnum (second (assoc token macro-table)))
         (var args (vector))
         (var i 0)
-        (do .until (equal? i argnum)
+        (do @until (equal? i argnum)
              (read-expression args istream)
              (set! i (+ i 1)))
        (push! (apply (get token) args) ostream)))
@@ -101,7 +101,7 @@
 
 (function read-delimited-list [delimiter ostream istream]
   (do (var list (vector))
-      (do .until (equal? (first istream) delimiter)
+      (do @until (equal? (first istream) delimiter)
           (unless istream (error "Missmatched `('."))
           (read-expression list istream))
       (pop! istream)
@@ -110,7 +110,7 @@
 (function parse [input]
   (do (var istream (lex input syntax-table))
       (var ostream (vector))
-      (do .until (empty? istream)
+      (do @until (empty? istream)
           (read-expression ostream istream))
       (reverse ostream)))
 
