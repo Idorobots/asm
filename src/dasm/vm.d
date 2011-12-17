@@ -105,6 +105,7 @@ class VM {
 
         define(Keywords.TypeOf, new BuiltinKeyword(&TYPEOF, 1));
         define(Keywords.KeywordsOf, new BuiltinKeyword(&KEYWORDSOF, 1));
+        define(Keywords.SizeOf, new BuiltinKeyword(&SIZEOF, 1));
 
         define("call", new BuiltinKeyword(&CALL, 1, INF_ARITY));
         define("defined?", new BuiltinKeyword(&DEFINED, 1));
@@ -710,6 +711,10 @@ class VM {
         return new Tuple(tuple);
     }
 
+    Expression SIZEOF(ref Scope s, Expression[] args) {
+        return new Number(args[0].eval(s).deref.classinfo.init.length);
+    }
+
     /***********************************************************************************
      * Creates a set of its arguments.
      *********************/
@@ -908,4 +913,5 @@ class VM {
         if(arg0 is arg1) return arg0;
         return FNORD;
     }
+
 }

@@ -97,4 +97,5 @@ enum Keywords : string {
     //Not quite predicates:
     TypeOf      = "typeof",     ///Returns type touple of an object.
     KeywordsOf  = "keywordsof", ///Returns keyword tuple of an object.
+    SizeOf      = "sizeof",     ///Returns the size of an object.
 }
