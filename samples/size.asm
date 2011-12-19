@@ -1,6 +1,6 @@
-## Size test
+# Size comparison of different ASM datatypes:
 
-(write "-- Size test (just references):" \n)
+(write "-- Sizes (just references):" \n)
 (write "Number: " (sizeof 23.5) \n)
 (write "Symbol: " (sizeof 'sizeof) \n)
 (write "Tuple: " (sizeof '(1 2 3 4)) \n)

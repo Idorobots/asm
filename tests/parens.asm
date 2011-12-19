@@ -1,4 +1,4 @@
-# Test 0
+# Parens test
 # Status: fail
 
 (function test0 [bar baz]

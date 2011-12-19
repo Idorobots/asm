@@ -118,7 +118,9 @@ class Parser {
                     }
                 }
                 else if(*s == Syntax.StringDelim) {
-                    inAString = !inAString;
+                    if(s[-1] && s[-1] != '\\') {
+                        inAString = !inAString;
+                    }
                     if(!inAString && addCount) {
                          addCount = false;
                          output.put(""~spc~c~"LINE"~spc~to!string(lineCount-1)~spc);
@@ -138,7 +140,6 @@ class Parser {
             output.reserve(input.length);
 
             auto escapeSequences = ['\\':'\\', 'n':'\n', 't':'\t', '$':'$', 'v':'\v', 'r':'\r', '"':'"'];
-
             auto s = (input~Lexical.EndOfFile).ptr;
 
             while(*s) {
@@ -149,8 +150,12 @@ class Parser {
                     while(*s && *s != Syntax.StringDelim) {
                         if(*s == Lexical.EscapeStart) {
                             s++;
-                            if(*s && *s in escapeSequences)
+                            if(*s && *s in escapeSequences) {
                                 str.put(escapeSequences[*s++]);
+                            }
+                            else {
+                                throw new SyntacticError("Unknown escape sequence `\\" ~ *s ~ "'.", lineNumber, fileName);
+                            }
                         }
                         else str.put(*s++);
                     }

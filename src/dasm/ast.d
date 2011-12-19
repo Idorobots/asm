@@ -407,8 +407,12 @@ class Collection(uint collectionType,
     }
 
     override Expression call(ref Scope s, Expression[] args) {
-        return s.get(new Symbol(callKeyword)).call(s, [pass(this)]~args); //FIXME: Loose the 'new Symbol'
-        //FIXME: (()) kills the interpreter with an infinite self call.
+        static if(collectionType & Type.Callable) {
+            return s.get(new Symbol(callKeyword)).call(s, [pass(this)]~args); //FIXME: Loose the 'new Symbol'
+        }
+        else {
+            throw new ObjectNotAppError(this);
+        }
     }
 
     override Expression eval(ref Scope s, uint depth = 0) {

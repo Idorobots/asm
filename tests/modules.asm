@@ -1,4 +1,5 @@
-# Test 3
+# Modules test
+# Possibly releated to Issue 17
 # Status: Fail
 
 (import 'imports.core) # Due to this line...

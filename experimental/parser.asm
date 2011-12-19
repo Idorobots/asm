@@ -1,7 +1,7 @@
 ## The syntax table:
 
 (var syntax-table '["\\(" "\\)" "'" "," "\\-\\>" "macro" ":" ";"])
-(var macro-table '[(test 2)])
+(var macro-table '[(test 2 (lambda (foo bar) '(* foo bar)))])
 
 ## Syntax dispatchers:
 
@@ -60,7 +60,9 @@
       (read-expression tmp istream)
       (var body (first tmp))
       (push! 'do ostream)
-      (push! (qquote (push! (tuple (quote (embed name)) (embed (length? args)))
+      (push! (qquote (push! (tuple (quote (embed name))
+                                   (embed (length? args))
+                                   (lambda (embed args) (embed body)))
                             macro-table))
              ostream)
       (push! (qquote (function (embed name)
@@ -68,23 +70,16 @@
                                (embed body)))
              ostream)))
 
-## Macros:
-
-(function test [foo bar]
-  (qquote (vector (embed bar)
-                  (embed foo))))
-
 ## Reader functions:
-
 (function parser-macro-call [token ostream istream]
-  (when (callable? (get token))
-        (var argnum (second (assoc token macro-table)))
-        (var args (vector))
-        (var i 0)
-        (do @until (equal? i argnum)
-             (read-expression args istream)
-             (set! i (+ i 1)))
-       (push! (apply (get token) args) ostream)))
+  (do (var macro (third (assoc token macro-table)))
+      (var argnum (second (assoc token macro-table)))
+      (var args (vector))
+      (var i 0)
+      (do @until (equal? i argnum)
+          (read-expression args istream)
+          (set! i (+ i 1)))
+      (push! (apply macro args) ostream)))
 
 (function parser-try-call [token ostream istream]
   (if (callable? (get token))

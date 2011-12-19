@@ -1,4 +1,4 @@
-# Test 2
+# Args test
 # Status: passed
 
 (var foo 'bar)
