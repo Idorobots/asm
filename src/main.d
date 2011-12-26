@@ -21,18 +21,73 @@
  *********************/
 
 import std.stdio;
+import std.getopt : getopt;
+import std.conv : to;
 
 import utils.ctfe : split;
 
 import dasm.vm;
 
 void main(string[] args) {
-    auto ASM = new VM();
 
+    /***********************************************************************************
+     * GetOpt crap:
+     *********************/
+
+    auto vendor = VM.vendor;
+    auto ver = to!string(VM.majorRevision) ~ "." ~ to!string(VM.minorRevision);
+    auto header = vendor ~ " v" ~ ver ~ " - ASM v" ~ to!string(VM.ASMVersion) ~ " interpreter";
+    auto author = "Kajetan Rzepecki <kajetan.rzepecki+asm@gmail.com>";
+    auto copyright = "Copyright (c) 2011-2012 " ~ author;
+    auto license = "See LICENSE for details.";
+    auto tab = "  ";
+    auto usage = tab ~ args[0] ~ " file.asm ... { --switch }\n";
+    auto help = tab ~ "file.asm \t ASM source file\n" ~
+                tab ~ "--vendor \t display vendor info\n" ~
+                tab ~ "--version \t display the version number\n" ~
+                tab ~ "--license \t display licensing info\n" ~
+                tab ~ "--help \t display this message\n";
+
+    bool dispLicense = false;
+    bool dispVendor = false;
+    bool dispVersion = false;
+    bool dispHelp = false;
+
+    getopt(
+        args,
+        "help", &dispHelp,
+        "license", &dispLicense,
+        "vendor", &dispVendor,
+        "version", &dispVersion
+    );
+
+    if(dispHelp) {
+        writeln(header);
+        writeln(copyright);
+        writeln(license);
+        writeln("Usage:");
+        writeln(usage);
+        writeln(help);
+        return;
+    }
+    if(dispLicense) {
+        writeln(license);
+        return;
+    }
+    if(dispVendor) {
+        writeln(vendor);
+        return;
+    }
+    if(dispVersion) {
+        writeln(ver);
+        return;
+    }
+
+    auto ASM = new VM();
     ASM.doString("(import 'imports.core)");
 
     /***********************************************************************************
-     * Files:
+     * File interpretation:
      *********************/
 
     if(args.length != 1) {
@@ -49,6 +104,11 @@ void main(string[] args) {
     /***********************************************************************************
      * REPL:
      *********************/
+
+    writeln(header);
+    writeln(copyright);
+    writeln(license);
+    writeln();
 
     while(true) {
         write("> ");

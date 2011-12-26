@@ -45,10 +45,10 @@ import dasm.parser;
  *********************/
 
 class VM {
-    enum ASMVersion    = 0;            ///ASM language version supported.
-    enum Vendor        = "DASM";       ///Vendor name.
-    enum MajorRevision = 0;            ///Major revision.
-    enum MinorRevision = 0;            ///Minor revision.
+    enum ASMVersion    = 0.0;          ///ASM language version supported.
+    enum vendor        = "DASM";       ///Vendor name.
+    enum majorRevision = 0;            ///Major revision.
+    enum minorRevision = 0;            ///Minor revision.
 
     private Parser parser;          //Parsing unit.
     private Scope global;           //Global scope.
@@ -59,10 +59,10 @@ class VM {
 
         //Some version and vendor info:
         //TODO: Immutable
-        define("*vendor*", new String(Vendor));
-        define("*major-revision*", new Number(MajorRevision));
-        define("*minor-revision*", new Number(MinorRevision));
-        define("*asm-version*", new Number(ASMVersion));
+        define("+vendor+", new String(vendor));
+        define("+major-revision+", new Number(majorRevision));
+        define("+minor-revision+", new Number(minorRevision));
+        define("*asm-version+", new Number(ASMVersion));
 
         FNORD = new Tuple([]);
         define(Keywords.Fnord, FNORD);
