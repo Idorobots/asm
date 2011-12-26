@@ -118,7 +118,7 @@ class Parser {
                     }
                 }
                 else if(*s == Syntax.StringDelim) {
-                    if(s[-1] && s[-1] != '\\') {
+                    if(!(inAString && s[-1] && s[-1] == '\\')) {
                         inAString = !inAString;
                     }
                     if(!inAString && addCount) {

@@ -14,7 +14,7 @@
 (var + add)
 (var ^ pow)
 
-# Convinient if else clause.
+# Convinient if then else form.
 (var if* if)
 
 (macro if [@tuple args]
@@ -24,12 +24,9 @@
 (var else 'totally-not-fnord)
 
 # Common escape sequences.
-(var (\n    \t   \s  \d   \r   \b   \q)
-     '("\n" "\t" " " "\$" "\r" "\\" "\""))
-
 (var (\newline \tab \space \dollar \return \backslash \quote)
-     (tuple \n \t \s \d \r \b \q))
-
+     (var (\n    \t   \s  \d   \r   \b   \q)
+          '("\n" "\t" " " "\$" "\r" "\\" "\"")))
 
 # Convinient Scope.call():
 (macro __scopecall [arg]

@@ -1,6 +1,6 @@
 ## The syntax table:
 
-(var syntax-table '["\\(" "\\)" "'" "," "\\-\\>" "macro" ":" ";"])
+(var syntax-table '["\\(" "\\)" "'" "," "\\-\\>" "\\<\\-" "macro" ":" ";"])
 (var macro-table '[(test 2 (lambda (foo bar) '(* foo bar)))])
 
 ## Syntax dispatchers:
@@ -50,6 +50,16 @@
                                         (vectorof args)
                                         (vector args)))
                              (embed (first body))))
+             ostream)))
+
+(function "\\<\\-" [ostream istream]
+  (do (var fun (pop! ostream))
+      (var args (vector))
+      (read-expression args istream)
+      (push! (tuple 'apply
+                    fun
+                    #(tuple 'quote args)
+                    args)
              ostream)))
 
 (function "macro" [ostream istream]
