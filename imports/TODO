@@ -16,6 +16,8 @@
 # DONE - sweet, sweet nothing.
 ####################
 
+* HIGHEST PRIORITY
+** Take CEK semantics and BareBones ASM into account.
 * Babel
 # A module making ASM look and feel like other languages.
 - cc.babel
@@ -173,6 +175,112 @@
 - [ ] lex - lexes an input string.
 - [ ] ? parse - parses an input string. (Name read-from-string).
 * Random ideas
-** ASM macro that takes a function and returns a latex string of its pseudocode.
-[2011-12-01 czw 20:42]
-[[file:~/studia/notes/numerical/numerical.org::*Examples%20of%20changing%20numbering%20systems][Examples of changing numbering systems]]
+** Must-have DSLs
+Will allow for awesome stuff like this:
+
+#+begin_example
+(module Moo
+  private (function (func tuple)
+            in:
+              (or (tuple? tuple)
+                  (vector? tuple))
+            out:
+              (number? result)
+            body:
+              (loop for element in tuple
+                    do (switch element
+                         case 1 (write "One!")
+                         case 2 (write "Two!")
+                         default (let foo (/ element 2)
+                                  let bar (% element 2)
+                                  do (write (* element
+                                               (- foo bar)))))))
+          (unittest functest
+            assert (equal? (func '(1 2 3)) 23)
+            finally (print "Passed!"))
+  public (var bar 23))
+
+(import func from Moo as Moofunc)
+
+(Moofunc '[1 2 3]) # writes "One! Two! 3
+
+#+end_example
+
+*** Loop
+Common Lisp like loop macro:
+
+(loop for foo in bar
+      for baz being each hash-key of goo
+      when gaz
+      do gar)
+
+*** Unittest
+Automated unittest runner:
+
+(unittest Foo
+    assert (equal? bar baz)
+    assert (foo bar baz)
+  test Bar
+    assert (foo bar baz)
+    assert (foo bar baz)
+    log "herp derp"
+  test Baz
+    assert (bar foo faz)
+  finally (derp herp))
+
+*** Let
+Purely binds variables to values (transforms the body into a lambda
+call):
+
+(let foo (bar baz)
+ let faz (foo gaz)
+ do (foo faz))
+
+*** Switch
+Switch-like control structure, with fallthrough + case goto, case
+ranges etc:
+
+(switch a
+  case b (foo bar baz)
+  case c (faz baz baz)
+  default foo)
+
+*** Module/program/class/application etc
+Wraps a bunch of functions and state into a single, named unit:
+
+(module Foo
+  private (function (foo bar baz)
+            (bar baz baz))
+  public (var bar)
+  export (function (herp derp)
+           (derp derp derp)))
+
+*** Function
+Creates a function with all kinds of cool stuff:
+
+(function (foo bar baz)
+  in (equal? bar 23)
+  in (> baz bar)
+  out (< result bar)
+  body (bar baz))
+
+*** Import
+Imports symbols, loads modules, manages scopes:
+
+(import func from ModuleA as AFunc
+        all from ModuleB)
+
+*** SVG
+Returns a wellformed SVG string:
+
+(SVG 100 100
+     (circle 50 50
+             '(255 255 100)))
+
+*** LaTeX
+Returns a wellformed LaTeX string:
+
+(LaTeX
+  "The following equation is herp derp derp:"
+  (equation "a^2 + b^2 = c^2")
+  (equation "\herp = \derp"))

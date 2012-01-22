@@ -15,7 +15,8 @@
 # DONE - sweet, sweet nothing.
 ####################
 
-
+* HIGHEST PRIORITY
+** Drop the OOP and merge CEK architecture vm.
 * THINGS TO DO IN THE INTERPRETER
 # Lists things needing attention in the interpreter.
 - Decouple VM code from DASM code - making DSM only use VM as the
@@ -179,7 +180,6 @@
 - --license - prints out the licensing info.
 
 ################################################################################
-
 * RANDOM IDEAS
 # Lists some ideas yet to be moved to a more apropriate place.
 
@@ -227,6 +227,7 @@
       + [ ] (lambda args body) -> 0-INF-ary, args store all the call args.
       + [ ] (lambda (a . b) body) -> N-INF-ary, b stores the rest of
             the call args.
+*** Continuations
 ** Error handling
 - [ ] (catch e handler) -> (try e handler0 handler1 ...)
 - [ ] handler = (error-object handling-function)
@@ -243,4 +244,3 @@
 3. The language implementation
 - Core modules written directly in BareBonesASM.
 - Reader implemented in BareBonesASM.
-** Move CodeCube stuff to CodeCube TODO.

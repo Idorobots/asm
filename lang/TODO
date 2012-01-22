@@ -15,7 +15,10 @@
 # DONE - the feature is stable and will probably stay forever in the language.
 ####################
 
-* Lexical:
+* HIGHEST PRIORITY
+** Rewrite taking CEK semantics into account.
+** Add ASM and BareBones ASM distinction.
+* Lexical
 ** DONE Source code
 - Text formatting
 - Character sets
@@ -69,7 +72,7 @@
 - ? Allow only for symbols.
 - ? Propagate through the AST.
 
-* Types:
+* Types
 ** Atomic types:
 *** Numbers:
 - [X] Evaluate to themselves.
@@ -159,7 +162,7 @@
     + [ ] !? ... - stores any additional call parameters in a
           collection.
 
-* Language quirks:
+* Language quirks
 ** Quoting & embedding:
 - [X] Quote - returns the argument untouched. Extended syntax - '.
 - [X] Quasiquote - returns the argument with embedded
