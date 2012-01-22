@@ -731,7 +731,7 @@ alias Callable!(Type.Builtin|Type.Keyword)              BuiltinKeyword; ///Synta
 
 class Scope : Expression {
     Expression[] defines;       ///Object definitions.
-    uint[string] symbols;       ///Other symbols.
+    size_t[string] symbols;       ///Other symbols.
     Scope outter;               ///Outter scope.
 
     this(Scope outter = null, uint line = __LINE__, string file = __FILE__) {

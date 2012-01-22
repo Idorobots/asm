@@ -153,7 +153,7 @@ unittest {
  * Returns the index of the found element, or length of `where'.
  *********************/
 
-pure uint find(alias what, Array)(Array where)
+pure size_t find(alias what, Array)(Array where)
     if(is(typeof(what) == Array))
 {
     foreach(i, el; where) if(contains(what, el)) return i;

@@ -62,7 +62,7 @@ class VM {
         define("+vendor+", new String(vendor));
         define("+major-revision+", new Number(majorRevision));
         define("+minor-revision+", new Number(minorRevision));
-        define("*asm-version+", new Number(ASMVersion));
+        define("+asm-version+", new Number(ASMVersion));
 
         FNORD = new Tuple([]);
         define(Keywords.Fnord, FNORD);
@@ -761,7 +761,7 @@ class VM {
      *********************/
 
     Expression RANGE(ref Scope s, Expression[] args) {
-        Number[] tuple;
+        Expression[] tuple;
         auto left = args[0].eval(s).value;
         auto right = args[1].eval(s).value;
         auto increment = (args.length == 3) ? args[2].eval(s).value : 1;
