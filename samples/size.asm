@@ -1,4 +1,6 @@
+################################################################################
 # Size comparison of different ASM datatypes:
+####################
 
 (write "-- Sizes (just references):" \n)
 (write "Number: " (sizeof 23.5) \n)

@@ -1,5 +1,10 @@
 ################################################################################
-# Elizaesque sample
+# Elizaesque example:
+# 
+# > (eliza)
+# Eliza > Hello Eliza
+# How do you do. Please state your problem.
+# Eliza > quit
 ####################
 
 (var +pattern-character+ "?")
@@ -57,7 +62,18 @@
     (pretty-string (rest list)))))
 
 (function pretty-write (list)
-  (write (pretty-string list)))
+  (write (pretty-string list) "\n"))
+
+(function eliza ()
+  (do (write "Eliza > ")
+      (var input (pretty-read))
+      (unless (equal? input '(quit))
+              (if (var rep (reply input *rules*))
+                  (pretty-write rep)
+                  (write "I don't understand.\n"))
+              (eliza))))
+
+# The rules
 
 (var *rules*
  '(((Would you like ?x)

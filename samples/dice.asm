@@ -1,4 +1,13 @@
-## Dice example:
+################################################################################
+# Dice example:
+# 
+# > (roll d6)
+#     5
+# > (roll dHIT)
+#     "right leg"
+# > (attack)
+# You hit the Orc in the head for 6 damage!
+####################
 
 (function roll [dice]                           # Dice rolling function.
   (if (tuple? dice)

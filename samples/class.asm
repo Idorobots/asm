@@ -1,27 +1,17 @@
-## ASM Class example
+################################################################################
+# ASM Class example
+# 
+# > (var hello ((HelloWorld! new)))
+# > (hello string)
+#     "Hello world!"
+# > ((hello sayHi))
+# Hello world!
+####################
 
 # The class:
 (class HelloWorld! {
-    (static var world " world!")
-    (static function getWorld ()
-        world)
+    (static var string "Hello world!")
 
-    (function hello (guy)
-        (reduce join
-                (tuple "Hello, "
-                       guy
-                       ". It's a beautiful"
-                       (getWorld))))
+    (function sayHi ()
+      (write string "\n"))
 })
-
-
-# The instance:
-(var say ((HelloWorld! new)))
-
-# The use:
-((say hello) "Bob")    # Can access class variables.
-
-((say getWorld))       # And static variables.
-(say world)
-
-(say say)              # And even globals. :(

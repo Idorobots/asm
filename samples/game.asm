@@ -1,5 +1,9 @@
 ################################################################################
 # A short game in ASM.
+# 
+# > (new-game)
+# You are in the living-room...
+# walk China
 ####################
 
 # Places to go.
