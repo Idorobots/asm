@@ -215,3 +215,21 @@
 - Expression comments
 - Shebang parameters problem
 - Multiline comments
+
+** ASM named call parameters syntax.
+
+(function (foo bar baz)
+  (* bar baz))
+
+# ...
+
+(foo (bar . 23) (baz . 5))
+# Does not introduce new syntax, but an ambiguity instead.
+(foo bar=23 baz=5)
+# New syntax, no ambiguity.
+(foo --bar 23 --baz 5)
+# No new syntax, --foo is the keyword syntax, consistent with the
+# shell feel, but slows down parameter dispatch.
+
+[2012-01-29 nie 16:37]
+[[file:~/org/TODO::*Do%20the%20SD%20math.][Do the SD math.]]
