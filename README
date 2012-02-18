@@ -42,5 +42,5 @@ By default the GDC compiler (https://bitbucket.org/goshawk/gdc/wiki/Home) is
 used to compile dASM, to use DMD instead type `make dmd'.
 
 This build was tested under DMD 2.056 and GDC 4.6.2 + DMD 2.055 on Ubuntu 10.04
-and under DMD 2.057 on Ubuntu 11.10.
+and under DMD 2.058 on Ubuntu 11.10.
 
