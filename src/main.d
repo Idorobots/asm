@@ -32,6 +32,7 @@ void main(string[] args) {
                 tab ~ "--help \t display this message\n";
 
     bool dispLicense = false;
+    bool dispCopyright = false;
     bool dispVendor = false;
     bool dispVersion = false;
     bool dispHelp = false;
@@ -40,6 +41,7 @@ void main(string[] args) {
         args,
         "help", &dispHelp,
         "license", &dispLicense,
+        "copyright", &dispCopyright,
         "vendor", &dispVendor,
         "version", &dispVersion
     );
@@ -55,6 +57,10 @@ void main(string[] args) {
     }
     if(dispLicense) {
         writeln(license);
+        return;
+    }
+    if(dispCopyright) {
+        writeln(copyright);
         return;
     }
     if(dispVendor) {
