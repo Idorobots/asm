@@ -160,3 +160,8 @@ unittest {
     static assert(max(-1, 1) == 1);
     static assert(max(-2, 1) == 1);
 }
+
+pure size_t indexOf(Array, Element)(Array where, Element what) {
+    foreach(i, el; where) if(what == el) return i;
+    return where.length;
+}

@@ -194,24 +194,25 @@
 (macro __definePredicates [predicates]
   (do (function makeDecl [arg]
         `(var $(first arg) (typePredicate $(second arg))))
-      (join 'do (map makeDecl predicates))))
+      (append '(do)
+              (map makeDecl predicates))))
 
 (__definePredicates
   ((immutable? immutable)
-  (pure? pure)
-  (builtin? builtin)
-  (atom? atom)
-  (callable? callable)
-  (collection? collection)
-  (number? number)
-  (symbol? symbol)
-  (string? string)
-  (function? function)
-  (keyword? keyword)
-  (scope? scope)
-  (set? set)
-  (tuple? tuple)
-  (vector? vector)))
+   (pure? pure)
+   (builtin? builtin)
+   (atom? atom)
+   (callable? callable)
+   (collection? collection)
+   (number? number)
+   (symbol? symbol)
+   (string? string)
+   (function? function)
+   (keyword? keyword)
+   (scope? scope)
+   (set? set)
+   (tuple? tuple)
+   (vector? vector)))
 
 (macro settable? [arg]
   `(if (member? 'settable (typeof $arg))
@@ -249,6 +250,13 @@
 
 (function zipWith [f a b]
   ((combine f) a b))
+
+(function zipOne (element list)
+  (if list
+      (join element
+            (join (first list)
+                  (zipOne element
+                          (rest list))))))
 
 (function riff-shuffl [deck]
   (do (function take [n seq]

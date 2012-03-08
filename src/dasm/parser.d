@@ -16,7 +16,7 @@ debug import std.stdio;
 debug import utils.testing;
 
 import utils.exception : MyException;
-import utils.ctfe : contains, ETuple;
+import utils.ctfe : contains, ETuple, indexOf, toUpper;
 
 import dasm.lexical;
 import dasm.ast;
@@ -122,6 +122,7 @@ class Parser {
             auto output = appender!string();
             output.reserve(input.length);
 
+            auto hexes = "0123456789ABCDEF";
             auto escapeSequences = ['\\':'\\', 'n':'\n', 't':'\t', '$':'$', 'v':'\v', 'r':'\r', '"':'"'];
             auto s = (input~Lexical.EndOfFile).ptr;
 
@@ -129,20 +130,32 @@ class Parser {
                 if(*s == Syntax.StringDelim) {
                     //TODO: StringParser.
                     auto str = appender!string();
-                    s++;
+                    ++s;
                     while(*s && *s != Syntax.StringDelim) {
                         if(*s == Lexical.EscapeStart) {
-                            s++;
+                            ++s;
+                            // Regular escape sequences.
                             if(*s && *s in escapeSequences) {
                                 str.put(escapeSequences[*s++]);
                             }
+                            // Hex bytes
+                            else if(*s && *s == 'x') {
+                                ++s;
+
+                                auto c = 16 * hexes.indexOf(toUpper(s[0])) + hexes.indexOf(toUpper(s[1]));
+
+                                str.put(cast(char) c);
+                                s += 2;
+                            }
                             else {
-                                throw new SyntacticError("Unknown escape sequence `\\" ~ *s ~ "'.", lineNumber, fileName);
+                                throw new SyntacticError("Unknown escape sequence `\\" ~ *s ~ "'.",
+                                                         lineNumber,
+                                                         fileName);
                             }
                         }
                         else str.put(*s++);
                     }
-                    s++;
+                    ++s;
                     output.put(Syntax.StringDelim~to!string(stringBank.length)~Lexical.Space);
                     stringBank ~= str.data;
                 }
