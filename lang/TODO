@@ -233,3 +233,10 @@
 
 [2012-01-29 nie 16:37]
 [[file:~/org/TODO::*Do%20the%20SD%20math.][Do the SD math.]]
+** Dynamic dispatch
+(defmethod foo (bar baz) body) (foo bar baz) <=> ((get bar 'foo)
+baz) # Dynamic dispatch
+or
+(with bar (foo baz)) # With macro
+or
+(function foo (baz) body) (connect bar foo) # Slots

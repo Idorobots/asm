@@ -244,3 +244,41 @@
 3. The language implementation
 - Core modules written directly in BareBonesASM.
 - Reader implemented in BareBonesASM.
+
+** User code interface
+
+#+begin_src d
+struct Test {
+    int bar;
+    string foo;
+}
+
+// ...
+
+    ASM.defineType!Test;
+
+    ASM.define("foobar", (scpe, args) {
+        if(args.car.type == Type.UserDefined)
+        if(args.car.userType == typeid(Type))
+        // Do shit
+        return ASM.fnord;
+    });
+
+    ASM.doString(q{
+        (var baz (scope
+                   (var _inner (newTest))
+
+                   (function getFoo ()
+                     (getTestFoo _inner))
+                   (function setFoo (newVal)
+                     (setTestFoo _inner newVal))
+
+                   (function getBar ()
+                     (getTestBar _inner))
+                   (function setBar (newVal)
+                     (setTestBar _inner newVal))))
+        ((baz setFoo) "Test")
+        (foobar baz)
+        (writeln (baz getBar))
+    });
+#+end_src
