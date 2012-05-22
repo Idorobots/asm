@@ -282,3 +282,15 @@ struct Test {
         (writeln (baz getBar))
     });
 #+end_src
+** Array and Vector range primitives                                   :NOTE:
+(%acar array) -> newCell(ArrayVal(array[0]));
+(%acdr array) -> newCell(array[1 .. $]);
+(%vcar vector) -> newCell(vector[0]);
+(%vcdr vector) -> newCell(vector[1 .. $]);
+
+CellArray? Merge Vector and Array?
+
+[2012-05-11 pią 10:33]
+[[file:~/code/assembly/tests/lab_6a_asm.s::facta:%20pushl%20%25ebp][file:~/code/assembly/tests/lab_6a_asm.s::facta: pushl %ebp]]
+
+

@@ -180,6 +180,7 @@ Will allow for awesome stuff like this:
 
 #+begin_example
 (module Moo
+  #? (ASMdoc Function func, doing some stuff and returning other stuff.)
   private (function (func tuple)
             in:
               (or (tuple? tuple)
@@ -284,3 +285,72 @@ Returns a wellformed LaTeX string:
   "The following equation is herp derp derp:"
   (equation "a^2 + b^2 = c^2")
   (equation "\herp = \derp"))
+*** Docs
+Used for documenting code, using... code in the comments.
+Something along these lines (needs more work):
+
+#? (ASMdoc
+#?   This function does some stuff and returns other stuff.
+#?   --params
+#?       bar - an integer,
+#?   --returns - another integer,
+#?   --example
+#?        (var baz (foo 23))
+#? )
+(function foo (bar)
+  (doStuff bar))
+** Must-have tools
+*** ASM AST/dependancy -> graphviz utility.                            :NOTE:
+[2012-05-16 śro 23:14]
+[[file:~/notes/science/net/net.org]]
+** Other stuff
+*** Vectorize macro for ASM.                                           :NOTE:
+(macro vectorize (fun)
+  (let ((old-fun (gensym)))
+    `(let (($old-fun $fun))
+       (function $fun (vec)
+         (map fun vec)))))
+[2012-05-20 nie 02:10]
+[[file:~/org/general.org::*Install%20GDC%20on%20PiWL.][Install GDC on PiWL.]]
+*** if-non-fnord syntax for ASM                                        :NOTE:
+foo ? bar == (if-non-fnord foo bar) == (if foo foo bar)
+
+Implementation:
+
+(macro if-non-fnord (foo bar)
+  (let ((_foo (gensym)))
+    `(let (($_foo $foo))
+       (if $_foo
+           $_foo
+           $bar))))
+
+(syntax "\?" (parsed parsing)
+  `(if-non-fnord $(pop-front! parsed)
+                 $(read-expression! parsing)))
+
+
+Example:
+# map - 1d or 2d list
+(let ((leny (length map))
+      (lenx (length (car map)) ? 1))
+  (do-stuff lenx leny) ? 23)
+
+# Expands to:
+(let ((leny (length map))
+      (lenx (if-non-fnord (length (car map))
+                          1)))
+  (if-non-fnord (do-stuff lenx leny)
+                23))
+
+# Expands to:
+(let ((leny (length map))
+      (lenx (let ((__GENSYM0 (length (car map))))
+              (if __GENSYM0
+                  __GENSYM0
+                  1))))
+  (let ((__GENSYM1 (do-stuff lenx leny)))
+    (if __GENSYM1
+        __GENSYM1
+        23)))
+[2012-05-16 śro 19:27]
+[[file:~/org/refile.org]]
