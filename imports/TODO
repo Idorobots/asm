@@ -256,6 +256,20 @@ Wraps a bunch of functions and state into a single, named unit:
   export (function (herp derp)
            (derp derp derp)))
 
+Dependancy injection:
+
+(module Math (printer alocator)
+  (function (matrix m n)
+    (alocator.malloc (* bar baz)))
+
+  (function (printm matrix)
+    (forech e in matrix
+            do (printer.print e))))
+
+(import (Math my-logger kewl-alocator))
+
+(Math.printm (Math.matrix 3 3))
+
 *** Function
 Creates a function with all kinds of cool stuff:
 
@@ -354,3 +368,38 @@ Example:
         23)))
 [2012-05-16 śro 19:27]
 [[file:~/org/refile.org]]
+*** Whitespace aware syntax for ASM                                    :NOTE:
+(package foo
+  (function (bar arg0 arg1)
+    (if (and (atom? arg0)
+             (atom? arg1))
+        (* arg0 arg 1)
+        (apply + (append arg0 arg1))))
+  (var gun (bar 2 3)))
+
+     ||
+    \||/
+     \/
+
+package foo
+  function (bar arg0 arg1)
+    if and atom? arg0
+           atom? arg1
+       (* arg0 arg1)
+       apply +
+             (append arg0 arg1)
+  var gun
+      (bar 1 2)
+
+[2012-05-24 czw 13:11]
+[[file:~/org/refile.org]]
+*** Immutable let and mutable var                                      :NOTE:
+(let ((foo bar))
+  # foo is immutable
+)
+
+(var ((foo bar))
+  # foo is mutable
+)
+[2012-05-25 pią 15:17]
+

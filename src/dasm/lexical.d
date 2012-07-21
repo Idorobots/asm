@@ -70,6 +70,7 @@ enum Keywords : string {
     Lambda      = "lambda",     ///Creates an anonymous closure.
     Function    = "function",   ///Creates a named function.
     Macro       = "macro",      ///Creates a named macro.
+    Fexpr       = "vau",        ///Creates a named fexpr.
     Scope       = "scope",      ///Crates a lexical scope.
     //Generic setter and getter:
     Set         = "set!",       ///Sets writeable memory locations.

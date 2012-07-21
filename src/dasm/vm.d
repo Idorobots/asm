@@ -77,6 +77,7 @@ class VM {
         auto LAMBDA = new BuiltinKeyword(&LAMBDA, 2);
         define(Keywords.Lambda, LAMBDA);
         define(Keywords.Macro, new BuiltinKeyword(&MACRO, 3));
+        define(Keywords.Fexpr, new BuiltinKeyword(&VAU, 2));
         define(Keywords.Scope, new BuiltinKeyword(&SCOPE, 1, INF_ARITY));
 
         define(Keywords.Cons, new BuiltinKeyword(&CONS, 2));
@@ -117,7 +118,7 @@ class VM {
         define("write", new Builtin(&WRITE, 1, INF_ARITY));
         define("append", new PureBuiltin(&APPEND, 0, INF_ARITY));
         define("apply", new PureBuiltin(&APPLY, 2));
-        define("eval", new BuiltinKeyword(&EVAL, 1));
+        define("eval", new BuiltinKeyword(&EVAL, 1, 2));
         define("read", new BuiltinKeyword(&READ));
         define("lazy", new BuiltinKeyword(&LAZY, 1));
 
@@ -508,6 +509,14 @@ class VM {
     }
 
     /***********************************************************************************
+     * Returns an anonymous fexpr
+     *********************/
+
+    Expression VAU(ref Scope s, Expression[] args) {
+        return new Fexpr(s, args[0], args[1]);
+    }
+
+    /***********************************************************************************
      * Returns a new syntax keyword.
      *********************/
 
@@ -668,10 +677,10 @@ class VM {
 
         alias ETuple!(Type.Immutable, Type.Settable, Type.Pure, Type.Builtin, Type.Atom, Type.Callable,
                       Type.Collection, Type.Number, Type.Symbol, Type.String, Type.Function, Type.Keyword,
-                      Type.Scope, Type.Set, Type.Tuple, Type.Vector)
+                      Type.Scope, Type.Set, Type.Tuple, Type.Vector, Type.Fexpr)
               types;
         alias ETuple!("immutable", "settable", "pure", "builtin", "atom", "callable", "collection", "number",
-                      "symbol", "string", "function", "keyword", "scope", "set", "tuple", "vector")
+                      "symbol", "string", "function", "keyword", "scope", "set", "tuple", "vector", "fexpr")
               typeNames;
 
         /*static*/ foreach(i, type; types)
@@ -814,7 +823,11 @@ class VM {
 
     Expression EVAL(ref Scope s, Expression[] args) {
         if(!args.length) return FNORD;
-        return args[0].eval(s).eval(s);
+        Scope scop = cast(Scope) (args.length == 2 ? args[1].eval(s).deref : s);
+
+        assert(scop !is null);
+
+        return args[0].eval(s).eval(scop);
     }
 
     Expression READ(ref Scope s, Expression[] args) {

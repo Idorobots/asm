@@ -43,10 +43,30 @@
 - ? dash-case
 
 - procedure? - predicates
+(bar? foo)
+
 - procedure! - [significant] side effects
-- ? procedure* - slight variation of `procedure'
+(sen! foo 23)
+
+- procedure* - templated version of `procedure'
+
+# Regular function
+(function zip (a b)
+  (cons (cons (car a) (car b))
+        (zip (cdr a) (cdr b))))
+
+# Templated function
+(template zip* (func) (a b)
+  (cons (func (car a) (car b))
+        ((zip* $func) (cdr a) (cdr b))))
+
 - procedure+ - variation of `procedure' with extended functionality
-- procedure% - low level built-in
+
+# Padds the shorter list with fnords to match the longer one in length
+(zip+ a b --pad)
+
+- %procedure - low level built-in
+(%arg-zip args values)
 
 - foo->bar - conversions (from foo to bar)
 - barof - generic conversions (to bar)

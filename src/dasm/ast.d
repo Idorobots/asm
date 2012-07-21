@@ -70,6 +70,7 @@ enum Type {
     //Callable types:
     Function    = 1024,
     Keyword     = 2048,
+    Fexpr       = 131072,
     Scope       = 4096,
     //Set         = 8192 //???
     //Vector      = 32768,
@@ -102,6 +103,7 @@ alias isT!(Type.Symbol)     isSymbol;
 alias isT!(Type.String)     isString;
 alias isT!(Type.Function)   isFunction;
 alias isT!(Type.Keyword)    isKeyword;
+alias isT!(Type.Fexpr)      isFexpr;
 alias isT!(Type.Scope)      isScope;
 alias isT!(Type.Set)        isSet;
 alias isT!(Type.Tuple)      isTuple;
@@ -697,6 +699,57 @@ class Macro : Expression {
 
         if(this.argList != m.argList) return false;
         if(this.macroBody != m.macroBody) return false;
+
+        return true;
+    }
+}
+
+class Fexpr : Expression {
+    Scope fexprScope;
+    Expression argList;
+    Expression fexprBody;
+
+    this(Scope s, Expression argList, Expression fexprBody, uint line = __LINE__, string file = __FILE__) {
+        this.fexprScope = s;
+        this.argList = argList;
+        this.fexprBody = fexprBody;
+        this.line = line;
+        this.file = file;
+    }
+
+    override Expression call(ref Scope callScope, Expression[] callArgs) {
+        auto staticScope = new Scope(fexprScope);
+
+        staticScope.define(argList.range[$-1].toString, callScope); // Dynamic scope.
+
+        foreach(i, arg; argList.range[0..$-1]) {
+            if(contains(arg.keywords, "tuple")) {
+                staticScope.define(arg.toString, new Tuple(callArgs[i .. $]));
+                break;
+            }
+            else staticScope.define(arg.toString, callArgs[i]);
+        }
+        return fexprBody.eval(staticScope);//.eval(callScope); // TODO
+    }
+
+    override uint type() {
+        return Type.Callable|Type.Fexpr;
+    }
+
+    override string toString() {
+        return "("~Keywords.Fexpr~" "~argList.toString~" "~fexprBody.toString~")";
+    }
+
+    override bool opEquals(Object o) {
+        auto e = cast(Expression) o;
+        if(!e) return false;
+
+        auto m = cast(Fexpr) e.deref;
+        if(!m) return false;
+
+        if(this.argList != m.argList) return false;
+        if(this.fexprBody != m.fexprBody) return false;
+        if(this.fexprScope != m.fexprScope) return false;
 
         return true;
     }
