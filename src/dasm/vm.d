@@ -13,6 +13,8 @@ import std.stdio;
 import std.file : readText, FileException;
 import std.utf : UtfException;
 import std.random;
+import std.conv : to;
+import std.regex : match, regex, ctRegex;
 
 import utils.ctfe : tr, ETuple;
 import utils.testing : TestCase;
@@ -133,6 +135,11 @@ class VM {
 
         //Other:
         define("is?", new PureBuiltin(&IS, 2));
+
+        //Newest parser routines:
+        define("str->num", new BuiltinKeyword(&STRTONUM, 1));
+        define("str->symbol", new BuiltinKeyword(&STRTOSYMBOL, 1));
+        define("regex-match", new BuiltinKeyword(&REGEXMATCH, 2));
     }
     unittest {
         auto t = TestCase("Interpreter.builtins");
@@ -478,19 +485,29 @@ class VM {
             auto vars = args[0].range;
 
             //Multiple variable declaration.
-            if(args.length == 1)
+            if(args.length == 1) {
                 foreach(var; vars)
                     s.define(var.toString, FNORD);
-
+            }
             //Tuple unpacking.
             else if(args.length == 2) {
                 value = args[1].eval(s);
+                auto values = value.range;
 
-                if(vars.length != value.range.length)
-                    throw new ObjectNotAppError(args[1]);
-
-                foreach(i, var; vars)
-                    s.define(var.toString, value.range[i].deref);
+                if(vars.length >= values.length) {
+                    foreach(i; 0..values.length) {
+                        s.define(vars[i].toString, values[i].deref);
+                    }
+                    foreach(i; values.length..vars.length) {
+                        s.define(vars[i].toString, FNORD);
+                    }
+                }
+                else {
+                    foreach(i; 0..vars.length-1) {
+                        s.define(vars[i].toString, values[i].deref);
+                    }
+                    s.define(vars[$-1].toString, value.factory(values[vars.length-1..$]));
+                }
             }
             else throw new ObjectNotAppError(args[2]); //FIXME: Inconsistent.
 
@@ -908,6 +925,50 @@ class VM {
 
         if(arg0 is arg1) return arg0;
         return FNORD;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Newest parser:
+    //
+
+    Expression STRTONUM(ref Scope s, Expression[] args) {
+        auto str = args[0].eval(s).toString()[1..$-1];
+
+        try {
+            return new Number(to!real(str));
+        }
+        catch(Exception e) {
+            return FNORD;
+        }
+    }
+
+    Expression STRTOSYMBOL(ref Scope s, Expression[] args) {
+        auto str = args[0].eval(s).toString()[1..$-1];
+
+        try {
+            auto m = match(str, ctRegex!("[\\s]", "g"));
+            if(m.captures.empty) return new Symbol(str);
+            return FNORD;
+        }
+        catch(Exception e) {
+            return FNORD;
+        }
+    }
+
+    Expression REGEXMATCH(ref Scope s, Expression[] args) {
+        auto r = args[0].eval(s).toString()[1..$-1];
+        auto str = args[1].eval(s).toString()[1..$-1];
+
+        try {
+            Expression[] matches;
+            foreach(m; match(str, regex(r, "g"))) {
+                matches ~= new String(m.hit);
+            }
+            return matches.length == 0 ? FNORD : new Tuple(matches);
+        }
+        catch(Exception e) {
+            return FNORD;
+        }
     }
 
 }

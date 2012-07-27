@@ -16,7 +16,7 @@ TARGET = asm
 
 all : $(LIB) $(TARGET)
 
-$(TARGET) : $(OBJS)
+$(TARGET) : $(OBJS) $(LIB)
 	$(DC) $^ $(DLDLIBS) -o$@
 
 $(LIB) : $(LIBOBJS)
