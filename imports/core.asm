@@ -46,7 +46,7 @@
 (macro __vectoreval [@tuple elements]
   (do (var args '[])
       (var body '[])
-      (function dispatch [had->? arg]
+      (function dispatch (had->? arg)
         (if (equal? arg '->)
             'yup
             (do (if had->?
@@ -77,7 +77,7 @@
 (macro class [name body]
   (do (var statics '{})
       (var locals '{})
-      (function dispatch [arg]
+      (function dispatch (arg)
         (when (tuple? arg)
               (if* ((equal? 'static (first arg))
                      (push! (rest arg) statics))

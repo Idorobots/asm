@@ -130,6 +130,7 @@ class VM {
         define("readln", new BuiltinKeyword(&READLN));
         define("catch", new BuiltinKeyword(&CATCH, 2));
         define("error", new BuiltinKeyword(&ERROR, 1));
+        define("warn", new BuiltinKeyword(&WARN, 1));
         define("syntax-error", new BuiltinKeyword(&SYNTAXERROR, 1));
         define("quit", new BuiltinKeyword(&QUIT));
 
@@ -915,6 +916,11 @@ class VM {
         throw new SemanticError(args[0].eval(s).toString[1 .. $-1], args[0].line, args[0].file);
     }
 
+    Expression WARN(ref Scope s, Expression[] args) {
+        writeln("\t", args[0].file, "(", args[0].line ,"): Warning: ", args[0].eval(s).toString[1 .. $-1]);
+        return FNORD;
+    }
+
     Expression LAZY(ref Scope s, Expression[] args) {
         return new Lazy(args[0], s);
     }
@@ -959,9 +965,16 @@ class VM {
         auto r = args[0].eval(s).toString()[1..$-1];
         auto str = args[1].eval(s).toString()[1..$-1];
 
+        // debug writeln("regex: ", r);
+        // debug writeln("string: ", str);
+
         try {
             Expression[] matches;
-            foreach(m; match(str, regex(r, "g"))) {
+
+            auto reg = regex(r, "g");  // FIXME For some reason rewriting this fixed a segfault.
+            auto mat = match(str, reg);// FIXME Investigate this a little.
+
+            foreach(m; mat) {
                 matches ~= new String(m.hit);
             }
             return matches.length == 0 ? FNORD : new Tuple(matches);

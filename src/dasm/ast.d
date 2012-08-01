@@ -404,7 +404,12 @@ class Collection(uint collectionType,
         static if(collectionType & Type.Tuple) {
             try {
                 if(!coll.length) return this;
-                return coll[0].eval(s).call(s, coll[1 .. $]); //TODO Signalize not evaluated OP
+                auto c = coll[0];
+                auto ce = c.eval(s);
+                auto crest = coll[1 .. $];
+                auto cc = ce.call(s, crest);
+                return cc;
+                //return coll[0].eval(s).call(s, coll[1 .. $]); //TODO Signalize not evaluated OP
             }
             catch(SemanticError e) {
                 throw new CalledHereError(e, this);
