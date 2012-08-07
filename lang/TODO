@@ -260,3 +260,4 @@ or
 (with bar (foo baz)) # With macro
 or
 (function foo (baz) body) (connect bar foo) # Slots
+** Rewrite Spec to use formal grammar/semantics description exactly as implemented in the language.

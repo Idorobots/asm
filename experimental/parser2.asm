@@ -32,7 +32,7 @@
 # FIXME: Strip strings only once!
 
 ###############################################
-## PEG parser generator:
+# PEG parser generator:
 
 (var left-arrow '<-)
 (var strip-arrow '<)
@@ -82,8 +82,7 @@
       `(lambda (string)
          (do $(when stripping?
                 '(var str (strip string)))
-             (var $match (car (regex-match $(append "^" term)
-                                          $str)))
+             (var $match (car (regex-match $(append "^" term) $str)))
              (when $match
                (tuple (advance $str (length $match))
                       (tuple $match)))))))
@@ -95,7 +94,8 @@
 
 (function advance (collection n)
   (if (equal? n 0)
-      collection
+      (unless (equal? (length collection) 0)
+        collection)
       (advance (cdr collection) (- n 1))))
 
 (function compile-complex-rule (rule stripping?)
@@ -159,9 +159,10 @@
 (function compile-one-or-more (rule stripping?)
   `(lambda (str)
      (do (function one-or-more (string matches)
-           (if (var (munched match) ($(compile-rule (cdr rule) stripping?) $(if stripping?
-                                                                               '(strip string)
-                                                                               'string)))
+           (if (var (munched match) ($(compile-rule (cdr rule) stripping?)
+                                     $(if stripping?
+                                          '(strip string)
+                                          'string)))
                (one-or-more munched (append matches match))
                (when matches
                  (tuple string matches))))
@@ -205,7 +206,7 @@
                   (tuple (reduce append $match "")))))))
 
 ##############################################
-## REPL:
+# REPL:
 
 (var abort? "abort")
 (var current-scope (vau (env) env))
@@ -218,12 +219,10 @@
 
 (function read-eval-print-loop (counter env)
   (unless (equal? counter -1)
-    (if (equal? counter 0)
-        (write "\n# ")
-        (write "\n" counter "# "))
+    (write "\n#" (if (equal? counter 0) "" counter) " ")
     (if (equal? (var input (readln)) abort?)
         (set! counter -1) # Abort! Abort!
-        (catch (write "\t " (eval (parse input) env))
+        (catch (write "  ⇒  " (eval (parse input) env))
                (lambda (e)
                  (do (write "Cought an exception in " (if (equal? counter 0)
                                                           "main"
@@ -235,12 +234,12 @@
 
 (function parse (string)
   (do (var (rest parse) (Expression string))
-      (if* (rest (error (append "Parsing error: Unable to parse `" string "', near: `" rest "'.")))
-           ((not parse) (error (append "Parsing error: Shit doesn't parse: `" string "'.")))
-           ('else (car parse)))))
+      (cond (rest (error (append "Parsing error: Unable to parse `" string "', near: `" rest "'.")))
+            ((not parse) (error (append "Parsing error: Shit doesn't parse: `" string "'.")))
+            ('else (car parse)))))
 
 #########################################################
-# Default parsers:
+# Predefined parsers:
 
 (grammar ((Alpha       <- "[a-zA-Z_]"))
          ((Digit       <- "[0-9]"))
@@ -252,20 +251,20 @@
          ((CR          <- "\r"))
          ((CRLF        <- "\r\n"))
          ((EOL         <- (/ CRLF LF CR)))
-         ((EOI         <- ""))
+         ((EOI         <- "^$"))
          ((Spacing     <- (* (/ Blank EOL))))
-         ((DoubleQuote <- "\""))
-         ((Quote       <- "'"))
-         ((BackQuote   <- "`"))
+         ((Line        <~ (+ (! EOL) ".") (/ EOL EOI)))
+         ((Lines       <~ (+ Line)))
          ((Slash       <- "/"))
          ((BackSlash   <- "\\"))
-         ((Line        <~ (* (! EOL) ".") (/ EOL EOI)))
-         ((Lines       <- (+ Line))))
+         ((Quote       <- "'"))
+         ((BackQuote   <- "`"))
+         ((DoubleQuote <- "\"")))
 
 "\"" # FIXME Old parser bug, lol.
 
 ##########################################################
-## Simple Lisp:
+# Simple Lisp:
 
 (grammar ((Expression < (/ String List Atom)))
          ((String     <- (:"\"") "[^\"]*" (: "\"")))
@@ -283,7 +282,7 @@
          ((Comment    <- (: "#" "[^\n]*\n"))))
 
 #########################################
-#### Some macros:
+# Some macros:
 
 (syntax (Lambda < List (: "->") Expression)
   `($(car Lambda)
@@ -329,7 +328,7 @@
          ((JFalse  <- (: "false")))
          ((JNull   <- (: "null"))))
 
-## Add it to the Lispy grammar:
+# Add it to the Lispy grammar:
 (syntax (Expression < (/ Quote JObject String List Atom)))
 
 ##############################################
@@ -345,8 +344,10 @@
                               (tuple (car MetaComment))))
          ((LineComment <- (: "#" "[^\\n]*\\n"))))
 
+############################################
 # Some tests:
-(write (JObject "{
+
+#(write (JObject "{
   \"Number\" : 42,
   \"Decimal\": 123.456,
   \"String\" : \"abc\", #?\"This is a string.\"

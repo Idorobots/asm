@@ -172,7 +172,6 @@
 * Parser
 # Merge with core?
 - [ ] syntax! - defines a new reader syntax macro.
-- [ ] lex - lexes an input string.
 - [ ] ? parse - parses an input string. (Name read-from-string).
 * Random ideas
 ** Must-have DSLs
