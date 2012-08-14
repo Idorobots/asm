@@ -107,6 +107,9 @@
     + ? Has to return settable ref at all times (for use with set!).
 - [ ] ? HashTable.eval() returning Scope.
 - [ ] ? Merge this with Scope.
+*** Promise
+- [ ] Fix the force macro to force all the way instead of one level.
+- [ ] Add memoize macro.
 ** dasm.kit
 - [ ] ? Move pass() to a separate module.
 - [X] Actually write some fooking implementations.
@@ -282,7 +285,7 @@ struct Test {
         (writeln (baz getBar))
     });
 #+end_src
-** Array and Vector range primitives                                   :NOTE:
+** Array and Vector range primitives
 (%acar array) -> newCell(ArrayVal(array[0]));
 (%acdr array) -> newCell(array[1 .. $]);
 (%vcar vector) -> newCell(vector[0]);
@@ -292,5 +295,285 @@ CellArray? Merge Vector and Array?
 
 [2012-05-11 pią 10:33]
 [[file:~/code/assembly/tests/lab_6a_asm.s::facta:%20pushl%20%25ebp][file:~/code/assembly/tests/lab_6a_asm.s::facta: pushl %ebp]]
+** Compound types for ASM using sealer/unsealer functions.
+# Could be a hash.
+(var *compound-type* 0)
 
+# Could use a separate Q type (Type?) and make use of unique references and is? predicate.
+(function make-type ()
+  (do (var t *compound-type*)
+      (set! *compound-type* (+ 1 *compound-type*))
+      (tuple t
+             (lambda (o)
+               (cons t o))
+             (lambda (o)
+               (if (and (tuple? o)
+                        (equal? (car o) t))
+                   (cdr o)
+                   (error "Type mismatch."))))))
+(function typeof (o)
+  (when (pair? o)
+    (car o)))
 
+(var (T sealT unsealT) (make-type))
+
+(var foo (sealT (tuple 1 2 3)))
+
+# Might facilitate predicate-based type pattern matching.
+(function baz (v)
+  (case (typeof v)
+    (T (unsealT v))
+    (X (unsealX v))
+    ...))
+
+[2012-08-07 wto 18:05]
+[[irc:/irc.freenode.net:6667/#udacity][irc session 'irc.freenode.net:6667/#udacity']]
+** Dynamic dispatch
+(defmethod foo (bar baz) body) (foo bar baz) <=> ((get bar 'foo)
+baz) # Dynamic dispatch
+or
+(with bar (foo baz)) # With macro
+or
+(function foo (baz) body) (connect bar foo) # Slots
+* Paper notes
+** Memory model
+*** Tag
+: 15 [--|---|--|-|--------] 0
+:      ^  ^  ^  ^     ^
+:      |  |  |  |     |_ 8 type/operator bits
+:      |  |  |  |_ 1 immutability bit
+:      |  |  |_ 2 cons packing bits (optional)
+:      |  |_ 3 unused bits (reserved for future use)
+:      |_ 2 GC bits (may require more)
+
+*** Tagged pairs
+Layout:
+: x86   - [-2-|--4--|--4--]                 ---> 10
+:         [-2-|x2x|--4--|--4--]             ---> 12, word-aligned
+: amd64 - [-2-|----8----|----8----]         ---> 18
+:         [-2-|xxx6xxx|----8----|----8----] ---> 24, word-aligned
+:         [-2-|---6---|----8----]           ---> 16, word-aligned, memory magic
+
+Variants:
+: [TAG|--PTR--|--PTR--] ---> pairs, closures, native calls
+: [TAG|--NUM--|--PTR--] ---> arrays, vectors
+: [TAG|--NUM--|--NUM--] ---> complex numbers
+: [TAG|--- -BIGNUM----] ---> long numbers, thread ids, etc
+
+Cons:
+- Numbers will have dangling padding.
+- All nulls are explicit and take a word each.
+- Characters can't really be referenced directly and require lots of
+  space.
+- Can't pack conses easily.
+- Might not be suitable for non-lisp languages.
+
+Pros:
+- Simple implementation and use.
+- Maps to Lisp directly.
+
+*** QValues
+Layout:
+: x86   - [-2-|--4--]     ---> 6
+:         [-2-|x2x|--4--] ---> 8, word-aligned
+: amd64 - [-2-|----8----] ---> 10
+:         [-2-|---6---]   ---> 8, word-aligned, memory-magic
+
+Variants:
+: [TAG|--PTR--] ---> anything that uses pointers
+: [TAG|--NUM--] ---> anything that uses values
+
+Cons:
+- No big numbers without any special treatment.
+- Interfacing arrays and native calls to D will be complicated.
+- Tag might need additional cons-packing bits.
+- Tag appears twice in a pair.
+
+Pros:
+- Doesn't need as much padding.
+- No dangling null pointers.
+- Cons packing is trival.
+- Allows for many different kinds of objects to be implemented.
+- Allows other kinds of languages to be implemented.
+- Maps to Lisp well (was used in Lisp machines).
+
+Cons packing:
+: [00|--VAL--]              ---> car is (at) val, cdr is null
+: [01|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is val2
+: [10|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is at val2
+: [11|--VAL--]              ---> unused
+
+*** GC
+# TODO
+
+GC bits:
+: [00|--VAL--] ---> unmanaged (pinned)
+: [01|--VAL--] ---> undecided
+: [10|--VAL--] ---> undecided
+: [11|--VAL--] ---> undecided
+
+*** Allocator
+# TODO
+
+** Operators
+Always pairs ---> type part of the tag can be used as the operator type.
+
+Example:
+
+(%foo bar baz) is...
+
+: [%foo|-car-|-cdr-]--->[tag|baz]
+:         |
+:         v
+:         [tag|bar]
+
+...instead of...
+
+: [pair|-car-|-cdr-]--->[pair|-car-|-cdr-]--->[tag|baz]
+:         |                     |
+:         v                     v
+:         [tag|%foo]            [tag|bar]
+
+*** Threading
+- %tid - returns current threads ID.
+- %spawn - spawns a thread evaluating given bytecode.
+- %send - sends a bunch of immutable data to a thread.
+- %receive - receives a bunch of data.
+
+** Architecture
+*** Environment
+: +----------------------+
+: |     Environment      |
+: |+--------------------+|
+: ||      Compiler      ||
+: ||+------------------+||
+: |||        VM        |||
+: ||+------------------+||
+: |+-----------------^--+|
+: +-------^----^-----|---+
+:     ^   |    |     |
+:     |   |    |     |
+:      ASM    BSM   CSM
+
+Source types:
+- .asm - high level ASM.
+- .bsm - human-readable barebones ASM.
+- .csm - raw, compiled bytecode
+
+*** Compiler
+# TODO
+
+*** VM
+:       +------+
+: C --->|      |
+: E --->|      |
+: H --->|  S   |
+: K --->|      |
+: M --->|      |
+:       +------+
+
+Registers:
+- S - store (memory)
+- C - code being dispatched
+- E - environment stack
+- H - handler stack
+- K - continuation stack
+- M - metacontinuation stack
+** Interfacing with D
+*** Native calls
+Implementation:
+: [native|ptr|func]---> raw D function
+:          |
+:          v
+:       memory location containing the closure
+
+Example usage:
+: ASM.define("foo", x => x);
+: ASM.foo = x => x;
+
+*** Native types
+Implementation:
+: [user-type|type|data]---> raw D data
+:             |
+:             v
+:          D typeid
+
+Example usage:
+: ASM.define!SomeType;
+
+*** Dynamic FFI
+# TODO, use libffi. Python ctypes style.
+** Continuations
+*** @ register
+Instead of value stores the return address where the value should be
+stored.
+
+*** Metacontinuations
+Additional M stack containing continuation segments.
+
+: (%done @)    (%halt @)
+:     ^            ^
+:     |            |
+: (  ...  )        |
+:     ^            |
+:     |            |
+: (  ...  )        |
+:          ^       |
+:           \      |
+: (%done @)  (%restore @)
+:     ^            ^
+:     |            |
+:     K            M
+
+Primitives:
+- %restore - sets K to the stored continuation stack segment and applies it to the continuation hole.
+- %done - ends the current continuation segment and invokes the M register.
+- %halt - ends the flow of the program.
+
+*** Generalized metacontinuations
+Multiple metacontinuation stacks with multiple segments each.
+
+: (%done @)    (%done @)      (%halt @)   ...
+:     ^            ^              ^
+:     |            |              |
+: (  ...  )        |              |
+:     ^            |              |
+:     |            |              |
+: (  ...  )<--(%restore @)        |
+:                  ^              |
+: (%done @)        |              |
+:     ^            |              |
+:     |            |              |
+: (  ...  )        |              |
+:     ^            |              |
+:     |            |              |
+: (  ...  )<--(%restore @)<--(%restore @)
+:                                 ^
+: (%done @)    (%done @)          |
+:     ^            ^              |
+:     |            |              |
+: (  ...  )<--(%restore @)<--(%restore @)
+:                                 ^
+: (%done @)    (%done @)          |
+:     ^            ^              |
+:     |            |              |
+: (  ...  )<--(%restore @)        |
+:                  ^              |
+: (%done @)        |              |
+:     ^            |              |
+:     |            |              |
+:    MK0          MK1            MK2      ...
+
+Primitives:
+- %restore - pushes a stored continuation stack segment onto the MK register.
+- %done - pops the MK register leaving the rest of the meta-stack.
+- %halt - ends the flow of the program.
+
+Possible primitives:
+- %done-if - premature MK register poping (if @ != ()).
+- %select - depending on @ pushes one of its children onto the MK stack.
+
+Notes:
+- Might be really cool. Especially because it doesn't require constant consing of the continuation stack.
+- All the code can be pre-transformed into dataflow format and then executed with no further transformations.
+- Used to implement delimited continuations.

@@ -237,7 +237,6 @@
 - Multiline comments
 
 ** ASM named call parameters syntax.
-
 (function (foo bar baz)
   (* bar baz))
 
@@ -253,11 +252,86 @@
 
 [2012-01-29 nie 16:37]
 [[file:~/org/TODO::*Do%20the%20SD%20math.][Do the SD math.]]
-** Dynamic dispatch
-(defmethod foo (bar baz) body) (foo bar baz) <=> ((get bar 'foo)
-baz) # Dynamic dispatch
-or
-(with bar (foo baz)) # With macro
-or
-(function foo (baz) body) (connect bar foo) # Slots
 ** Rewrite Spec to use formal grammar/semantics description exactly as implemented in the language.
+** Callable/Iterable yin-yang.
+** Determine the suitability of vau-calculus to our own cause.
+ (var lambda (%vau (args body) env
+               (%wrap (eval `($%vau $args ignored $body)
+                            env))))
+ (var wrap (%lambda (combinator)
+             (%lambda args
+               (eval `($combinator $@args)))))
+[2012-07-21 sob 03:00]
+* Paper notes
+** Ranges
+*** As defined by Andrei Alexandrescu in On iteration.
+Input:
+:           InputRange ---> front, empty?, popFront!
+:               ^
+:               |
+:          ForwardRange ---> save (deep copy)
+:            ^      ^
+:           /        \
+: BidirectionalRange -+-> back, popBack!
+:                      \
+:           InfiniteRandomAccessRange ---> [] (indexing)
+:                       ^
+:                       |
+:            FiniteRandomAccessRange ---> [] (indexing)
+
+Output:
+: OutputRange ---> put
+
+Output ranges could be dropped in favour of impure functions -
+(put 23) ---> (foo 23 'bar '(1 2 3)).
+
+*** With macro
+# Could be generalized to all scopes.
+(with someRange       (do
+  (pop!)         ==>    ((someRange pop!))
+  (put! 'foo))          ((someRange put!) 'foo))
+*** Example
+(function circular (tpl)
+  (scope (var offset tpl)
+         (function empty? ()
+           '())
+         (functin front ()
+           (car offset))
+         (function popFront! ()
+           (set! offset (cdr offset))
+           (when (not offset)
+             (set! offset tpl)))))
+
+(var foo (circular '(1 2 3)))
+
+# foo is really: [#0|1]->[#1|2]->[#2|-]
+# but appears as: [#0|1]->[#1|2]->[#2|0]
+
+Together with type tagging/boxing/sealing might prove to be quite
+nice:
+
+(function chained (r1 r2)
+  (seal 'range
+        (scope ...
+               ...)))
+
+** Handlers
+A pair of condition predicate and condition handler. Signalizing
+condition invokes iteratively each predicate in the handler stack
+until it one is true and runs its corresponding handler.
+
+** Vau calculus
+Basics:
+((vau x e x) foo)         ---> foo
+((vau x e e) foo)         ---> dynamic environment
+((vau (x y z) e z) 1 2 3) ---> 3
+
+Implementing lambda:
+lambda => (vau (args body) env
+            (wrap (eval (tuple 'vau args () body)
+                        env)))
+
+Builtins:
+- vau - creates a lexically scoped operative combinator taking dynamic
+  environment.
+- wrap - induces arg evaluation allowing for applicative combinators.

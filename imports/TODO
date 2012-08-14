@@ -404,3 +404,59 @@ package foo
 
 ** The reader
 # Defined in experimental.parser2
+* Paper notes
+** VLists
+O(log n) indexing. If offset is 0, vlist prealocates additional chunk
+of data.
+
+: [offset|list]--->[vector|next]--->[vector|next]--->[vector|next]--->()
+:    |                |                |                |
+:    |                |                |                v
+:    |                |                v                [length|data]--->|0|
+:    |                v                [length|data]--->|1|2|
+:    |                [length|data]--->|3|4|5|6|
+:    |____________________________________^
+
+** Dynamic reader
+Based on dynamic PEG parser generator, because it doesn't need
+separate lexing phase. Reader macros will be grammar based.
+
+Implementation:
+: (syntax (grammar-declarator)
+:   transform
+:   ...)
+
+: (grammar ((grammar-declarator) transform)
+:          ...)
+
+grammar-declarator:
+: Name arrow Rules
+
+transform:
+: Any code, really.
+
+Name:
+: Rule name - used inside of it for transforms and outside for parsing.
+
+Rules - implicitly wrappend in a sequence:
+- (a b c ...)   - sequence
+- (/ a b c ...) - ordered choice
+- (* Rules)     - zero or more repeats of the Rules
+- (+ Rules)     - one or more repeats of the Rules
+- (? Rules)     - optional Rules
+- (! Rules)     - not Rules
+- (& Rules)     - and Rules
+- (: Rules)     - consumes input and drops captures
+- (~ Rules)     - concatenates captures
+
+arrow:
+- <- - basic
+- <  - spacing consuming
+- <~ - concatenative
+
+** Dynamic writer
+# TODO
+Using pattern matching and string embeds, possibly sewn together with
+the reader.
+Migth be of use for the bytecode/crosscode compiler.
+
