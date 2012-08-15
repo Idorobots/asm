@@ -14,6 +14,12 @@
 (var + add)
 (var ^ pow)
 
+(var >= geq?)
+(var <= leq?)
+(var = equal?)
+(var > (lambda (x y) (not (<= x y))))
+(var < (lambda (x y) (not (>= x y))))
+
 # Convinient if then else form.
 (var if* if)
 

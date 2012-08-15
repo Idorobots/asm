@@ -66,6 +66,8 @@ class VM {
         define(Keywords.Quasiquote, new BuiltinKeyword(&QQUOTE, 1));
         define(Keywords.Embed, new BuiltinKeyword(&EMBED, 1));
 
+        define(Keywords.Gr8erOrEqual, new BuiltinKeyword(&GEQ, 1, INF_ARITY));
+        define(Keywords.LessOrEqual, new BuiltinKeyword(&LEQ, 1, INF_ARITY));
         define(Keywords.IsEqual, new BuiltinKeyword(&ISEQUAL, 1, INF_ARITY));
 
         define(Keywords.Mult, new PureBuiltin(&MULT, 2));
@@ -173,6 +175,8 @@ class VM {
         test(`(join "foo" "bar")`, `"foobar"`);
         test("(add 2 2)", "4");
         test("(add (mult 2 100) (mult 1 10))", "210");
+        test("(var > (lambda (x y) (not (leq? x y)))", "too lazy...");
+        test("(var < (lambda (x y) (not (geq? x y)))", "too lazy...");
         test("(if ((> 6 5) (add 1 1)) ('else (add 2 2)))", "2");
         test("(if ((< 6 5) (add 1 1)) ('else (add 2 2)))", "4");
         test("(var x)", "()");
@@ -438,6 +442,42 @@ class VM {
             if(arg.eval(s) != first) return FNORD;
         }
         return first != FNORD ? first : new Symbol("yup");
+    }
+
+    /***********************************************************************************
+     * >=
+     *********************/
+
+    Expression GEQ(ref Scope s, Expression[] args) {
+        auto a = args[0].eval(s).value;
+        foreach(arg; args[1 .. $]) {
+            auto b = arg.eval(s).value;
+            if(a < b) {
+                return FNORD;
+            }
+            else {
+                a = b;
+            }
+        }
+        return new Number(a);
+    }
+
+    /***********************************************************************************
+     * <=
+     *********************/
+
+    Expression LEQ(ref Scope s, Expression[] args) {
+        auto a = args[0].eval(s).value;
+        foreach(arg; args[1 .. $]) {
+            auto b = arg.eval(s).value;
+            if(a > b) {
+                return FNORD;
+            }
+            else {
+                a = b;
+            }
+        }
+        return new Number(a);
     }
 
     /***********************************************************************************
