@@ -14,6 +14,56 @@
 
 # Code starts here:
 
+(function make-clock (t n-times)
+  (when (> n-times 0)
+    (var clk (make-wire))
+    (var times 0)
+    (function operate ()
+      (unless (>= times n-times)
+        (set! times (+ 1 times))
+        (set-signal! clk (logical-not (get-signal clk)))
+        (after-delay (/ t 2) operate)))
+    (after-delay (/ t 2) operate)
+    clk))
+
+(function sipo-register (data clk Q)
+  (do (function make-sipo-register (last-in q)
+        (when q
+          (var next-in (car q))
+          (d-latch last-in clk next-in (make-wire))
+          (make-sipo-register next-in (cdr q))))
+      (make-sipo-register data Q)
+      'ok))
+
+(function d-latch (d clk q nq)
+  (do (function operate ()
+        (when (equal? (get-signal clk) 1)
+          (var next-value (get-signal d))
+          (after-delay *d-latch-delay*
+                       (lambda ()
+                         (do (set-signal! q next-value)
+                             (set-signal! nq (logical-not next-value)))))))
+      (add-action! clk operate)
+      'ok))
+
+(function sr-latch (r s q nq)
+  (do (var rinv (make-wire))
+      (var sinv (make-wire))
+      (or-gate r nq rinv)
+      (inverter rinv q)
+      (or-gate s q sinv)
+      (inverter sinv nq)
+      'ok))
+
+(function ripple-carry-adder (A B S C)
+  (do (function make-ripple-carry-adder (a b s last-c)
+        (when a
+          (var next-c (if (cdr a) (make-wire) C))
+          (full-adder (car a) (car b) last-c (car s) next-c)
+          (make-ripple-carry-adder (cdr a) (cdr b) (cdr s) next-c)))
+      (make-ripple-carry-adder A B S (make-wire))
+      'ok))
+
 (function half-adder (a b s c)
   (do (var d (make-wire))
       (var e (make-wire))
@@ -81,15 +131,6 @@
           (equal? b 1))
       1
       0))
-
-(function ripple-carry-adder (A B S C)
-  (do (function make-ripple-carry-adder (a b s last-c)
-        (when a
-          (var next-c (if (cdr a) (make-wire) C))
-          (full-adder (car a) (car b) last-c (car s) next-c)
-          (make-ripple-carry-adder (cdr a) (cdr b) (cdr s) next-c)))
-      (make-ripple-carry-adder A B S (make-wire))
-      'ok))
 
 (function make-wire ()
   (scope (var signal-value 0)
@@ -224,24 +265,30 @@
                  (write (current-time *agenda*) " ns - " name
                         ": new value = " (get-signal wire) "\n"))))
 
-(function probe-bus (base-name bus)
+(function probe-bus (name bus)
   (do (function probe-bus-iterate (n bus-rest)
-        (when (bus-rest)
-          (probe (append (stringof base-name) (stringof n))
-                 (car bus-rest))
+        (when bus-rest
+          (add-action! (car bus-rest)
+                       (lambda ()
+                         (write (current-time *agenda*) " ns - " name
+                                ": new value = " (bus-value bus) "\n")))
           (probe-bus-iterate (+ 1 n) (cdr bus-rest))))
       (probe-bus-iterate 0 bus)))
 
 # Some tests:
-
-(var (*inverter-delay*
-      *and-gate-delay*
-      *or-gate-delay*)
-     '(2
-       3
-       3))
-
 (var *agenda* (make-agenda))
+(var *inverter-delay* 2)
+(var *and-gate-delay* 3)
+(var *or-gate-delay* 3)
+(var *d-latch-delay* 8)
+
+(write "Clock:\n")
+(var clk (make-clock 10 10))
+(probe 'CLK clk)
+#(propagate)
+
+(write "\nFull adder:\n")
+(reset-agenda *agenda*)
 
 (var (a b s c-in c-out) (make-bus 5))
 (probe 'Sum s)
@@ -251,23 +298,61 @@
 (set-signal! b 1)
 (propagate)
 
+(write "\nRipple carry adder:\n")
 (reset-agenda *agenda*)
 
 (var bus-size 16)
 (var A (make-bus bus-size))
 (var B (make-bus bus-size))
 (var c (make-wire))
+(probe 'Carry c)
 (var S (make-bus bus-size))
 
 (ripple-carry-adder A B S c)
 
-(set-bus-value! A '(0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
+(set-bus-value! A '(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
 (set-bus-value! B '(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
 
 (write "A: " (bus-value A) "\n")
 (write "B: " (bus-value B) "\n")
-(write "S: " (bus-value S) "\n")
-
+(probe-bus 'S S)
 (propagate)
 
-(write "S: " (bus-value S) "\n")
+(write "\nSR-latch:\n")
+(reset-agenda *agenda*)
+
+(var (r s q nq) (make-bus 4))
+(probe "Q" q)
+(probe "~Q" nq)
+
+(set-signal! s 1)
+(sr-latch r s q nq)
+(propagate)
+
+(write "\nD-latch:\n")
+(reset-agenda *agenda*)
+
+(var (d clk q nq) (make-bus 4))
+(probe "Q" q)
+(probe "~Q" nq)
+
+(set-signal! clk 1)
+(set-signal! d 1)
+(d-latch d clk q nq)
+(propagate)
+
+(write "\nSIPO register:\n")
+(reset-agenda *agenda*)
+
+(var Q (make-bus 16))
+(probe-bus "Q" Q)
+(var data (make-clock 20 16))
+(var clk (make-clock 10 32))
+(probe 'CLK clk)
+
+(set-signal! data 1)
+(sipo-register data clk Q)
+
+(write "Q: " (bus-value Q) "\n")
+(propagate)
+(write "Q: " (bus-value Q) "\n")
