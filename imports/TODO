@@ -368,6 +368,8 @@ Example:
 [2012-05-16 śro 19:27]
 [[file:~/org/refile.org]]
 *** Whitespace aware syntax for ASM                                    :NOTE:
+# SRFI 49 already had it before it was cool!
+
 (package foo
   (function (bar arg0 arg1)
     (if (and (atom? arg0)

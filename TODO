@@ -249,7 +249,6 @@
 - Reader implemented in BareBonesASM.
 
 ** User code interface
-
 #+begin_src d
 struct Test {
     int bar;
@@ -381,7 +380,7 @@ Layout:
 
 Variants:
 : [TAG|--PTR--] ---> anything that uses pointers
-: [TAG|--NUM--] ---> anything that uses values
+: [TAG|--VAL--] ---> anything that uses values
 
 Cons:
 - No big numbers without any special treatment.
@@ -398,10 +397,10 @@ Pros:
 - Maps to Lisp well (was used in Lisp machines).
 
 Cons packing:
-: [00|--VAL--]              ---> car is (at) val, cdr is null
-: [01|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is val2
+: [00|--VAL--]              ---> there's no cdr (errors on read/write)
+: [01|--VAL--]              ---> car is (at) val, cdr is null
 : [10|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is at val2
-: [11|--VAL--]              ---> unused
+: [11|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is val2
 
 *** GC
 # TODO
@@ -464,21 +463,30 @@ Source types:
 # TODO
 
 *** VM
-:       +------+
-: C --->|      |
-: E --->|      |
-: H --->|  S   |
-: K --->|      |
-: M --->|      |
-:       +------+
+: Q --- [  ][  ]...
+:       +-------+
+: C --->|       |
+: E --->|       |
+: H --->|   S   |
+: K --->|       |
+: M --->|       |
+:       |  ...  |
+:       +-------+ --- ()
 
-Registers:
-- S - store (memory)
-- C - code being dispatched
-- E - environment stack
-- H - handler stack
-- K - continuation stack
-- M - metacontinuation stack
+Registers & values:
+- Q - QValue register
+- C - code pointer
+- E - environment stack pointer
+- H - handler stack pointer
+- K - continuation stack pointer
+- M - metacontinuation stack pointer
+- S - store pointer (memory start)
+- () - fnord value (memory end)
+
+Primitive operations:
+%car - contents of address register
+%cdr - contents of decrement register
+
 ** Interfacing with D
 *** Native calls
 Implementation:

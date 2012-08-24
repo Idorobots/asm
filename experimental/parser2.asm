@@ -27,7 +27,7 @@
 
 ###############################################
 # TODO: Make (tuple string (return)) implicit.
-# TODO: Instead of (Arg <- Rules) use (Rule <- Args) ---> more hygenic.
+# TODO: Instead of (Arg <- Rules) use (Rule <- Args) ---> nicer.
 # TODO: compile-complex-rule should pass (cdr rule) not rule.
 # FIXME: Strip strings only once!
 
