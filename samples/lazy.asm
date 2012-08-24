@@ -19,3 +19,16 @@
                (+ (* a a) (* b b))]
           (take n (map~ [x -> (* x x)]
                         all-integers))))
+
+(function withdraw (balance ammount-stream)
+  (join~ balance
+         (self (- balance (first~ ammount-stream))
+               (rest~ ammount-stream))))
+
+(function make-ammount-stream ()
+  (join~ (str->num (readln))
+         (make-ammount-stream)))
+
+(function bank (withdraw-stream)
+  (do (write (first~ withdraw-stream))
+      (bank (rest~ withdraw-stream))))
