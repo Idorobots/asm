@@ -578,7 +578,7 @@ Notes:
 *** Librarize ASM VM to allow dynamic loading of the past and future versions. :NOTE:
 [2012-09-06 czw 10:54]
 [[file:~/org/refile.org]]
-* ASM Specification
+* ASM programming language
 ** HIGHEST PRIORITY
 *** Rewrite taking CEK semantics into account.
 *** Add ASM and BareBones ASM distinction.
