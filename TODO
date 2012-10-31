@@ -585,3 +585,6 @@ Notes:
 - Might be really cool. Especially because it doesn't require constant consing of the continuation stack.
 - All the code can be pre-transformed into dataflow format and then executed with no further transformations.
 - Used to implement delimited continuations.
+** Librarize ASM VM to allow dynamic loading of the past and future versions. :NOTE:
+[2012-09-06 czw 10:54]
+[[file:~/org/refile.org]]

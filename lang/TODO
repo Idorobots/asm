@@ -252,6 +252,14 @@
 
 [2012-01-29 nie 16:37]
 [[file:~/org/TODO::*Do%20the%20SD%20math.][Do the SD math.]]
+** Common syntax for variables and function definition
+Scheme-like, Scala-eque:
+: (def foo (map (lambda (x) (* x x))
+:               bar))
+
+: (def (foo baz) (map (lambda (x) (* x x))
+:                     baz))
+
 ** Rewrite Spec to use formal grammar/semantics description exactly as implemented in the language.
 ** Callable/Iterable yin-yang.
 ** Determine the suitability of vau-calculus to our own cause.
@@ -262,6 +270,14 @@
              (%lambda args
                (eval `($combinator $@args)))))
 [2012-07-21 sob 03:00]
+** Scala for expression for ASM:
+: (for x <- foo
+:      y <- x
+:      if (> y 23)
+:      yield y)
+[2012-10-27 sob 23:15]
+[[irc:/localhost:6667/LucynaJaworska][irc session 'localhost:6667/LucynaJaworska']]
+
 * Paper notes
 ** Ranges
 *** As defined by Andrei Alexandrescu in On iteration.
