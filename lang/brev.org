@@ -8,296 +8,1391 @@
 #+LaTeX_CLASS: report
 #+LaTeX_CLASS_OPTIONS: [a4paper]
 ####################
+#+latex: \pagebreak
 
 * ASVM
-* ASM programming language
-** Lexical
-*** Phases of compilation                                          :noexport:
-**** Lexical analysis
-**** Syntactic analysis
-**** Semantic analysis
-**** Optimisation
-**** Interpretation/Code generatian
-*** Source code
-ASM source text can use one of the following formats:
+** old ASVM
+*** HIGHEST PRIORITY
+**** Drop the OOP and merge CEK architecture vm.
+*** THINGS TO DO IN THE INTERPRETER
+# Lists things needing attention in the interpreter.
+- Decouple VM code from DASM code - making DSM only use VM as the
+  run-time environment.
 
-- ASCII
-- UTF-8
-- UTF-16BE
-- UTF-16LE
-- UTF-32BE
-- UTF-32LE
+**** dasm.lexical
+***** Syntax
+- [ ] ! Remove enum Syntax.
+- [ ] ! Minimise enum Lexical.
+- [X] Split to Lexical and Syntax:
+    + [X] CommentStart, EndOfLine etc - Lexical
+    + [X] Rest - Syntax
+***** Syntax keywords
+- [ ] Sort out which keywords are crucial and leave only those.
+- [ ] Sort the list and write proper descriptions.
+- [ ] ? Self:
+    + ? Used only for representation of Collections/Scopes/Functions.
+    + ? Used semanticly as a self reference of an object.
+- [ ] ? Embed:
+    + ? Rename to something more appropriate.
+    + ? Make it evaluate the expression twice.
+- [ ] ? Add __scopecall etc keywords.
+***** Semantic keywords
+- [ ] ? Add a list of builtin, recognised keywords.
+- ? Merge with Comments and their opts?
+**** dasm.ast
+***** Type
+***** Semantic analyzis
+- [ ] ? Type primitive used for semantic analyzis.
+- [ ] version(safe) toggling parts of semantic analyzis.
+- [ ] Type checking, and predictedType field in Expression.
+- [-] Arg number and type checking in Callables:
+    + [X] Arg number checking.
+    + [-] Arg type checking.
+    + [ ] AbigiousCall error when types can vary greatly. E.g. Many
+          ifs returning many different expressions.
+- [ ] ? Arg evaluation list building using thunks.
+- [ ] Recursion depth checking.
+***** Expression
+- [X] Additional fields:
+    + [X] Line number.
+    + [X] Filename.
+    + [X] Semantic keywords.
+- [ ] ? opApply instead of range(), for convinience. Maby both?
+- [ ] T value(T)() instead of real value().
+- [ ] hash_t toHash();
+- [X] bool opEquals(Object);
+- [ ] int opCmp(Object);
+***** Atom
+- [X] Take the string away from there, make it a proper immutable
+      collection.
+- [ ] Add more numerical types.
+- [ ] ? Add common atomic operations (like math for numbers, etc).
+***** Collection
+- [-] call() for Set and List with no implementation for Tuple:
+  + [X] call() for Set and List.
+  + [ ] No compiled implementation for Tuple.
+- [X] Set.call() calling "__setcall".
+- [X] List.call() calling "__listcall".
+- [X] List evaluating to "__listeval".
+- [X] Set evaluating to "__seteval".
+- [X] Add "evalKeyword" and "callKeyword" template args to make eval()
+      a oneliner.
+- [X] Collection specialisation for String.
+- [ ] Proper implementation of the Tuple - linked list.
+- [ ] Proper implementation of the Set - kind of a BST.
+- [X] Rename List to Vector.
+***** Callable
+- [ ] ! Depth parameter for the calls.
+- [X] String representation actually showing the callable.
+***** Scope
+- [X] ? String representation actually being usefull. (A tuple of
+      keys or key/value pairs.)
+- [X] One lexical scope of the variables, macros and syntax keywords.
+- [ ] Additional scope for the actual syntax.
+- [X] define()
+- [ ] syntax()
+- [X] Remove set().
+- [ ] ? Add undefine(string).
+- [ ] ? Add merge(Scope).
+- [ ] ? Add import(Scope).
+- [X] Add isDefined(string).
+- [X] Scope.call() calling "__scopecall".
+- [X] Fix storing unwanted objects when rebinding symbols.
+***** HashTable
+- [ ] ? New syntax: #[(key value)]
+- [ ] ? HashTable.call() returning val-ref / (key val-ref) or UnitType.
+    + ? Has to return settable ref at all times (for use with set!).
+- [ ] ? HashTable.eval() returning Scope.
+- [ ] ? Merge this with Scope.
+***** Promise
+- [ ] Fix the force macro to force all the way instead of one level.
+- [ ] Add memoize macro.
+**** dasm.kit
+- [ ] ? Move pass() to a separate module.
+- [X] Actually write some fooking implementations.
+- [ ] Sort out which implementations are crucial for the language.
+- [X] Move Scope, Set and List calls there:
+    + [X] Set.call()
+    + [X] Scope.call()
+    + [X] List.call()
+- [X] Move Set, List and Tuple evals there:
+    + [X] Set.eval()
+    + [X] List.eval()
+    + [X] Tuple.eval()
+- [X] Fix FNORD comparisions:
+***** Implementations
+- [-] Fix EMBED, QUOTE and QQOTE on strings.
+- [-] Find solution to/report ref parameter delegate bug from
+      LAMBDA.
+- [ ] Keyword dispatch for Callables declarators.
+- [ ] ? Make IMPORT work with default import paths etc.
+- [X] Fix SETOF, TUPLEOF, LISTOF.
+- [X] GET should evaluate it's args.
+- [X] Rename FUNCTION to LAMBDA/ANONYMOUS.
+- [ ] ! LAMBDA should accept multiple expressions in a body.
+***** Unittests
+- [X] Actually write those.
+- [X] Write more of these.
+- [ ] Write even more of these.
+- [ ] Foookin' unittest, man!
+**** dasm.parser
+***** Transition
+- [ ] Make the parser minimalistic with no extended syntax, nor
+      code validation.
+- [ ] Rewrite Core to parse on it.
+- [ ] Write a recursive descent parser in ASM.
+***** DefaultParser
+- [X] Stop ESyntax expansion in symbols. E.g. some$ymbol.
+- [ ] Make parse() pretier!
+- [ ] Fix number parsing and PhobosBug(TM) workarrounds.
+- [ ] ? NumberParser
+***** StringParser
+- [ ] ? Plan embedding representation.
+- [ ] Actually parsing strings.
+- [ ] Recognize escape sequences.
+- [ ] Recognize expression embeds.
+***** Unittests
+- [ ] Make unittests Syntax independant.
+- [X] More preprocess() unittests.
+- [X] More tokenize() unittests.
+- [ ] ? parse() unittests.
+***** Metadata
+- [X] Add file data.
+- [X] Add line number data.
+- [ ] ? Add column number data.
+**** dasm.vm
+- [ ] ? Move already implemented ASMKit functions to dasm.kit.
+- [X] Fix doString() and doFile().
+- [ ] ? InterpretingError for file interepretation.
+- [-] Fix metadata in error messages.
+***** Unittests
+- [X] Actually write those.
+- [ ] Write more of these.
+- [ ] Write even more of these.
+- [ ] Foookin' unittest, man!
+**** dasm.main
+***** Interpreter switches
+- --barebones | --bb - won't load anything. Will try interpreting only
+  BareBonesASM code.
+- --path - sets a search path for imports.
+- --help | -h - lists all the switches.
+- --version | -v - prints out the version number.
+- --license - prints out the licensing info.
 
-UTF-8 is a superset of traditional 7-bit ASCII. One of the following
-UTF BOMs (Byte Order Marks) can be present at the beginning of the
-source text:
+################################################################################
+*** RANDOM IDEAS
+# Lists some ideas yet to be moved to a more apropriate place.
 
-- ASCII - no BOM
-- UTF-8 - EF BB BF
-- UTF-16BE - FE FF
-- UTF-16LE - FF FE
-- UTF-32BE - 00 00 FE FF
-- UTF-32LE - FF FE 00 00
+**** Loading symbols from a .so
+- [ ] Find a way to walk arround D's unfinished stuff. *awesome happy face*
+- [ ] Find a way to precompile libraries.
+- [ ] Find a way to load precompiled files into the ASM.
+- [ ] Find a way to call C code directly (a low level proc perhaps?).
+**** Collections
+- [ ] Expression[] range() -> Range range()
+- [ ] += Range:
+      + Containing all required Range methods.
+      + opIndex()
+      + opSlice()
+      + opDollar()
+***** correct Tuple
+- [ ] Made out of immutable conses for structure sharing.
+- [ ] (elements) and (elements , a)
+***** correct Set
+- Figure out if it's actually needed.
+- [ ] AVL/Red-Black tree/Heap.
+- [ ] Unordered.
+- [ ] Multiset.
+- [ ] {elements}
+***** correct Vector
+- [X] Dynamic array.
+- [X] That be it yo.
+- [X] [elements]
+***** HashTable
+- [ ] #[(k v) (k v)] or #!HashTable [(k v) (k v)]
+***** Scope
+- ? $(contents same as HashTable) or #!Scope [(k v) (k v)]
+- ? Same as HashTable?
+***** Array/String
+- [ ] | atomic elements |
+- [ ] "special literal for character string"
+- Think about element evaluation problem.
+**** Callables
+***** Functions
+- [ ] ? Purity checks when defining a lambda.
+- [ ] Pure functions being memoized by default.
+- [ ] ? Simple literals:
+      + [ ] [args -> body] - lexically scoped closure.
+- [ ] ? Arg dispatch:
+      + [ ] (lambda args body) -> 0-INF-ary, args store all the call args.
+      + [ ] (lambda (a . b) body) -> N-INF-ary, b stores the rest of
+            the call args.
+***** Continuations
+**** Error handling
+- [ ] (catch e handler) -> (try e handler0 handler1 ...)
+- [ ] handler = (error-object handling-function)
+- [ ] (error error-object/string)
+**** Lazy evaluation
+- [X] Native, first-clas Promise.
+- [X] Builtin (lazy e) macro.
+- [ ] ? Builtin (force e) macro for disambiguation.
+- [ ] ? Lazyfy builtins.
+**** Reader architecture
+1. BareBonesASM - a subset of the language consisting of the most low
+   level functions. Possibly the bytecode calls for the VM.
+2. Hardcoded parser that parses _only_ BareBonesASM.
+3. The language implementation
+- Core modules written directly in BareBonesASM.
+- Reader implemented in BareBonesASM.
 
-**** Character set
-#+BEGIN_EXAMPLE
-Characters = {Character};
-Character  = ? any Unicode character ?;
-#+END_EXAMPLE
+**** User code interface
+#+begin_src d
+struct Test {
+    int bar;
+    string foo;
+}
 
-Any valid Unicode character is also a valid ASM sourcecode character.
+// ...
 
-**** Whitespace
-#+BEGIN_EXAMPLE
-Whitespace = Space, {Space};
-Space      = \U0009 | \U000B | \U000D | " " | EndOfLine;
-#+END_EXAMPLE
+    ASM.defineType!Test;
 
-Whitespace are a pretty cool guy. Eh separates tokens from eachother
-and doesn't afraid of anything.
+    ASM.define("foobar", (scpe, args) {
+        if(args.car.type == Type.UserDefined)
+        if(args.car.userType == typeid(Type))
+        // Do shit
+        return ASM.fnord;
+    });
 
-**** End of line
-#+BEGIN_EXAMPLE
-EndOfLine = \U000A | EndOfFile;
-#+END_EXAMPLE
+    ASM.doString(q{
+        (var baz (scope
+                   (var _inner (newTest))
 
-**** End of file
-#+BEGIN_EXAMPLE
-EndOfFile = \U0000 | ? physical end of file ?;
-#+END_EXAMPLE
+                   (function getFoo ()
+                     (getTestFoo _inner))
+                   (function setFoo (newVal)
+                     (setTestFoo _inner newVal))
 
-ASM source text is terminated by whichever comes first.
+                   (function getBar ()
+                     (getTestBar _inner))
+                   (function setBar (newVal)
+                     (setTestBar _inner newVal))))
+        ((baz setFoo) "Test")
+        (foobar baz)
+        (writeln (baz getBar))
+    });
+#+end_src
+**** Array and Vector range primitives
+(%acar array) -> newCell(ArrayVal(array[0]));
+(%acdr array) -> newCell(array[1 .. $]);
+(%vcar vector) -> newCell(vector[0]);
+(%vcdr vector) -> newCell(vector[1 .. $]);
 
-*** Comments
-#+BEGIN_EXAMPLE
-Comment      = LineComment | ExpressionComment;
-CommentStart = "#";
-#+END_EXAMPLE
+CellArray? Merge Vector and Array?
 
-ASM supports two kinds of comments - line comments and expression
-comments.
+[2012-05-11 pią 10:33]
+[[file:~/code/assembly/tests/lab_6a_asm.s::facta:%20pushl%20%25ebp][file:~/code/assembly/tests/lab_6a_asm.s::facta: pushl %ebp]]
+**** Compound types for ASM using sealer/unsealer functions.
+# Could be a hash.
+(var *compound-type* 0)
 
-**** Line comments
-#+BEGIN_EXAMPLE
-LineComment = CommentStart, CommentOpt, Characters, EndOfLine;
-CommentOpt  = "!" | "#" | " ";
-#+END_EXAMPLE
+# Could use a separate Q type (Type?) and make use of unique references and is? predicate.
+(function make-type ()
+  (do (var t *compound-type*)
+      (set! *compound-type* (+ 1 *compound-type*))
+      (tuple t
+             (lambda (o)
+               (cons t o))
+             (lambda (o)
+               (if (and (tuple? o)
+                        (equal? (car o) t))
+                   (cdr o)
+                   (error "Type mismatch."))))))
+(function typeof (o)
+  (when (pair? o)
+    (car o)))
 
-Line comments start with CommentStart coupled with a comment option
-and span until the EndOfLine:
+(var (T sealT unsealT) (make-type))
 
-***** Line comment options
-CommentOpt determines the purpose of a line comment:
+(var foo (sealT (tuple 1 2 3)))
 
-- " " - starts a regular comment.
-- "!" - starts a shebang comment.
-- "#" - starts a documentation comment.
+# Might facilitate predicate-based type pattern matching.
+(function baz (v)
+  (case (typeof v)
+    (T (unsealT v))
+    (X (unsealX v))
+    ...))
 
-***** Shebang
-ASM suports Unix shebang notation. First line starting with "#!" is
-simply discarded.
+[2012-08-07 wto 18:05]
+[[irc:/irc.freenode.net:6667/#udacity][irc session 'irc.freenode.net:6667/#udacity']]
+**** Dynamic dispatch
+(defmethod foo (bar baz) body) (foo bar baz) <=> ((get bar 'foo)
+baz) # Dynamic dispatch
+or
+(with bar (foo baz)) # With macro
+or
+(function foo (baz) body) (connect bar foo) # Slots
+*** Paper notes
+**** Memory model
+***** Tag
+: 15 [--|---|--|-|--------] 0
+:      ^  ^  ^  ^     ^
+:      |  |  |  |     |_ 8 type/operator bits
+:      |  |  |  |_ 1 immutability bit
+:      |  |  |_ 2 cons packing bits (optional)
+:      |  |_ 3 unused bits (reserved for future use)
+:      |_ 2 GC bits (may require more)
+
+***** Tagged pairs
+Layout:
+: x86   - [-2-|--4--|--4--]                 ---> 10
+:         [-2-|x2x|--4--|--4--]             ---> 12, word-aligned
+: amd64 - [-2-|----8----|----8----]         ---> 18
+:         [-2-|xxx6xxx|----8----|----8----] ---> 24, word-aligned
+:         [-2-|---6---|----8----]           ---> 16, word-aligned, memory magic
+
+Variants:
+: [TAG|--PTR--|--PTR--] ---> pairs, closures, native calls
+: [TAG|--NUM--|--PTR--] ---> arrays, vectors
+: [TAG|--NUM--|--NUM--] ---> complex numbers
+: [TAG|--- -BIGNUM----] ---> long numbers, thread ids, etc
+
+Cons:
+- Numbers will have dangling padding.
+- All nulls are explicit and take a word each.
+- Characters can't really be referenced directly and require lots of
+  space.
+- Can't pack conses easily.
+- Might not be suitable for non-lisp languages.
+
+Pros:
+- Simple implementation and use.
+- Maps to Lisp directly.
+
+***** QValues
+Layout:
+: x86   - [-2-|--4--]     ---> 6
+:         [-2-|x2x|--4--] ---> 8, word-aligned
+: amd64 - [-2-|----8----] ---> 10
+:         [-2-|---6---]   ---> 8, word-aligned, memory-magic
+
+Variants:
+: [TAG|--PTR--] ---> anything that uses pointers
+: [TAG|--VAL--] ---> anything that uses values
+
+Cons:
+- No big numbers without any special treatment.
+- Interfacing arrays and native calls to D will be complicated.
+- Tag might need additional cons-packing bits.
+- Tag appears twice in a pair.
+
+Pros:
+- Doesn't need as much padding.
+- No dangling null pointers.
+- Cons packing is trival.
+- Allows for many different kinds of objects to be implemented.
+- Allows other kinds of languages to be implemented.
+- Maps to Lisp well (was used in Lisp machines).
+
+Cons packing:
+: [00|--VAL--]              ---> there's no cdr (errors on read/write)
+: [01|--VAL--]              ---> car is (at) val, cdr is null
+: [10|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is at val2
+: [11|--VAL1-][TAG|--VAL2-] ---> car is (at) val1, cdr is val2
+
+***** GC
+# TODO
+
+GC bits:
+: [00|--VAL--] ---> unmanaged (pinned)
+: [01|--VAL--] ---> undecided
+: [10|--VAL--] ---> undecided
+: [11|--VAL--] ---> undecided
+
+***** Allocator
+# TODO
+
+**** Operators
+Always pairs ---> type part of the tag can be used as the operator type.
 
 Example:
-#+BEGIN_EXAMPLE
-#!/bin/asm
 
-(var foo 'bar)
-#+END_EXAMPLE
+(%foo bar baz) is...
 
-***** Documentation Comments
-Line comments with a hash option are considered documentation comments
-and can be used to generate code documentation automatically.
+: [%foo|-car-|-cdr-]--->[tag|baz]
+:         |
+:         v
+:         [tag|bar]
 
-Examples:
-#+BEGIN_SRC javascript
-## This is a documentation comment.
-(var of-this-variable)
+...instead of...
 
-########################################
-## This too is a documentation comment.
-###############
+: [pair|-car-|-cdr-]--->[pair|-car-|-cdr-]--->[tag|baz]
+:         |                     |
+:         v                     v
+:         [tag|%foo]            [tag|bar]
 
-(var of-this-other-variable)      ##So is this.
-#+END_SRC
+***** Threading
+- %tid - returns current threads ID.
+- %spawn - spawns a thread evaluating given bytecode.
+- %send - sends a bunch of immutable data to a thread.
+- %receive - receives a bunch of data.
 
-#TODO LINK
-See more here.
+**** Architecture
+***** Environment
+: +----------------------+
+: |     Environment      |
+: |+--------------------+|
+: ||      Compiler      ||
+: ||+------------------+||
+: |||        VM        |||
+: ||+------------------+||
+: |+-----------------^--+|
+: +-------^----^-----|---+
+:     ^   |    |     |
+:     |   |    |     |
+:      ASM    BSM   CSM
 
-**** Expression comments
-#+BEGIN_EXAMPLE
-ExpressionComment = CommentStart, ? any syntactically valid ASM
-expression ?;
-#+END_EXAMPLE
+Source types:
+- .asm - high level ASM.
+- .bsm - human-readable barebones ASM.
+- .csm - raw, compiled bytecode
 
-Expression comments in ASM are useful to comment out entire
-S-expressions and are an equivalent of block comments in imperative
-languages.
-There are no different kinds of expression comments and their sole
-purpose is aiding the programmer in debugging and writting
-selfexplanatory code.
+***** Compiler
+# TODO
 
-Examples:
-#+BEGIN_SRC javascript
-(if (some-condition)
-    #(some buggy-piece-of-code)                (ref:1)
-    (a-quick-fix)
- #else                                         (ref:2)
-     (else-clause))
-#+END_SRC
+***** VM
+: Q --- [  ][  ]...
+:       +-------+
+: C --->|       |
+: E --->|       |
+: H --->|   S   |
+: K --->|       |
+: M --->|       |
+:       |  ...  |
+:       +-------+ --- ()
 
-In  [[(1)]] the programmer commented out some buggy piece of code
-and supplied a quick fix.
-[[(2)]] demonstrates the use of expression comments as means of
-clarifying the code.
-*** Identifiers                                                    :noexport:
-*** Character string literals                                      :noexport:
-**** Escape sequences
-**** Expression embeding
-*** Number literals                                                :noexport:
-*** Reserved keywords                                              :noexport:
-*** Special tokens                                                 :noexport:
-*** Metadata                                                       :noexport:
-** Builtin types                                                   :noexport:
-*** Type traits
-**** Collection
-**** Callable
-**** Lazy
-*** Atom
-**** Symbol
-***** Binding
-***** WYSIWYG symbols
-***** Symbol handling
-**** Number
-***** Representation
-***** Number handling
-*** Collection
-**** Tuple
-***** Tuple literal
-***** Internal structure
-***** Immutability
-***** Unit Type
-***** Evaluation
-***** Representation
-***** Tuple handling
-**** Vector
-***** Vector literal
-***** Internal structure
-***** Evaluation
-***** Call
-***** Representation
-***** Vector handling
-**** Set
-***** Set literal
-***** Internal structure
-***** Equality
-***** Evaluation
-***** Call
-***** Representation
-***** Set handling
-**** Array
-***** Array literals
-***** Internal structure
-***** Strings
-***** Call
-***** Representation
-***** Array handling
-**** Hash
-***** Hash literal
-***** Internal structure
-***** Evaluation
-***** Call
-***** Representation
-***** Hash handling
-**** Scope
-***** Internal structure
-***** Outter scope
-***** Self reference
-***** Call
-***** Representation
-***** Scope handling
-*** Callable
-**** Function
-***** Internal structure
-***** `lambda' special form
-***** Evaluation scope
-***** Self reference
-***** Representation
-***** Function handling
-**** Macro
-***** Internal structure
-***** `macro' special form
-***** Evaluation scope
-***** Macro expansion
-***** Representation
-***** Macro handling
-**** Promise
-***** Internal structure
-***** `lazy' special form
-***** `force' special form
-***** Representation
-***** Promise handling
-*** Storage classes
-**** Reference
-**** Constant
-**** Lazy
-*** `typeof' builtin function
+Registers & values:
+- Q - QValue register
+- C - code pointer
+- E - environment stack pointer
+- H - handler stack pointer
+- K - continuation stack pointer
+- M - metacontinuation stack pointer
+- S - store pointer (memory start)
+- () - fnord value (memory end)
 
-** The language                                                    :noexport:
-*** Modes
-**** Code mode
-**** Data mode
-***** Quoting & Embeding
-***** `quote' special form
-***** `qquote' special form
-***** `embed' special form
+Primitive operations:
+%car - contents of address register
+%cdr - contents of decrement register
 
-*** Booleans
-**** Unit Type
-**** FNORD!
+**** Interfacing with D
+***** Native calls
+Implementation:
+: [native|ptr|func]---> raw D function
+:          |
+:          v
+:       memory location containing the closure
 
-*** Variables
-**** Lexical name binding
-**** `var' special form
-***** Tuple packing
-***** Tuple unpacking
-**** Special form redefinition
+Example usage:
+: ASM.define("foo", x => x);
+: ASM.foo = x => x;
 
-*** Generic setter
-**** Settable references
-**** `set!' builtin function
+***** Native types
+Implementation:
+: [user-type|type|data]---> raw D data
+:             |
+:             v
+:          D typeid
 
-*** Strings
-**** WYSIWYG symbol
-**** `stringof' builtin function
+Example usage:
+: ASM.define!SomeType;
 
-*** Modules
-**** Package directory structure
-**** Lazy evaluation
-*** Flow controll
-**** Conditions
-**** `if' special form
+***** Dynamic FFI
+# TODO, use libffi. Python ctypes style.
+**** Continuations
+***** @ register
+Instead of value stores the return address where the value should be
+stored.
 
-*** Pattern matching
-**** Patterns
-**** `match' special form
+***** Metacontinuations
+Additional M stack containing continuation segments.
 
-*** Backtracking
-**** Unification
-**** `query' special form
+: (%done @)    (%halt @)
+:     ^            ^
+:     |            |
+: (  ...  )        |
+:     ^            |
+:     |            |
+: (  ...  )        |
+:          ^       |
+:           \      |
+: (%done @)  (%restore @)
+:     ^            ^
+:     |            |
+:     K            M
 
+Primitives:
+- %restore - sets K to the stored continuation stack segment and applies it to the continuation hole.
+- %done - ends the current continuation segment and invokes the M register.
+- %halt - ends the flow of the program.
+
+***** Generalized metacontinuations
+Multiple metacontinuation stacks with multiple segments each.
+
+: (%done @)    (%done @)      (%halt @)   ...
+:     ^            ^              ^
+:     |            |              |
+: (  ...  )        |              |
+:     ^            |              |
+:     |            |              |
+: (  ...  )<--(%restore @)        |
+:                  ^              |
+: (%done @)        |              |
+:     ^            |              |
+:     |            |              |
+: (  ...  )        |              |
+:     ^            |              |
+:     |            |              |
+: (  ...  )<--(%restore @)<--(%restore @)
+:                                 ^
+: (%done @)    (%done @)          |
+:     ^            ^              |
+:     |            |              |
+: (  ...  )<--(%restore @)<--(%restore @)
+:                                 ^
+: (%done @)    (%done @)          |
+:     ^            ^              |
+:     |            |              |
+: (  ...  )<--(%restore @)        |
+:                  ^              |
+: (%done @)        |              |
+:     ^            |              |
+:     |            |              |
+:    MK0          MK1            MK2      ...
+
+Primitives:
+- %restore - pushes a stored continuation stack segment onto the MK register.
+- %done - pops the MK register leaving the rest of the meta-stack.
+- %halt - ends the flow of the program.
+
+Possible primitives:
+- %done-if - premature MK register poping (if @ != ()).
+- %select - depending on @ pushes one of its children onto the MK stack.
+
+Notes:
+- Might be really cool. Especially because it doesn't require constant consing of the continuation stack.
+- All the code can be pre-transformed into dataflow format and then executed with no further transformations.
+- Used to implement delimited continuations.
+**** Librarize ASM VM to allow dynamic loading of the past and future versions. :NOTE:
+[2012-09-06 czw 10:54]
+[[file:~/org/refile.org]]
+** Memory
+*** Layout
+*** Garbage collection
+** Threading
+*** Actor model
+*** μProcesses
+** Operational semantics
+*** Environments
+*** Continuations
 *** Error handling
-**** Conditions
-**** Restarts
-**** Exception safety
-**** `try' special form
-**** `error' special form
+* ASM programming language
+** old ASM programming language
+*** HIGHEST PRIORITY
+**** Rewrite taking CEK semantics into account.
+**** Add ASM and BareBones ASM distinction.
+*** Lexical
+**** DONE Source code
+- Text formatting
+- Character sets
+- Named character entities & character sequences
+**** DONE Comments
+- Start with a "#"
+***** TWEAK Line comments
+- Comment opt ( "#"/"!"/" ") - Eg #!/bin/asm
+- ? N-line comments - comment out several following lines at
+  once - #+2 line 0\nline 1\nline 2
+***** TWEAK Expression comments
+- Analyzed syntactically.
+- Used for debugging and documentation.
+- E.g. #(sexp comment), #sexp_comment
+****** NEXT Metadata
+- ? #@foo bar -> bar with foo metadata
+**** WRITE Identifiers
+- Full Unicode support.
+***** TWEAK Naming convention
+- CamelCase - types
+- camelCase - functions and variables
+- ? dash-case
 
-*** Unit testing
-**** `assert' special form
-**** `unittest' special form
+- procedure? - predicates
+(bar? foo)
 
-*** Documenting code
-** Appendices:                                                     :noexport:
-*** List of the special forms
+- procedure! - [significant] side effects
+(sen! foo 23)
 
-*** List of the builtin functions
+- procedure* - templated version of `procedure'
+
+# Regular function
+(function zip (a b)
+  (cons (cons (car a) (car b))
+        (zip (cdr a) (cdr b))))
+
+# Templated function
+(template zip* (func) (a b)
+  (cons (func (car a) (car b))
+        ((zip* $func) (cdr a) (cdr b))))
+
+- procedure+ - variation of `procedure' with extended functionality
+
+# Padds the shorter list with fnords to match the longer one in length
+(zip+ a b --pad)
+
+- %procedure - low level built-in
+(%arg-zip args values)
+
+- foo->bar - conversions (from foo to bar)
+- barof - generic conversions (to bar)
+
+- *variable* - a global, mutable state
+- ? CONSTANT - constant
+- ? +constant+ - constant (swap with the next one?)
+- _name_ - reserved for internal purposes
+- __name - reserved for internal purposes
+**** STARTED Number literals
+***** Integer
+***** STARTED Real
+***** Complex
+***** Fractions
+***** ? Named number entities
+**** String literals
+***** STARTED Escape sequences
+***** Expression embedding
+
+**** Metadata:
+- @-prefixed (annotation much).
+- #! comment used for metadata?
+- ? Allow only for symbols.
+- ? Propagate through the AST.
+
+*** Types
+**** Atomic types:
+***** Numbers:
+- [X] Evaluate to themselves.
+***** Symbols:
+- [X] Evaluate to their bound expression.
+- ? Pass their metadata to their bound expression.
+
+**** Collection types:
+***** Array:
+- [ ] Usable only with atomic types.
+- [ ] Packed tightly internally.
+- [ ] ? Abstract 'string collection' out of the string:
+  + |'s 't 'r \n| - character string. (Same as "str\n".)
+  + |0 3 1 2 3| - number string.
+- [ ] ! Expression embedding:
+  + |1 2 $(+ 1 2) 3|
+  + "foo $bar"
+****** String:
+- [X] Immutable
+- [X] Symbol:
+  + [X] Evaluate to themselves unless forced to eval by embed
+        expression.
+  + [X] WYSIWYG meaning they can contain whitespaces and syntax tokens.
+- [-] Collection:
+  + [ ] Consist of one letter symbols - characters.
+- ? Special regex literal - /some regex/:
+  + ? Creates a special, callable regex string with common regex
+      operations defined. E.g. split, join, replace etc.
+  + ? Sed-like regexes. E.g. s/from/to/g
+- [X] ! Recognise escape sequences. E.g. "\n" etc
+***** Tuple:
+- [X] Immutable
+- [X] Call the first Callable object in them with the rest of the
+      tuple as the call arguments upon their evaluation. (by default)
+***** Vector:
+- [X] Evaluate to an anonymous function built from the elements. (by
+      default)
+- [X] Evaluate to "__vectoreval" function with the elements passed as
+      the arguments.
+- [X] Callable with an index, return a reference to that element. (by
+      default)
+- [X] Call "__vectorcall" function when called passing call arguments
+      and themselves as its arguments.
+***** Set:
+- [X] Evaluate all the expressions they contain in the source file
+      order, returning the last one. (by default)
+- [X] Evaluate to "__seteval" function with the elements passed as
+      the arguments.
+- [X] Callable with multiple predicates, returns subset satisfying
+      the predicates. (by default)
+- [X] Call "__setcall" function when called passing call arguments
+      and themselves as its arguments.
+***** HashTable:
+- ?
+***** Scopes:
+- [X] First-class objects.
+- [X] Allow binding symbols to other objects.
+- [ ] ! Allow imorting symbols from their scope to other scopes.
+
+**** Callable types:
+***** Functions:
+- [X] First-class objects.
+- [ ] Pure functions:
+    + [ ] Can call only other pure functions.
+    + [ ] ? Receive pure+syntax subset of a Scope.
+    + [ ] Parallel higher order functions (like map, reduce etc) for
+          pure functions.
+- [X] Anonymous by default.
+- [X] Closures.
+- [ ] ? Use "__argDispatcher" function for argument dispatching.
+- [ ] Arglist keywords:
+    + [ ] ! .ref - passed by reference.
+    + [ ] ! .in - passed by reference, but const.
+    + [ ] ! .out - passed by reference, but it to fnord.
+    + [ ] ! .lazy - toggles lazy evaluation.
+    + [ ] ! .optional - makes an argument optional.
+    + [ ] !? ... - stores any additional call parameters in a
+          collection.
+***** Macros:
+- [X] First class objects.
+- [X] Evaluated before regular evaluation.
+- [X] Create new syntax keywords.
+- [X] Named by default.
+- [ ] ? Use "__argDispatcher" function for argument dispatching.
+- [ ] ? Arglist keywords:
+    + [ ] ! .optional - makes an argument optional.
+    + [ ] !? ... - stores any additional call parameters in a
+          collection.
+
+*** Language quirks
+**** Quoting & embedding:
+- [X] Quote - returns the argument untouched. Extended syntax - '.
+- [X] Quasiquote - returns the argument with embedded
+      expressions. Extended syntax - `.
+- [X] Embed - embeds an expression in quasiquote and strings,
+      evaluates strings, binds variables in pattern matching.
+      Extended syntax - $.
+
+**** Unit Type:
+- [X] 0-Tuple
+- [X] `fnord' as alias to the Unit Type.
+
+**** Booleans:
+- [X] Only one logical false, anything else is considered true.
+- [X] Unit Type as the only false.
+- [X] () = '() = fnord
+
+**** Flow control:
+- [X] (if (c1 b1 ...)
+          (c2 b2 ...)
+          ...)
+
+**** Pattern matching:
+- [ ] (match e
+             (p1 b1 ...)
+             (p2 b2 ...)
+             ...)
+- [ ] Binds escaped symbols from pattern to the actual objects.
+- ? Escaped symbols = embeded symbols.
+- ? Returns a Scope with the symbols defined in it.
+
+**** Backtracking:
+- ? Triggered by backtrack expression.
+- ? Extended syntax - ?.
+
+**** Error handling:
+- [ ] (try e
+           (h1 b1)
+           (h2 b2)
+  ...)
+- [ ] UnitType for signalising an error?
+- [ ] Returning "more than needed" on non-error.
+     E.g (member? () '(1 () 3)) -> (() 3)
+- [ ] ? error/catch functions.
+*** RANDOM IDEAS
+**** Move CodeCube stuff to the apropriate TODO list.
+**** Think about the comments some more.
+- Metadata
+- Opts
+- Expression comments
+- Shebang parameters problem
+- Multiline comments
+
+**** ASM named call parameters syntax.
+(function (foo bar baz)
+  (* bar baz))
+
+# ...
+
+(foo (bar . 23) (baz . 5))
+# Does not introduce new syntax, but an ambiguity instead.
+(foo bar=23 baz=5)
+# New syntax, no ambiguity.
+(foo --bar 23 --baz 5)
+# No new syntax, --foo is the keyword syntax, consistent with the
+# shell feel, but slows down parameter dispatch.
+
+[2012-01-29 nie 16:37]
+[[file:~/org/TODO::*Do%20the%20SD%20math.][Do the SD math.]]
+**** Common syntax for variables and function definition
+Scheme-like, Scala-eque:
+: (def foo (map (lambda (x) (* x x))
+:               bar))
+
+: (def (foo baz) (map (lambda (x) (* x x))
+:                     baz))
+
+**** Rewrite Spec to use formal grammar/semantics description exactly as implemented in the language.
+**** Callable/Iterable yin-yang.
+**** Determine the suitability of vau-calculus to our own cause.
+ (var lambda (%vau (args body) env
+               (%wrap (eval `($%vau $args ignored $body)
+                            env))))
+ (var wrap (%lambda (combinator)
+             (%lambda args
+               (eval `($combinator $@args)))))
+[2012-07-21 sob 03:00]
+**** Scala for expression for ASM:
+: (for x <- foo
+:      y <- x
+:      if (> y 23)
+:      yield y)
+[2012-10-27 sob 23:15]
+[[irc:/localhost:6667/LucynaJaworska][irc session 'localhost:6667/LucynaJaworska']]
+
+*** Paper notes
+**** Ranges
+***** As defined by Andrei Alexandrescu in On iteration.
+Input:
+:           InputRange ---> front, empty?, popFront!
+:               ^
+:               |
+:          ForwardRange ---> save (deep copy)
+:            ^      ^
+:           /        \
+: BidirectionalRange -+-> back, popBack!
+:                      \
+:           InfiniteRandomAccessRange ---> [] (indexing)
+:                       ^
+:                       |
+:            FiniteRandomAccessRange ---> [] (indexing)
+
+Output:
+: OutputRange ---> put
+
+Output ranges could be dropped in favour of impure functions -
+(put 23) ---> (foo 23 'bar '(1 2 3)).
+
+***** With macro
+# Could be generalized to all scopes.
+(with someRange       (do
+  (pop!)         ==>    ((someRange pop!))
+  (put! 'foo))          ((someRange put!) 'foo))
+***** Example
+(function circular (tpl)
+  (scope (var offset tpl)
+         (function empty? ()
+           '())
+         (functin front ()
+           (car offset))
+         (function popFront! ()
+           (set! offset (cdr offset))
+           (when (not offset)
+             (set! offset tpl)))))
+
+(var foo (circular '(1 2 3)))
+
+# foo is really: [#0|1]->[#1|2]->[#2|-]
+# but appears as: [#0|1]->[#1|2]->[#2|0]
+
+Together with type tagging/boxing/sealing might prove to be quite
+nice:
+
+(function chained (r1 r2)
+  (seal 'range
+        (scope ...
+               ...)))
+
+**** Handlers
+A pair of condition predicate and condition handler. Signalizing
+condition invokes iteratively each predicate in the handler stack
+until it one is true and runs its corresponding handler.
+
+**** Vau calculus
+Basics:
+((vau x e x) foo)         ---> foo
+((vau x e e) foo)         ---> dynamic environment
+((vau (x y z) e z) 1 2 3) ---> 3
+
+Implementing lambda:
+lambda => (vau (args body) env
+            (wrap (eval (tuple 'vau args () body)
+                        env)))
+
+Builtins:
+- vau - creates a lexically scoped operative combinator taking dynamic
+  environment.
+- wrap - induces arg evaluation allowing for applicative combinators.
+
+** Phases of evaluation
+*** Lexical analysis
+*** Static analysis
+*** Code generation
+*** Optimisation
+** Lexical
+*** Comments
+*** Identifiers
+*** Numbers
+*** Tuples
+*** Vectors
+*** Arrays
+*** Character strings
+*** Reserved keywords & special tokens
+** Semantics
+* Code Cube
+** old Code Cube
+*** HIGHEST PRIORITY
+**** Take CEK semantics and BareBones ASM into account.
+*** Babel
+# A module making ASM look and feel like other languages.
+- cc.babel
+**** Lispy
+**** Pythony
+**** Algoly
+**** etc
+*** Collections
+- [X] Generic for all the collection types.
+- cc.collections
+***** Collection manipulation
+- [-] join - if the second argument is a collection - prepends it the
+      the first argument, if it's not a collection - joins both
+      arguments into a pair. Creates a new collection.
+      Examples:
+      + (join 1 '[1 2 3]) -> [1 1 2 3]
+      + (join '(a b) '[1 2 3]) -> [(a b) 1 2 3]
+      + (join 'a 'b) -> (a b)
+- [-] append  if argument types match - appends element or a
+      collection to another collection, if types don't match - appends
+      the second argument to the collection.
+      Creates a new collection.
+      Examples:
+      + (append '[1 2 3] 4) -> [1 2 3 4]
+      + (append '[1 2 3] '[4 5 6]) -> [1 2 3 4 5 6]
+      + (append '(2 3) '[2 3]) -> (2 3 [2 3])
+- [X] first - returns a reference to the first element of a mutable
+      collection, or its value for an immutable collection.
+- [X] rest - returns a new collection referencing the rest part of
+      the old one.
+- [X] second, third, fourth etc.
+- [X] nth - returns nth element of a collection.
+- [X] map - maps an operation to a collection collecting results.
+- [X] reduce - maps an operation to a collection reducing it to a
+      single value.
+- [ ] ? slice - slices a collection creating subcollection.
+- [-] ? push, push-back, pop, pop-back.
+- ? etc
+***** Collection creation
+- [X] list - returns a list consisting of the call args.
+- [X] tuple - returns a tuple consisting of the call args.
+- [X] set - returns a set consisting of the call args.
+- [X] scope - reuturns a scope with call args defined in it.
+- ? etc.
+*** Core
+- core
+***** Type predicates
+- [ ] ? Accept multiple args.
+- [X] Evaluate to fnord on false, to one of their args otherwise.
+
+- [X] type? - NOT A PREDICATE, returns type tuple of a _single_
+      object.
+- [X] fnord? - 'yup if an expression is fnord.
+- [X] symbol? - symbol if an expression is a symbol.
+- [X] number? - number if an expression is a number.
+- [X] string? - string if an expression is a string.
+- [X] scope? - scope if an expression is a scope.
+- [X] function? - function if an expression is a function.
+- [X] pure? - pure if an expression is a pure function.
+- [X] syntax? - syntax if an expression is a syntax keyword.
+- [X] scope? - scope if an expression is repetition, sigh.
+- [X] builtin? - builtin if an expression is a builtin.
+- [X] immutable? - immutable if an expression is immutable.
+- [ ] mutable? - mutable if an expression is not immutable.
+***** Type conversions
+- [ ] ! Convert in place if passed a settable reference, or create a copy.
+- [ ] ? Return fnord on error.
+
+- [ ] ? string->number - numerical value of a string.
+- [ ] ? string->symbol - returns a symbol version of a string.
+      (both deprecated because of the (read-from-string))
+- [-] tupleof:
+        + [X] Makes an immutable tuple version of a passed arg.
+        + [ ] ? Should work for atoms aswell.
+- [-] listof:
+        + [X] Makes a list representation of an arg.
+        + [ ] ? Should work for atoms too.
+- [-] setof:
+        + [X] Makes a set representation of an arg.
+        + [ ] ? Should work for atoms too.
+- [X] ! stringof - Makes a string representation of a passed arg.
+- ? etc
+***** Working with numbers
+- [ ] ASMKit functions accept two arguments.
+- [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
+      Return (reduce ASMKitFunc args).
+- [ ] ? Do not use the common operators, so they become redefineable.
+****** NEXT ASMKit:
+- [ ] * - a * b
+- [ ] + - a + b
+- [ ] - - a - b
+- [ ] / - a / b
+- [ ] mod - a modulo b
+****** NEXT Generics:
+- [ ] sum - generic +
+- [ ] mult - generic *
+- [ ] sub - generic -
+- [ ] div - generic /
+- [ ] modulo - generic mod
+- ? etc
+***** Equality checks
+- [ ] ASMKit versions taking only two args.
+- [ ] Generic versions returning first arg on true.
+****** NEXT ASMKit:
+- [ ] eq? - polimorfic equality check.
+- [ ] leq? - a <= b
+- ? etc
+****** NEXT Generics:
+- [ ] ? equal?/=/== - generic equal?
+- [ ] <= - generic leq?
+- [ ] >= - generic ((a eq? b) or (not (a leq? b)))
+- [ ] < - generic ((not (a eq? b)) and (a leq? b))
+- [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
+*** IO
+- cc.io
+- [ ] ? Using one interface for files, sockets, stdin etc.
+***** Input
+- [ ] readln - Unformatted (string) reads.
+- [ ] read - Formatted reads.
+- [ ] ? load/open - Loads a file for reading (as a Scope/Stream with read
+      defined acordingly).
+- [ ] ? close - closes an imput stream.
+- [ ] eof? - returns 'yup/the object if it has reached EOF.
+- ? etc
+***** Output
+- [X] write - writes string representation of the args.
+- ? etc
+*** Error
+- core.error
+# Merge with Core?
+- [ ] ? error! - throws an error caugth by the REPL.
+- [ ] ? warning! - prints a warning/throws an error if 'serious
+      bussiness' was enabled..
+- [-] ? catch - catches a thrown error. (Name `handle-error'?)
+- [ ] ? assert! - checks a condition and throws an error on failure.
+- ? etc
+*** GC
+- core.gc
+# Merge with core?
+- [ ] collect! - does a collection.
+- [ ] minimise! - minimises memory use.
+- [ ] stop! - stops GC.
+- [ ] resume! - resumes GCs work.
+*** Math
+- cc.math
+- ? Precompiled.
+- [ ] sqrt
+- [ ] pow
+- [ ] exp
+- [ ] min/max/clamp
+- ? etc
+*** Parser
+# Merge with core?
+- [ ] syntax! - defines a new reader syntax macro.
+- [ ] ? parse - parses an input string. (Name read-from-string).
+*** Random ideas
+**** Must-have DSLs
+Will allow for awesome stuff like this:
+
+#+begin_example
+(module Moo
+  #? (ASMdoc Function func, doing some stuff and returning other stuff.)
+  private (function (func tuple)
+            in:
+              (or (tuple? tuple)
+                  (vector? tuple))
+            out:
+              (number? result)
+            body:
+              (loop for element in tuple
+                    do (switch element
+                         case 1 (write "One!")
+                         case 2 (write "Two!")
+                         default (let foo (/ element 2)
+                                  let bar (% element 2)
+                                  do (write (* element
+                                               (- foo bar)))))))
+          (unittest functest
+            assert (equal? (func '(1 2 3)) 23)
+            finally (print "Passed!"))
+  public (var bar 23))
+
+(import func from Moo as Moofunc)
+
+(Moofunc '[1 2 3]) # writes "One! Two! 3
+
+#+end_example
+
+***** Loop
+Common Lisp like loop macro:
+
+(loop for foo in bar
+      for baz being each hash-key of goo
+      when gaz
+      do gar)
+
+***** Unittest
+Automated unittest runner:
+
+(unittest Foo
+    assert (equal? bar baz)
+    assert (foo bar baz)
+  test Bar
+    assert (foo bar baz)
+    assert (foo bar baz)
+    log "herp derp"
+  test Baz
+    assert (bar foo faz)
+  finally (derp herp))
+
+***** Let
+Purely binds variables to values (transforms the body into a lambda
+call):
+
+(let foo (bar baz)
+ let faz (foo gaz)
+ do (foo faz))
+
+***** Switch
+Switch-like control structure, with fallthrough + case goto, case
+ranges etc:
+
+(switch a
+  case b (foo bar baz)
+  case c (faz baz baz)
+  default foo)
+
+***** Module/program/class/application etc
+Wraps a bunch of functions and state into a single, named unit:
+
+(module Foo
+  private (function (foo bar baz)
+            (bar baz baz))
+  public (var bar)
+  export (function (herp derp)
+           (derp derp derp)))
+
+Dependancy injection:
+
+(module Math (printer alocator)
+  (function (matrix m n)
+    (alocator.malloc (* bar baz)))
+
+  (function (printm matrix)
+    (forech e in matrix
+            do (printer.print e))))
+
+(import (Math my-logger kewl-alocator))
+
+(Math.printm (Math.matrix 3 3))
+
+***** Function
+Creates a function with all kinds of cool stuff:
+
+(function (foo bar baz)
+  in (equal? bar 23)
+  in (> baz bar)
+  out (< result bar)
+  body (bar baz))
+
+***** Import
+Imports symbols, loads modules, manages scopes:
+
+(import func from ModuleA as AFunc
+        all from ModuleB)
+
+***** SVG
+Returns a wellformed SVG string:
+
+(SVG 100 100
+     (circle 50 50
+             '(255 255 100)))
+
+***** LaTeX
+Returns a wellformed LaTeX string:
+
+(LaTeX
+  "The following equation is herp derp derp:"
+  (equation "a^2 + b^2 = c^2")
+  (equation "\herp = \derp"))
+***** Docs
+Used for documenting code, using... code in the comments.
+Something along these lines (needs more work):
+
+#? (ASMdoc
+#?   This function does some stuff and returns other stuff.
+#?   --params
+#?       bar - an integer,
+#?   --returns - another integer,
+#?   --example
+#?        (var baz (foo 23))
+#? )
+(function foo (bar)
+  (doStuff bar))
+**** Must-have tools
+***** ASM AST/dependancy -> graphviz utility.                          :NOTE:
+[2012-05-16 śro 23:14]
+[[file:~/notes/science/net/net.org]]
+**** Other stuff
+***** Vectorize macro for ASM.                                         :NOTE:
+(macro vectorize (fun)
+  (let ((old-fun (gensym)))
+    `(let (($old-fun $fun))
+       (function $fun (vec)
+         (map fun vec)))))
+[2012-05-20 nie 02:10]
+[[file:~/org/general.org::*Install%20GDC%20on%20PiWL.][Install GDC on PiWL.]]
+***** if-non-fnord syntax for ASM                                      :NOTE:
+foo ? bar == (if-non-fnord foo bar) == (if foo foo bar)
+
+Implementation:
+
+(macro if-non-fnord (foo bar)
+  (let ((_foo (gensym)))
+    `(let (($_foo $foo))
+       (if $_foo
+           $_foo
+           $bar))))
+
+(syntax "\?" (parsed parsing)
+  `(if-non-fnord $(pop-front! parsed)
+                 $(read-expression! parsing)))
+
+
+Example:
+# map - 1d or 2d list
+(let ((leny (length map))
+      (lenx (length (car map)) ? 1))
+  (do-stuff lenx leny) ? 23)
+
+# Expands to:
+(let ((leny (length map))
+      (lenx (if-non-fnord (length (car map))
+                          1)))
+  (if-non-fnord (do-stuff lenx leny)
+                23))
+
+# Expands to:
+(let ((leny (length map))
+      (lenx (let ((__GENSYM0 (length (car map))))
+              (if __GENSYM0
+                  __GENSYM0
+                  1))))
+  (let ((__GENSYM1 (do-stuff lenx leny)))
+    (if __GENSYM1
+        __GENSYM1
+        23)))
+[2012-05-16 śro 19:27]
+[[file:~/org/refile.org]]
+***** Whitespace aware syntax for ASM                                  :NOTE:
+# SRFI 49 already had it before it was cool!
+
+(package foo
+  (function (bar arg0 arg1)
+    (if (and (atom? arg0)
+             (atom? arg1))
+        (* arg0 arg 1)
+        (apply + (append arg0 arg1))))
+  (var gun (bar 2 3)))
+
+     ||
+    \||/
+     \/
+
+package foo
+  function (bar arg0 arg1)
+    if and atom? arg0
+           atom? arg1
+       (* arg0 arg1)
+       apply +
+             (append arg0 arg1)
+  var gun
+      (bar 1 2)
+
+[2012-05-24 czw 13:11]
+[[file:~/org/refile.org]]
+***** Immutable let and mutable var                                    :NOTE:
+(let ((foo bar))
+  # foo is immutable
+)
+
+(var ((foo bar))
+  # foo is mutable
+)
+[2012-05-25 pią 15:17]
+
+**** The reader
+# Defined in experimental.parser2
+*** Paper notes
+**** VLists
+O(log n) indexing. If offset is 0, vlist prealocates additional chunk
+of data.
+
+: [offset|list]--->[vector|next]--->[vector|next]--->[vector|next]--->()
+:    |                |                |                |
+:    |                |                |                v
+:    |                |                v                [length|data]--->|0|
+:    |                v                [length|data]--->|1|2|
+:    |                [length|data]--->|3|4|5|6|
+:    |____________________________________^
+
+**** Dynamic reader
+Based on dynamic PEG parser generator, because it doesn't need
+separate lexing phase. Reader macros will be grammar based.
+
+Implementation:
+: (syntax (grammar-declarator)
+:   transform
+:   ...)
+
+: (grammar ((grammar-declarator) transform)
+:          ...)
+
+grammar-declarator:
+: Name arrow Rules
+
+transform:
+: Any code, really.
+
+Name:
+: Rule name - used inside of it for transforms and outside for parsing.
+
+Rules - implicitly wrappend in a sequence:
+- (a b c ...)   - sequence
+- (/ a b c ...) - ordered choice
+- (* Rules)     - zero or more repeats of the Rules
+- (+ Rules)     - one or more repeats of the Rules
+- (? Rules)     - optional Rules
+- (! Rules)     - not Rules
+- (& Rules)     - and Rules
+- (: Rules)     - consumes input and drops captures
+- (~ Rules)     - concatenates captures
+
+arrow:
+- <- - basic
+- <  - spacing consuming
+- <~ - concatenative
+
+**** Dynamic writer
+# TODO
+Using pattern matching and string embeds, possibly sewn together with
+the reader.
+Migth be of use for the bytecode/crosscode compiler.
