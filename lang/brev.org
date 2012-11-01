@@ -896,3 +896,5 @@ Returns a wellformed LaTeX string:
 :             (append arg0 arg1)
 :  var gun
 :      (bar 1 2)
+#+latex: \pagebreak
+* References
