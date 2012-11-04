@@ -370,7 +370,6 @@ struct Test {
 *** Evaluation
 ** Lexical
 *** Comments
-**** Think about the comments some more.
 - Metadata
 - Opts
 - Expression comments
@@ -381,30 +380,21 @@ struct Test {
 *** Identifiers
 *** Tuples
 *** Vectors
-*** Arrays
 *** Strings
 *** Reserved keywords & special tokens
 ** Semantics
 *** Immutability
-*** Numbers and symbols
-*** Booleans
-*** Unit Type
-*** Variables and constants
-***** Common syntax for variables and function definition
-Scheme-like, Scala-eque:
-: (def foo (map (lambda (x) (* x x))
-:               bar))
-
-: (def (foo baz) (map (lambda (x) (* x x))
-:                     baz))
-
-*** Applicative combinators
-***** ASM named call parameters syntax.
+*** Atoms
+**** Numbers
+**** Symbols
+**** Booleans
+**** Unit Type
+*** Combinators
+**** Applicative combinators
 : (function (foo bar baz)
 :   (* bar baz))
 
-# ...
-
+**** Named call parameters syntax
 : (foo (bar . 23) (baz . 5))
 # Does not introduce new syntax, but an ambiguity instead.
 : (foo bar=23 baz=5)
@@ -413,20 +403,18 @@ Scheme-like, Scala-eque:
 # No new syntax, --foo is the keyword syntax, consistent with the
 # shell feel, but slows down parameter dispatch.
 
-*** Operative combinators
+**** Operative combinators
+According to Vau calculus as defined by John Shutt.
+
 :  (var lambda (%vau (args body) env
 :                (%wrap (eval `($%vau $args ignored $body)
 :                             env))))
 :  (var wrap (%lambda (combinator)
 :              (%lambda args
 :                (eval `($combinator $@args)))))
-
-*** Tuples
-*** Vectors
-*** Arrays
-*** Strings
 *** Ranges
-***** As defined by Andrei Alexandrescu in On iteration.
+As defined by Andrei Alexandrescu in On iteration.
+
 Input:
 :           InputRange ---> front, empty?, popFront!
 :               ^
@@ -447,12 +435,12 @@ Output:
 Output ranges could be dropped in favour of impure functions -
 : (put 23) ---> (foo 23 'bar '(1 2 3)).
 
-***** With macro
+**** With macro
 : # Could be generalized to all scopes.
 : (with someRange       (do
 :   (pop!)         ==>    ((someRange pop!))
 :   (put! 'foo))          ((someRange put!) 'foo))
-***** Example
+**** Example
 : (function circular (tpl)
 :   (scope (var offset tpl)
 :          (function empty? ()
@@ -476,26 +464,97 @@ nice:
 :   (seal 'range
 :         (scope ...
 :                ...)))
+**** Tuples
+**** Vectors
+: [vec|stored-type][int|length][ptr|data]
+Vec is the vector tag.
+Stored-type contains ASM typeinfo of the types of stored elements or None for an empty vector or Any for a vector containing different typed-values.
+Length contains the length of the data in the vector.
+Ptr is the data pointer.
 
-*** Environments
+Pros:
+- merges vectors and arrays
+- O(1) best case typeinfo
+- the type info will be used by D code facilitating data-packing
+
+Cons:
+- implies immutability
+- 2-3 word header in addition to the actual data
+- Vectors of multi-word values should be un-allowed (using vectors of pointers instead)
+
+Optimisations:
+Data-pack same-typed-data vectors of basic types not to wrap them with an ASM typeinfo (requiring simple-type packing, unpacking, vector copy and vector slice).
+
+Store vec _and_ stored-type in length making it 32 bit long instead of 48 bits:
+
+: [vec|stored-type|length][ptr|data]
+
+Pros:
+- 1-2 word header
+
+Cons:
+- 32 bits for length
+
+Use additional cons-packing value to indicate a vectorized type (followed by length and data pointer).
+
+: [int|1] <-- int
+: [int*|4][ptr|--->] ... [1][2][3][4] <-- vector of int
+
+Pros:
+- 1-2 word header
+- 48 bit length
+- cons-packed tuples will easly vectorize
+
+Cons:
+- ?
+
+Empty vector:
+: [vec|None][int|0]
+
+***** Multidimentional vectors
+: [vec|ptr][int|length][ptr|-->] ... [ptr1][ptr2][ptr3]...
+: ptr1 -> [vec|int][int|length][ptr|-->] ... [1][2][3]...
+: ptr2 -> [vec|int][int|length][ptr|-->] ... [4][5][6]...
+: ptr3 -> [vec|int][int|length][ptr|-->] ... [7][8][9]...
+: ...
+
+Stored type:
+
+AnyBasicType - assumes data-packing, requires packing on vectorization and unpacking on extension.
+Any - assumes no data-packing (disallows multi-word values).
+Ptr - assumes an array tag less pointers to ASM values.
+None - reserved for Fnord only?
+
+***** Strings
+An optimised vector of 8bit integers.
+**** Environments / Hashes
+**** Iteration
+*** Variables and constants
+**** Common syntax for variables and function definition
+Scheme-like, Scala-eque:
+: (def foo (map (lambda (x) (* x x))
+:               bar))
+
+: (def (foo baz) (map (lambda (x) (* x x))
+:                     baz))
 *** Flow control
-*** Iteration
-*** Pattern matching
+**** Pattern matching
 :  (match e
 :         (p1 b1 ...)
-          (p2 b2 ...)
-          ...)
+:         (p2 b2 ...)
+:         ...)
+
 - [ ] Binds escaped symbols from pattern to the actual objects.
 - ? Escaped symbols = embeded symbols.
 - ? Returns a Scope with the symbols defined in it.
 
-*** Error handling
+**** Error handling
 A pair of condition predicate and condition handler. Signalizing
 condition invokes iteratively each predicate in the handler stack
 until it one is true and runs its corresponding handler.
 
-*** Continuations
-*** Backtracking
+**** Continuations
+**** Backtracking
 - ? Triggered by backtrack expression.
 - ? Extended syntax - ?.
 
@@ -504,73 +563,8 @@ until it one is true and runs its corresponding handler.
 ** cs
 *** core
 **** Type predicates
-- [ ] ? Accept multiple args.
-- [X] Evaluate to fnord on false, to one of their args otherwise.
-
-- [X] type? - NOT A PREDICATE, returns type tuple of a _single_
-      object.
-- [X] fnord? - 'yup if an expression is fnord.
-- [X] symbol? - symbol if an expression is a symbol.
-- [X] number? - number if an expression is a number.
-- [X] string? - string if an expression is a string.
-- [X] scope? - scope if an expression is a scope.
-- [X] function? - function if an expression is a function.
-- [X] pure? - pure if an expression is a pure function.
-- [X] syntax? - syntax if an expression is a syntax keyword.
-- [X] scope? - scope if an expression is repetition, sigh.
-- [X] builtin? - builtin if an expression is a builtin.
-- [X] immutable? - immutable if an expression is immutable.
-- [ ] mutable? - mutable if an expression is not immutable.
 **** Type conversions
-- [ ] ! Convert in place if passed a settable reference, or create a copy.
-- [ ] ? Return fnord on error.
-
-- [ ] ? string->number - numerical value of a string.
-- [ ] ? string->symbol - returns a symbol version of a string.
-      (both deprecated because of the (read-from-string))
-- [-] tupleof:
-        + [X] Makes an immutable tuple version of a passed arg.
-        + [ ] ? Should work for atoms aswell.
-- [-] listof:
-        + [X] Makes a list representation of an arg.
-        + [ ] ? Should work for atoms too.
-- [-] setof:
-        + [X] Makes a set representation of an arg.
-        + [ ] ? Should work for atoms too.
-- [X] ! stringof - Makes a string representation of a passed arg.
-- ? etc
-**** Working with numbers
-- [ ] ASMKit functions accept two arguments.
-- [ ] ! Generic functions built ontop of ASMKit ones, directly in ASM.
-      Return (reduce ASMKitFunc args).
-- [ ] ? Do not use the common operators, so they become redefineable.
-***** NEXT ASMKit:
-- [ ] * - a * b
-- [ ] + - a + b
-- [ ] - - a - b
-- [ ] / - a / b
-- [ ] mod - a modulo b
-***** NEXT Generics:
-- [ ] sum - generic +
-- [ ] mult - generic *
-- [ ] sub - generic -
-- [ ] div - generic /
-- [ ] modulo - generic mod
-- ? etc
-**** Equality checks
-- [ ] ASMKit versions taking only two args.
-- [ ] Generic versions returning first arg on true.
-***** NEXT ASMKit:
-- [ ] eq? - polimorfic equality check.
-- [ ] leq? - a <= b
-- ? etc
-***** NEXT Generics:
-- [ ] ? equal?/=/== - generic equal?
-- [ ] <= - generic leq?
-- [ ] >= - generic ((a eq? b) or (not (a leq? b)))
-- [ ] < - generic ((not (a eq? b)) and (a leq? b))
-- [ ] > - generic ((not (a eq? b)) and (not (a leq? b)))
-
+**** Basic math
 **** import
 Imports symbols, loads modules, manages scopes:
 
@@ -751,6 +745,75 @@ Automated unittest runner:
 - [X] set - returns a set consisting of the call args.
 - [X] scope - reuturns a scope with call args defined in it.
 - ? etc.
+**** APL-esque array processing
+- + monadic conjugate, dyadic plus
+- - monadic negate, dyadic minus
+- ÷ div m reciprocal, d divide
+- × mul m sign of, d multiply
+- ⌈ upstil - m ceiling, d maximum
+- ⌊ downstil - m floor, d minimum
+- * exp m exponential, d power
+- ! bang m factorial, d binomial
+- | stile m magnitude, d residue
+- ⍟ log m natural logarithm, d logarithm
+- ○ circle m times pi, d circular function
+- ⌹ domino m matrix inverse of, d matrix division
+- ⊥ decode d decode
+- ⊤ encode, d encode
+- ? roll m roll, d deal
+- ∧ land d lang/lowest common multiple
+- ∨ lor d logical or/greatest common divisor
+- ⍲ nand d nand
+- ⍱ nor d nor
+- < less d less than
+- > greater d greater than
+- ≤ leq d less or equal
+- ≥ geq d greater or equal
+- = eq d equal to
+- ≠ neq d not qual to
+- ≡ equnderbar m depth of, d matches
+- ≢ nequnderbar d not match
+- ⍴ rho m shape of, d reshape
+- , comma m ravel, d cotenate/laminate
+- ⍪ commabar m columnize, d catenate along first axis
+- ⌽ circle stile m reverse, d rotate
+- ⊖ circle bar m reverse along first axis, d rotate along first axis
+- ⍉ transpose m transpose, d general transpose
+- ↑ up m mix, d take
+- ↓ down m split, d drop
+- ⊂ left shoe m enclose, d partitioned enclose
+- ∊ epsilon m enlist, d member of
+- ⌷ index m array/default, d index
+- ⊃ right shoe m first, d pick
+- / slash d replicate, o reduce
+- ⌿ slashbar d replicate along first axis, o reduce along first axis
+- \ slope d expand, o scan
+- ⍀ slopebar d expand along first axis, o scan along first axis
+- ~ tilde m not, d without
+- ∪ union m unique, d union
+- ∩ intersection d intersection
+- ⊣ left tack m same, d left
+- ⊢ right takc m same, d right
+- ⍳ iota m index generator, d index of
+- ⍷ epsilon underbar d find
+- ⍋ grade up m grade up, d collated grade up
+- ⍒ grade down m gnade down, d collated grade down
+- ¯ high minus - same as minus
+- ' quote - string delimiter
+- ← left d assignment
+- ⍬ zilde niladic - empty numeric vector (same as (iota 0))
+- ⍕ thorn m format, d format by specification
+- ⋄ diamond - statement separator
+- ⍝ comment - comment
+- ∇ del - self reference
+- ⍺ alpha - left argument of a dyadic function
+- ⍵ omega - right argument of a dyadic function
+- ⎕ quad - system name prefix
+- ¨ dieresis o each
+- ⍨ dieresis tilde o commute
+- ⍣ dierosis star o power
+- . dot o inner product ((dot jot) produces outer product)
+- ∘ jot o compose ((dot jot) produces outer product)
 **** VLists
 O(log n) indexing. If offset is 0, vlist prealocates additional chunk
 of data.
