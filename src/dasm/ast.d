@@ -617,21 +617,33 @@ class Closure : Expression {
     }
 
     override Expression call(ref Scope callScope, Expression[] callArgs) {
-        auto len = argList.range.length;
-
-        if(callArgs.length != len) {
-            auto arity = len;
-            throw new SemanticError(format("Expected exactly %s argument%s instead of %s.",
-                                           arity, arity != 1 ? "s" : "", callArgs.length),
-                                    line, file);
-        }
-
         auto closureScope = new Scope(definitionScope);
         closureScope.define(Keywords.Self, this);
 
-        foreach(i, arg; argList.range) {
-            closureScope.define(arg.toString, callArgs[i].eval(callScope));
+        if(argList.isTuple || argList.isVector) {
+            auto len = argList.range.length;
+
+            if(callArgs.length != len) {
+                auto arity = len;
+                throw new SemanticError(format("Expected exactly %s argument%s instead of %s.",
+                                               arity, arity != 1 ? "s" : "", callArgs.length),
+                                        line, file);
+            }
+
+
+            foreach(i, arg; argList.range) {
+                closureScope.define(arg.toString, callArgs[i].eval(callScope));
+            }
+        } else if (argList.isSymbol) {
+            Expression[] args;
+            args.length = callArgs.length;
+
+            foreach(i, arg; callArgs) {
+                args[i] = arg.eval(callScope);
+            }
+            closureScope.define(argList.toString, new Tuple(args));
         }
+
         return functionBody.eval(closureScope);
     }
 

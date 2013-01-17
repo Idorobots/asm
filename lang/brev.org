@@ -28,6 +28,100 @@
 #+latex: \tableofcontents
 
 #+latex: \pagebreak
+
+* COMMENT Some notes
+** TODO Named call arg syntax for ASM.
+: a : b           # => (cons a b)
+: '{x:1 y:2}      # => (make-hash-table (list (cons x 1) (cons y 2)))
+: (f 1 2)         # => (apply f (list 1 2))
+: (@ f {x:1 y:2}) # => (mapply f '{x:1 y:2}) => ... => (apply f (list 1 2))
+[2012-12-21 pią 22:24]
+[[irc:/localhost:6667/LucynaJaworska][irc session 'localhost:6667/LucynaJaworska']]
+** TODO llambda syntax sugar for ASM.
+
+: (lambda (x)
+:   (lambda (y)
+:     ...))
+: 
+:  ^
+: /|\
+:  |
+: \|/
+:  v
+: 
+: (llambda (x) (y)
+:   ...)
+: 
+: (lllambda (x) (y) (z)
+:     )
+[2012-12-23 nie 15:18]
+[[file:~/org/refile.org::*Named%20call%20arg%20syntax%20for%20ASM.][Named call arg syntax for ASM.]]
+** TODO Decouple IOManager, ThreadManager, Allocator and GarbageCollector from the ASM VM.
+IOManager - %read, %write, etc.
+ThreadManager - %receive, %send, etc.
+Allocator - %car, %cdr, %cons, %closure, %struct, etc.
+GarbageCollector - %collect, %minimize, %enable, %disable, etc.
+[2012-12-27 czw 18:55]
+[[irc:/localhost:6667/&bitlbee][irc session 'localhost:6667/&bitlbee']]
+** TODO DyalogAPL-esque lambda syntax for ASM.
+
+: {\alpha \beta \gamma ... \omega}
+: 
+:  /\
+: /||\
+:  ||
+: \||/
+:  \/
+: 
+: (lambda \omega
+:   (let ((\alpha (nth 0 \omega))
+:         (\beta  (nth 1 \omega))
+:         (\gamma (nth 2 \omega)))
+:     \alpha
+:     \beta
+:     \gamma
+:     ...
+:     \omega))
+
+[2013-01-02 śro 21:06]
+[[file:~/org/refile.org::*Named%20call%20arg%20syntax%20for%20ASM.][Named call arg syntax for ASM.]]
+** TODO Redef macro for ASM.
+
+: (redef foo (lambda (args)
+:              (do-something-with old-foo args)))
+: 
+:  ^
+: /|\
+:  |
+: \|/
+:  v
+: 
+: (set! foo ((llambda (old-foo) (args)
+:              (do-something-with old-foo args))
+:            foo))
+
+[2013-01-02 śro 21:09]
+[[file:~/org/refile.org::*llambda%20syntax%20sugar%20for%20ASM.][llambda syntax sugar for ASM.]]
+** TODO Keep an alist of bindings and use Y combinator for recursion.
+:PROPERTIES:
+:capture_time: [2013-01-12 sob 17:49]
+:END:
+[[file:~/org/refile.org::*Redef%20macro%20for%20ASM.][Redef macro for ASM.]]
+
+Some samples/y.asm stats:
+
+#+PLOT: ind:1 deps:(2 3 4 5 6)
+|  n | native | Z combined | Zc combined | macroed | native + 2 |
+|----+--------+------------+-------------+---------+------------|
+|  3 |  0.162 |      0.162 |       0.161 |   0.168 |            |
+| 13 |  0.357 |      0.373 |       0.418 |   0.383 |            |
+| 16 |  0.977 |      1.052 |       1.079 |   1.092 |            |
+| 19 |  3.538 |      3.928 |       4.055 |   4.044 |            |
+| 20 |  5.663 |      6.264 |       6.561 |   6.476 |            |
+| 21 |  9.058 |     10.225 |      10.420 |  10.354 |            |
+| 22 | 14.818 |     16.190 |      16.650 |  16.638 |            |
+| 23 | 23.448 |     25.994 |      26.994 |  26.893 |            |
+
 * ASVM
 ** Architecture
 *** Environment
@@ -466,7 +560,7 @@ nice:
 :                ...)))
 **** Tuples
 **** Vectors
-Vectores are not heretogenous.
+Vectores are heterogenous.
 
 : [vec|stored-type][int|length][ptr|data]
 Vec is the vector tag.
