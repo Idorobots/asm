@@ -1,0 +1,5 @@
+(import 'imports.sort)
+(var max 300)
+# (isort <= (range 0 max)) (isort > (range 0 max))
+ (msort <= (range 0 max)) (msort > (range 0 max))
+# (qsort <= (range 0 max)) (qsort > (range 0 max))

@@ -667,6 +667,7 @@
 (defclass Point3D (Point)
   'z)
 
+(defvar p0 (new Point 'x 0 'y 0))
 (defvar p1 (new Point 'x 1 'y 2))
 (defvar p2 (new Point 'x 2 'y 3))
 (defvar p3 (new Point3D 'x 5 'y 5 'z 5))
@@ -692,7 +693,15 @@
   (defvar dz (- (b 'z) (a 'z)))
   (pow (reduce + (tuple (* dx dx) (* dy dy) (* dz dz)) 0) 0.5))
 
+# TODO
+(defmethod distance ((a p0) (b Point))
+  (write "p0 * Point\n")
+  (pow (+ (* (b 'x) (b 'x))
+          (* (b 'y) (b 'y)))
+       0.5))
+
 (distance p1 p2)
 (distance p3 p1)
 (distance p2 p3)
 (distance p3 p3)
+(distance p0 p3)
