@@ -40,7 +40,7 @@
            ('else (apply merge
                          (join predicate
                                (map (lambda (l)
-                                      (sort-list predicate l))
+                                      (merge-sort predicate l))
                                     (split (/ len 2) list '()))))))))
 
 (function quick-sort (predicate list)
