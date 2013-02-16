@@ -1,46 +1,8 @@
-################################################################################
-# ASM v 0.02 - Another Syntactic Monstrosity
-####################
-
-This is a release of ASM programming language specification together
-with its interpreter dASM and its standard library CodeCube.
+* ASM
+This is an another syntactic monstrosity, a language so /hip/ it doesn't even appear on Tiobe's list!
 
 For licensing info see LICENSE file.
-For things needing attention see the TODO files.
+For stuff to come see lang/brev.pdf.
 
-Visit the homepage at http://idorobots.org/asm/
-
-################################################################################
-# Contents:
-####################
-
-* crap - all kinds of crap, such as logos.
-* doc - a stub of a documentation (sorry).
-* experimental - experimental crap I'm fiddling with.
-* imports - a stub of a standard library.
-* lang:
-** lang/TODO      - ASM spec TODO.
-** lang/specs.org - ASM language specification.
-** lang/specs.pdf - PDF version of the spec.
-* lib - external libraries used by dASM
-* man - a stub of a user/developer manual:
-** man/TODO       - dASM manual TODO.
-** man/man.org    - dASM compiler manual.
-* samples - ASM samples.
-* src - dASM sourcecode.
-* tests - dASM tests.
-
-################################################################################
-# Building dASM:
-####################
-
-To compile dASM type:
-
-    $ make [dmd]
-
-By default the GDC compiler (https://bitbucket.org/goshawk/gdc/wiki/Home) is
-used to compile dASM, to use DMD instead type `make dmd'.
-
-This build was tested under DMD 2.056 and GDC 4.6.2 + DMD 2.055 on Ubuntu 10.04
-and under DMD 2.058 on Ubuntu 11.10.
-
+* Building
+Just type =make= in the root directory of the repo. By default the GDC compiler (https://bitbucket.org/goshawk/gdc/wiki/Home) is used, to use DMD instead, type =make dmd=.
