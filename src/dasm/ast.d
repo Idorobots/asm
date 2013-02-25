@@ -373,6 +373,7 @@ class Collection(uint collectionType,
                  string callKeyword = Keywords.Fnord) : Expression {
 
     private Expression[] coll;
+    private string toStringCache;
 
     this(Expression[] coll, uint line = __LINE__, string file = __FILE__) {
         this.line = line;
@@ -427,13 +428,26 @@ class Collection(uint collectionType,
     }
 
     override string toString() {
+        bool cacheSet = toStringCache !is null;
+        if(cacheSet) return toStringCache;
+
         if(!coll.length) return ""~LParen~RParen;
+
         auto output = ""~LParen;
+        toStringCache = "...";
+
         foreach(el; coll) {
-            if(el !is this) output ~= el.toString~" ";
-            else output ~= Keywords.Self~" ";
+            output ~= el.toString~" ";
         }
-        return output[0 .. $-1]~RParen;
+
+        toStringCache = output[0 .. $-1]~RParen;
+
+        if(!cacheSet) {
+            auto o = toStringCache;
+            toStringCache = null;
+            return o;
+        }
+        return toStringCache;
     }
 
     override bool opEquals(Object o) {
