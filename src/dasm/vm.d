@@ -59,6 +59,8 @@ class VM {
         define(Keywords.If, new BuiltinKeyword(&IF, 1, INF_ARITY));
 
         define(Keywords.Set, new BuiltinKeyword(&SET, 2));
+        define("set-car!", new BuiltinKeyword(&SETCAR, 2));
+        define("set-cdr!", new BuiltinKeyword(&SETCDR, 2));
         auto GET = new BuiltinKeyword(&GET, 1);
         define(Keywords.Get, GET);
 
@@ -374,6 +376,36 @@ class VM {
         }
         else throw new ObjectNotAppError(args[0]);
         return value;
+    }
+
+    /***********************************************************************************
+     * Sets a car of a tuple.
+     *********************/
+
+    Expression SETCAR(ref Scope s, Expression[] args) {
+        auto location = args[0].eval(s);
+        auto value = args[1].eval(s);
+
+        if(isTuple(location) && location.range().length > 0) {
+            location.range()[0] = value.deref();
+        }
+        else throw new ObjectNotAppError(args[0]);
+        return location;
+    }
+
+    /***********************************************************************************
+     * Sets a cdr of a tuple.
+     *********************/
+
+    Expression SETCDR(ref Scope s, Expression[] args) {
+        auto location = args[0].eval(s);
+        auto value = args[1].eval(s);
+
+        if(isTuple(location)) {
+            throw new SemanticError("No improper lists implemented!", location.line, location.file);
+        }
+        else throw new ObjectNotAppError(args[0]);
+        return location;
     }
 
     /***********************************************************************************
