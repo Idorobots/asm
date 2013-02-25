@@ -1,5 +1,5 @@
 ################################################################################
-#+TITLE:    *The book of Revelations*
+#+TITLE:    *The book of Revelation*
 #+AUTHOR:   Kajetan Rzepecki
 #+DATE:     2012-11-01
 #
