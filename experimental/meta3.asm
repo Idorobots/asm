@@ -89,20 +89,22 @@
   (wrap (vau env code)))
 
 (defun cont (env stack code)
-  # TODO Store and use stack
-  (mcons 'cont (mcons env code)))
+  (mcons 'cont (mcons stack (mcons env code))))
 
-(defun env (reg)
-  (if (or (operative? reg)
-          (continuation? reg))
+(defun stack (reg)
+  (if (continuation? reg)
       (mcar (mcdr reg))
       (error (append "Cant access env part of " (stringof reg)))))
 
+(defun env (reg)
+  (cond ((operative? reg)    (mcar (mcdr reg)))
+        ((continuation? reg) (mcar (mcdr (mcdr reg))))
+        ('else               (error (append "Cant access env part of " (stringof reg))))))
+
 (defun code (reg)
-  (if (or (operative? reg)
-          (continuation? reg))
-       (mcdr (mcdr reg))
-      (error (append "Cant access code part of " (stringof reg)))))
+  (cond ((operative? reg)    (mcdr (mcdr reg)))
+        ((continuation? reg) (mcdr (mcdr (mcdr reg))))
+        ('else               (error (append "Cant access code part of " (stringof reg))))))
 
 (defun get (env index)
   (if (equal? index 0)
@@ -141,21 +143,20 @@
 
 ################################
 # VM take 2
-# Registers: Expr, Code, Arg, Env, Cont, Meta, Dump
+# Registers: Code, Acc, Stack, Env, Cont, Meta, Dump
 
-(defvm (Expr Code Args Env Cont Meta Dump)
+(defvm (Code Acc Stack Env Cont Meta Dump)
   # Evaluator:
   (.eval
     (if (nil? Code)
         (go '.continue)
-        (do (set! Expr (mcar Code))
+        (do (set! Dump (mcar Code))
             (set! Code (mcdr Code))
-            (go '.try-eval))))
-  (.try-eval
-    (if (opcode? Expr)
-        (go Expr)
-        (do (set! Args (mcons Expr Args))
-            (go '.eval))))
+            (if (opcode? Dump)
+                (go Dump)
+                (do (set! Stack (mcons Acc Stack))
+                    (set! Acc    Dump)
+                    (go '.eval))))))
   (.meta-continue
     (set! Cont (mcar Meta))
     (set! Meta (mcdr Meta))
@@ -166,94 +167,75 @@
         (do (set! Dump (mcar Cont))
             (set! Cont (mcdr Cont))
             (set! Env  (env Dump))
-            #(set! Args (stack Dump))
+            (set! Stack (stack Dump))
             (set! Code (code Dump))
             (go '.eval))))
   (.apply
-   (set! Dump (car Args))
-   (if (operative? Dump)
+   (if (operative? Acc)
        (go '.call)
-       (do (set! Dump (cont Env Args Code))
+       (do (set! Dump (cont Env Stack Code))
            (set! Cont (mcons Dump Cont))
-           # TODO
+
+           # TODO .eval the arg, and .call unwrapped combinator
+
            (go '.halt))))
   (.call
     (when (not (nil? Code))
-      (set! Dump (cont Env Args Code))
+      (set! Dump (cont Env Stack Code))
       (set! Cont (mcons Dump Cont)))
-    (set! Expr Env)
-    (set! Dump (mcar Args))
-    (set! Args (mcdr Args))
-    (set! Env  (env Dump))
-    (set! Env  (mcons Expr Env)) # FIXME Envsplosion
-    #(set! Env  (mcons -1 Env))
-    (set! Expr (mcar Args))
-    (set! Env  (mcons Expr Env)) # FIXME Argsplosion
-    (set! Code (code Dump))
+    (set! Dump Env)
+    (set! Env   (env Acc))
+    #(set! Env   (mcons Dump Env)) # FIXME Envsplosion
+    (set! Env   (mcons -1 Env))
+    (set! Dump  Code)
+    (set! Code  (code Acc))
+    (set! Acc   (mcar Stack))
+    (set! Stack (mcdr Stack))
+    (set! Env   (mcons Acc Env))
+    (when (nil? Dump)
+      (set! Stack ()))
     (go '.eval))
 
   # State management:
   (.get
-    (set! Dump (mcar Args))
-    (set! Args (mcdr Args))
-    (set! Dump (get Env Dump))
-    (set! Args (mcons Dump Args))
+    (set! Acc  (get Env Acc))
     (go '.eval))
   (.defA
     (set! Env (mcons 'dummy Env)) # FIXME A huge kludge.
     (go '.eval))
   (.defB
-    (set! Dump (mcar Args))
-    (set-car! Env Dump)           # FIXME A huge kludge.
+    (set-car! Env Acc)            # FIXME A huge kludge.
     (go '.eval))
 
   # Memory management:
   (.car
-    (set! Dump (mcdr Args))
-    (set! Args (mcar Args))
-    (set! Args (mcar Args))
-    (set! Args (mcons Args Dump))
+    (set! Acc (mcar Acc))
     (go '.eval))
   (.cdr
-    (set! Dump (mcdr Args))
-    (set! Args (mcar Args))
-    (set! Args (mcdr Args))
-    (set! Args (mcons Args Dump))
+    (set! Acc (cmdr Acc))
     (go '.eval))
   (.cons
-    (set! Dump (mcar Args))
-    (set! Args (mcdr Args))
-    (set! Expr (mcar Args))
-    (set! Dump (mcons Expr Dump))
-    (set! Args (mcdr Args))
-    (set! Args (mcons Dump Args))
+    (set! Dump (mcar Stack))
+    (set! Stack (mcdr Stack))
+    (set! Acc (mcons Acc Dump))
     (go '.eval))
 
   # Combinators:
   (.vau
-    (set! Dump (mcar Args))
-    (set! Args (mcdr Args))
-    (set! Dump (vau Env Dump))
-    (set! Args (mcons Dump Args))
+    (set! Acc (vau Env Acc))
     (go '.eval))
   (.wrap
-    (set! Dump (mcar Args))
-    (set! Dump (wrap Dump))
-    (set! Args (mcdr Args))
-    (set! Args (mcons Dump Args))
+    (set! Acc (wrap Acc))
     (go '.eval))
   (.unwrap
-    (set! Dump (mcar Args))
-    (set! Dump (unwrap Dump))
-    (set! Args (mcdr Args))
-    (set! Args (mcons Dump Args))
+    (set! Acc (unwrap Acc))
     (go '.eval))
 
   # Arithmetic:
   # Threading:
   # Basic control structures:
   (.halt
-    (mcar Args)))
+    Acc))
 
 # Stuff:
 
@@ -264,5 +246,9 @@
 (defvar still-silly (mtuple (mtuple 1 2 3 4) '.cdr '.car))
 (defvar env-1 (mtuple 42))
 (defvar vau-1 (mtuple 23 (mtuple 0 '.get 1 '.get '.cons) '.vau '.call))
-(defvar tail (mtuple 23 '.defA (mtuple 0 '.get 2 '.get '.call) '.vau '.defB '.call))
-(defvar no-tail (mtuple (mcons 23 42) '.defA (mtuple 0 '.get 2 '.get '.call '.car) '.vau '.defB '.call))
+(defvar tail-1 (mtuple 23 '.defA (mtuple 0 '.get 2 '.get '.call) '.vau '.defB '.call))
+(defvar no-tail-1 (mtuple (mcons 23 42) '.defA (mtuple 0 '.get 2 '.get '.call '.car) '.vau '.defB '.call))
+(defvar vau-2 (vau () (mtuple 0 '.get '.car)))
+(defvar tail-2 (mtuple 23 (mtuple (mcons 23 42) 2 '.get '.call) '.vau '.call))
+(defvar no-tail-2 (mtuple 23 (mtuple (mcons 23 42) 2 '.get '.call 0 '.get '.cons) '.vau '.call))
+(defvar env-2 (mtuple vau-2))
