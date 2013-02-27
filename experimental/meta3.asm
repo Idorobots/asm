@@ -142,20 +142,30 @@
                        body)))))
 
 ################################
-# VM take 2
-# Registers: Code, Acc, Stack, Env, Cont, Meta, Dump
+# VM take 3
+############
+# Registers:
+# 
+# Code  - code to execute,
+# Acc   - the accumulator,
+# Stack - the stack,
+# Env   - static environment,
+# DEnv  - dynamic environment,
+# Cont  - current continuation stack,
+# Meta  - meta-continuation stack,
+# Temp  - a helper register not to introduce temporary variables with defvar
 
-(defvm (Code Acc Stack Env Cont Meta Dump)
+(defvm (Code Acc Stack Env DEnv Cont Meta Temp)
   # Evaluator:
   (.eval
     (if (nil? Code)
         (go '.continue)
-        (do (set! Dump (mcar Code))
+        (do (set! Temp (mcar Code))
             (set! Code (mcdr Code))
-            (if (opcode? Dump)
-                (go Dump)
+            (if (opcode? Temp)
+                (go Temp)
                 (do (set! Stack (mcons Acc Stack))
-                    (set! Acc    Dump)
+                    (set! Acc    Temp)
                     (go '.eval))))))
   (.meta-continue
     (set! Cont (mcar Meta))
@@ -164,47 +174,54 @@
   (.continue
     (if (nil? Cont)
         (go '.meta-continue)
-        (do (set! Dump (mcar Cont))
+        (do (set! Temp (mcar Cont))
             (set! Cont (mcdr Cont))
-            (set! Env  (env Dump))
-            (set! Stack (stack Dump))
-            (set! Code (code Dump))
+            (set! Env  (env Temp))
+            (set! Stack (stack Temp))
+            (set! Code (code Temp))
             (go '.eval))))
   (.apply
    (if (operative? Acc)
        (go '.call)
-       (do (set! Dump (cont Env Stack Code))
-           (set! Cont (mcons Dump Cont))
+       (do (set! Temp (cont Env Stack Code))
+           (set! Cont (mcons Temp Cont))
 
            # TODO .eval the arg, and .call unwrapped combinator
 
            (go '.halt))))
+
   (.call
     (when (not (nil? Code))
-      (set! Dump (cont Env Stack Code))
-      (set! Cont (mcons Dump Cont)))
-    (set! Dump Env)
+      (set! Temp (cont Env Stack Code))
+      (set! Cont (mcons Temp Cont)))
+    (set! DEnv Env)         # FIXME Doesn't restore it after inner call.
     (set! Env   (env Acc))
-    #(set! Env   (mcons Dump Env)) # FIXME Envsplosion
-    (set! Env   (mcons -1 Env))
-    (set! Dump  Code)
+    (set! Temp  Code)
     (set! Code  (code Acc))
     (set! Acc   (mcar Stack))
     (set! Stack (mcdr Stack))
     (set! Env   (mcons Acc Env))
-    (when (nil? Dump)
+    (when (nil? Temp)
       (set! Stack ()))
     (go '.eval))
 
   # State management:
+  (.dyn-env
+    (set! Acc DEnv)
+    (go '.eval))
   (.get
     (set! Acc  (get Env Acc))
     (go '.eval))
-  (.defA
-    (set! Env (mcons 'dummy Env)) # FIXME A huge kludge.
+
+  # TODO Generalize these to support multiple mutually recursive expressions.
+  (.def-rec
+    (set! Env  (mcons 'undefined Env))    # FIXME A huge kludge.
     (go '.eval))
-  (.defB
-    (set-car! Env Acc)            # FIXME A huge kludge.
+  (.def
+    (set! Env (mcons 'undefined Env))     # FIXME A huge kludge.
+    (go '.def-fin))
+  (.def-fin
+    (set-car! Env Acc)                    # FIXME A huge kludge.
     (go '.eval))
 
   # Memory management:
@@ -212,12 +229,12 @@
     (set! Acc (mcar Acc))
     (go '.eval))
   (.cdr
-    (set! Acc (cmdr Acc))
+    (set! Acc (mcdr Acc))
     (go '.eval))
   (.cons
-    (set! Dump (mcar Stack))
+    (set! Temp (mcar Stack))
     (set! Stack (mcdr Stack))
-    (set! Acc (mcons Acc Dump))
+    (set! Acc (mcons Acc Temp))
     (go '.eval))
 
   # Combinators:
@@ -246,9 +263,9 @@
 (defvar still-silly (mtuple (mtuple 1 2 3 4) '.cdr '.car))
 (defvar env-1 (mtuple 42))
 (defvar vau-1 (mtuple 23 (mtuple 0 '.get 1 '.get '.cons) '.vau '.call))
-(defvar tail-1 (mtuple 23 '.defA (mtuple 0 '.get 2 '.get '.call) '.vau '.defB '.call))
-(defvar no-tail-1 (mtuple (mcons 23 42) '.defA (mtuple 0 '.get 2 '.get '.call '.car) '.vau '.defB '.call))
+(defvar tail-1 (mtuple 23 '.def-rec (mtuple 0 '.get 1 '.get '.call) '.vau '.def-fin '.call))
+(defvar no-tail-1 (mtuple (mcons 23 42) '.def-rec (mtuple 0 '.get 1 '.get '.call '.car) '.vau '.def-fin '.call))
 (defvar vau-2 (vau () (mtuple 0 '.get '.car)))
-(defvar tail-2 (mtuple 23 (mtuple (mcons 23 42) 2 '.get '.call) '.vau '.call))
-(defvar no-tail-2 (mtuple 23 (mtuple (mcons 23 42) 2 '.get '.call 0 '.get '.cons) '.vau '.call))
+(defvar tail-2 (mtuple 23 (mtuple (mcons 23 42) 1 '.get '.call) '.vau '.call))
+(defvar no-tail-2 (mtuple 23 (mtuple (mcons 23 42) 1 '.get '.call 0 '.get '.cons) '.vau '.call))
 (defvar env-2 (mtuple vau-2))
