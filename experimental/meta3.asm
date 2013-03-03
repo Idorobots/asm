@@ -101,6 +101,12 @@
         ((continuation? reg) (mcar (mcdr (mcdr reg))))
         ('else               (error (append "Cant access env part of " (stringof reg))))))
 
+(defun set-env! (reg env)
+  (cond ((operative? reg)    (set-car! (mcdr reg) env))
+        ((applicative? reg)  (error "Not implemented!"))
+        ((continuation? reg) (set-car! (mcdr (mcdr reg)) env))
+        ('else               (error (append "Cant set env part of " (stringof reg))))))
+
 (defun code (reg)
   (cond ((operative? reg)    (mcdr (mcdr reg)))
         ((continuation? reg) (mcdr (mcdr (mcdr reg))))
@@ -194,7 +200,7 @@
     (when (not (nil? Code))
       (set! Temp (cont Env Stack Code))
       (set! Cont (mcons Temp Cont)))
-    (set! DEnv Env)         # FIXME Doesn't restore it after inner call.
+    (set! DEnv Env)         # FIXME? Doesn't restore it after inner call.
     (set! Env   (env Acc))
     (set! Temp  Code)
     (set! Code  (code Acc))
@@ -214,14 +220,12 @@
     (go '.eval))
 
   # TODO Generalize these to support multiple mutually recursive expressions.
-  (.def-rec
-    (set! Env  (mcons 'undefined Env))    # FIXME A huge kludge.
-    (go '.eval))
   (.def
-    (set! Env (mcons 'undefined Env))     # FIXME A huge kludge.
-    (go '.def-fin))
-  (.def-fin
-    (set-car! Env Acc)                    # FIXME A huge kludge.
+    (set! Env (mcons Acc Env))
+    (go '.eval))
+  (.def-rec
+    (set! Env (mcons Acc Env))
+    (set-env! Acc Env)         # FIXME A little less of a kludge, but still...
     (go '.eval))
 
   # Memory management:
@@ -263,8 +267,8 @@
 (defvar still-silly (mtuple (mtuple 1 2 3 4) '.cdr '.car))
 (defvar env-1 (mtuple 42))
 (defvar vau-1 (mtuple 23 (mtuple 0 '.get 1 '.get '.cons) '.vau '.call))
-(defvar tail-1 (mtuple 23 '.def-rec (mtuple 0 '.get 1 '.get '.call) '.vau '.def-fin '.call))
-(defvar no-tail-1 (mtuple (mcons 23 42) '.def-rec (mtuple 0 '.get 1 '.get '.call '.car) '.vau '.def-fin '.call))
+(defvar tail-1 (mtuple 23 (mtuple 0 '.get 1 '.get '.call) '.vau '.def-rec '.call))
+(defvar no-tail-1 (mtuple (mcons 23 42) (mtuple 0 '.get 1 '.get '.call '.car) '.vau '.def-rec '.call))
 (defvar vau-2 (vau () (mtuple 0 '.get '.car)))
 (defvar tail-2 (mtuple 23 (mtuple (mcons 23 42) 1 '.get '.call) '.vau '.call))
 (defvar no-tail-2 (mtuple 23 (mtuple (mcons 23 42) 1 '.get '.call 0 '.get '.cons) '.vau '.call))
