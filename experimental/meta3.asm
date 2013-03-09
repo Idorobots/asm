@@ -274,3 +274,4 @@
 (defvar tail-2 (mtuple 23 (mtuple (mcons 23 42) 1 '.get '.call) '.vau '.call))
 (defvar no-tail-2 (mtuple 23 (mtuple (mcons 23 42) 1 '.get '.call 0 '.get '.cons) '.vau '.call))
 (defvar env-2 (mtuple vau-2))
+
