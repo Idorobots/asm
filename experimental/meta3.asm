@@ -213,6 +213,7 @@
 
   # State management:
   (.dyn-env
+    (set! Stack (mcons Acc Stack))
     (set! Acc DEnv)
     (go '.eval))
   (.get
