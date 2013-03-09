@@ -29,3 +29,7 @@ clean:
 	rm -f $(LIB)
 	rm -f $(TARGET)
 	rm -f *.o
+
+# FIXME GDC isn't in the PATH of the flymake process.
+check-syntax:
+	/opt/gdc/bin/gdc $(DFLAGS) $(GDB) -c ${CHK_SOURCES} -o /dev/null

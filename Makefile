@@ -20,3 +20,10 @@ gdc-clean:
 dmd-clean:
 	$(MAKE) -f $(DMDMAKE) clean
 
+check-syntax: check-gdc
+
+check-gdc:
+	$(MAKE) -f $(GDCMAKE) check-syntax
+
+check-dmd:
+	$(MAKE) -f $(DMDMAKE) check-syntax

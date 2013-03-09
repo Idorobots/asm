@@ -30,3 +30,6 @@ clean:
 	rm -f $(LIB)
 	rm -f $(TARGET)
 	rm -f *.o
+
+check-syntax:
+	$(DC) $(DFLAGS) $(GDB) -c ${CHK_SOURCES} -of/dev/null
