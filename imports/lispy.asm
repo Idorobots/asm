@@ -2,8 +2,6 @@
 # Lispy macros:
 ####################
 
-(import 'imports.core) # TODO: Make this implicit.
-
 (macro labels [funcs body]
   `(scoped
     (do $(join 'do
