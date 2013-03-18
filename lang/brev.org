@@ -9,7 +9,10 @@
 #+LaTeX_CLASS: article
 #+LaTeX_CLASS_OPTIONS: [a4paper]
 #+LaTeX_HEADER: \usepackage[margin=2.5cm]{geometry}
+#+LaTeX_HEADER: \usepackage{fontspec}
+#+LaTeX_HEADER: \setmainfont{FreeSerif}
 #+LaTeX_HEADER: \usepackage{amsmath}
+#+LaTeX_HEADER: \usepackage{amssymb}
 #+LaTeX_HEADER: \usepackage{minted}
 #+OPTIONS: toc:nil
 #+end_options
@@ -36,7 +39,7 @@
 : (f 1 2)         # => (apply f (list 1 2))
 : (@ f {x:1 y:2}) # => (mapply f '{x:1 y:2}) => ... => (apply f (list 1 2))
 [2012-12-21 pią 22:24]
-[[irc:/localhost:6667/LucynaJaworska][irc session 'localhost:6667/LucynaJaworska']]
+
 ** TODO llambda syntax sugar for ASM.
 
 : (lambda (x)
@@ -55,36 +58,50 @@
 : (lllambda (x) (y) (z)
 :     )
 [2012-12-23 nie 15:18]
-[[file:~/org/refile.org::*Named%20call%20arg%20syntax%20for%20ASM.][Named call arg syntax for ASM.]]
+
 ** TODO Decouple IOManager, ThreadManager, Allocator and GarbageCollector from the ASM VM.
 IOManager - %read, %write, etc.
 ThreadManager - %receive, %send, etc.
 Allocator - %car, %cdr, %cons, %closure, %struct, etc.
 GarbageCollector - %collect, %minimize, %enable, %disable, etc.
 [2012-12-27 czw 18:55]
-[[irc:/localhost:6667/&bitlbee][irc session 'localhost:6667/&bitlbee']]
-** TODO DyalogAPL-esque lambda syntax for ASM.
 
-: {\alpha \beta \gamma ... \omega}
-: 
-:  /\
-: /||\
-:  ||
-: \||/
-:  \/
-: 
-: (lambda \omega
-:   (let ((\alpha (nth 0 \omega))
-:         (\beta  (nth 1 \omega))
-:         (\gamma (nth 2 \omega)))
-:     \alpha
-:     \beta
-:     \gamma
-:     ...
-:     \omega))
+** TODO DyalogAPL-esque lambda syntax for ASM.
+#+begin_example
+{\alpha \beta \gamma ... \omega}
+
+(lambda \omega
+  (let ((\alpha (nth 0 \omega))
+        (\beta  (nth 1 \omega))
+        (\gamma (nth 2 \omega)))
+    \alpha
+    \beta
+    \gamma
+    ...
+    \omega))
+
+Some ideas:
+
+(for 0 10 {
+  (writeln "foo")
+})
+
+or...
+
+(for 0 10 {
+  | i |
+  (writeln "$i bar")
+})
+
+or...
+
+(for 0 10 { i |
+  (writeln "$i faz")
+})
+#+end_example
 
 [2013-01-02 śro 21:06]
-[[file:~/org/refile.org::*Named%20call%20arg%20syntax%20for%20ASM.][Named call arg syntax for ASM.]]
+
 ** TODO Redef macro for ASM.
 
 : (redef foo (lambda (args)
@@ -101,12 +118,11 @@ GarbageCollector - %collect, %minimize, %enable, %disable, etc.
 :            foo))
 
 [2013-01-02 śro 21:09]
-[[file:~/org/refile.org::*llambda%20syntax%20sugar%20for%20ASM.][llambda syntax sugar for ASM.]]
+
 ** TODO Keep an alist of bindings and use Y combinator for recursion.
 :PROPERTIES:
 :capture_time: [2013-01-12 sob 17:49]
 :END:
-[[file:~/org/refile.org::*Redef%20macro%20for%20ASM.][Redef macro for ASM.]]
 
 Some samples/y.asm stats:
 
@@ -121,6 +137,7 @@ Some samples/y.asm stats:
 | 21 |  9.058 |     10.225 |      10.420 |  10.354 |            |
 | 22 | 14.818 |     16.190 |      16.650 |  16.638 |            |
 | 23 | 23.448 |     25.994 |      26.994 |  26.893 |            |
+
 
 * ASVM
 ** Architecture
